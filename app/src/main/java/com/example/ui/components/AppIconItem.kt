@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -36,6 +37,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PhotoAlbum
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Stars
@@ -206,6 +208,22 @@ fun getAppVisuals(iconKey: String): Pair<ImageVector, List<Color>> {
         "apps" -> Pair(
             Icons.Default.GridView,
             listOf(Color(0xFF9EA3AF), Color(0xFF7E8492))
+        )
+        "contacts" -> Pair(
+            Icons.Default.Contacts,
+            listOf(Color(0xFF8BA5BE), Color(0xFF6E8CA8))
+        )
+        "relations" -> Pair(
+            Icons.Default.Share,
+            listOf(Color(0xFF9E95B8), Color(0xFF7E749C))
+        )
+        "check_phone" -> Pair(
+            Icons.Default.Visibility,
+            listOf(Color(0xFFD6B57E), Color(0xFFBA975E))
+        )
+        "diary" -> Pair(
+            Icons.Default.BookmarkBorder,
+            listOf(Color(0xFFCCA2A2), Color(0xFFAA8080))
         )
         "bridge" -> Pair(
             Icons.Default.Nfc,
