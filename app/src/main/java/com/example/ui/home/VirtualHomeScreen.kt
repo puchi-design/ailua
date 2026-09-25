@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Share
@@ -67,6 +68,7 @@ fun VirtualHomeScreen(
     onNavigateToContacts: () -> Unit = {},
     onNavigateToRelations: () -> Unit = {},
     onNavigateToCheckPhone: () -> Unit = {},
+    onNavigateToDiary: () -> Unit = {},
     onNavigateToMoments: () -> Unit = {},
     onNavigateToLiving: () -> Unit = {},
     onNavigateToMemories: () -> Unit = {},
@@ -137,6 +139,7 @@ fun VirtualHomeScreen(
                         onNavigateToLiving = onNavigateToLiving,
                         onNavigateToContacts = onNavigateToContacts,
                         onNavigateToCheckPhone = onNavigateToCheckPhone,
+                        onNavigateToDiary = onNavigateToDiary,
                         onNavigateToMemories = onNavigateToMemories,
                         onNavigateToRelations = onNavigateToRelations,
                         onNavigateToApps = onNavigateToApps,
@@ -146,6 +149,7 @@ fun VirtualHomeScreen(
                     1 -> PageLifeBento(
                         onNavigateToGroupChat = onNavigateToGroupChat,
                         onNavigateToCheckPhone = onNavigateToCheckPhone,
+                        onNavigateToDiary = onNavigateToDiary,
                         onNavigateToRelations = onNavigateToRelations,
                         onNavigateToLiving = onNavigateToLiving
                     )
@@ -267,6 +271,7 @@ private fun PageMainHome(
     onNavigateToLiving: () -> Unit,
     onNavigateToContacts: () -> Unit,
     onNavigateToCheckPhone: () -> Unit,
+    onNavigateToDiary: () -> Unit,
     onNavigateToMemories: () -> Unit,
     onNavigateToRelations: () -> Unit,
     onNavigateToApps: () -> Unit,
@@ -388,6 +393,7 @@ private fun PageMainHome(
                                 onNavigateToLiving,
                                 onNavigateToContacts,
                                 onNavigateToCheckPhone,
+                                onNavigateToDiary,
                                 onNavigateToMemories,
                                 onNavigateToRelations,
                                 onNavigateToApps,
@@ -416,6 +422,7 @@ private fun PageMainHome(
                                 onNavigateToLiving,
                                 onNavigateToContacts,
                                 onNavigateToCheckPhone,
+                                onNavigateToDiary,
                                 onNavigateToMemories,
                                 onNavigateToRelations,
                                 onNavigateToApps,
@@ -435,6 +442,7 @@ private fun PageMainHome(
 private fun PageLifeBento(
     onNavigateToGroupChat: () -> Unit,
     onNavigateToCheckPhone: () -> Unit,
+    onNavigateToDiary: () -> Unit,
     onNavigateToRelations: () -> Unit,
     onNavigateToLiving: () -> Unit
 ) {
@@ -766,6 +774,83 @@ private fun PageLifeBento(
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        // Widget 2.5: Secret Diary Preview Card (Native Diary Screen Entry)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(2.dp, RoundedCornerShape(18.dp))
+                .clip(RoundedCornerShape(18.dp))
+                .background(
+                    Brush.linearGradient(
+                        listOf(
+                            AiluaDustyRose.copy(alpha = 0.12f),
+                            MaterialTheme.colorScheme.surface
+                        )
+                    )
+                )
+                .border(
+                    0.5.dp,
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                    RoundedCornerShape(18.dp)
+                )
+                .clickable { onNavigateToDiary() }
+                .padding(14.dp)
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.BookmarkBorder,
+                            contentDescription = null,
+                            tint = AiluaDustyRose,
+                            modifier = Modifier.size(17.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "心声日记 · Secret Diary",
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Text(
+                        text = "9月25日",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            color = AiluaMistBlue
+                        )
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "《风吹进来的时候》",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "“整理书页的时候，突然想起你昨天说，一忙起来就总忘记喝水。不知道你今天有没有记得…”",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                    maxLines = 2
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         // Widget 3: Social Relations Graph Banner (SillyTavern-GroupWorld inspired)
         Box(
             modifier = Modifier
@@ -840,6 +925,7 @@ private fun dispatchAppAction(
     onNavigateToLiving: () -> Unit,
     onNavigateToContacts: () -> Unit,
     onNavigateToCheckPhone: () -> Unit,
+    onNavigateToDiary: () -> Unit,
     onNavigateToMemories: () -> Unit,
     onNavigateToRelations: () -> Unit,
     onNavigateToApps: () -> Unit,
@@ -851,9 +937,9 @@ private fun dispatchAppAction(
         "living" -> onNavigateToLiving()
         "contacts" -> onNavigateToContacts()
         "check_phone" -> onNavigateToCheckPhone()
+        "diary" -> onNavigateToDiary()
         "memories" -> onNavigateToMemories()
         "relations" -> onNavigateToRelations()
-        "diary" -> onNavigateToCheckPhone()
         "apps" -> onNavigateToApps()
         else -> onAppClick(appId)
     }

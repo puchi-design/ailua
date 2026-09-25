@@ -69,9 +69,13 @@ fun AppLibraryScreen(
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
     onBackToHome: () -> Unit = {},
-    onNavigateToChat: () -> Unit = {},
+    onNavigateToMessages: () -> Unit = {},
+    onNavigateToContacts: () -> Unit = {},
     onNavigateToMoments: () -> Unit = {},
     onNavigateToLiving: () -> Unit = {},
+    onNavigateToDiary: () -> Unit = {},
+    onNavigateToCheckPhone: () -> Unit = {},
+    onNavigateToRelations: () -> Unit = {},
     onNavigateToMemories: () -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -232,9 +236,13 @@ fun AppLibraryScreen(
                         app = app,
                         onClick = {
                             when (app.id) {
-                                "chat" -> onNavigateToChat()
+                                "chat", "messages" -> onNavigateToMessages()
+                                "contacts" -> onNavigateToContacts()
                                 "moments" -> onNavigateToMoments()
                                 "living" -> onNavigateToLiving()
+                                "diary" -> onNavigateToDiary()
+                                "check_phone" -> onNavigateToCheckPhone()
+                                "relations" -> onNavigateToRelations()
                                 "memories" -> onNavigateToMemories()
                                 else -> selectedAppForModal = app
                             }

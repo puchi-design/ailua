@@ -811,10 +811,10 @@ object MockData {
             name = "影集 · Gallery",
             category = "核心伴生",
             description = "陪伴者私藏的照片、生活瞬间合影与手绘风插画胶卷",
-            status = AppStatus.AVAILABLE,
-            badge = null,
+            status = AppStatus.COMING_SOON,
+            badge = "规划中",
             iconKey = "gallery",
-            route = "gallery"
+            route = null
         ),
 
         // Virtual World & Spaces
@@ -945,4 +945,90 @@ object MockData {
             route = null
         )
     )
+
+    // =========================================================================
+    // 12. DERIVED WORLD STATE HELPERS (Single source of truth)
+    // =========================================================================
+
+    fun getTimelineForCharacter(characterId: String): List<TimelineEvent> {
+        val events = unifiedLifeEvents.filter {
+            it.characterId == characterId || it.relatedCharacterIds.contains(characterId)
+        }
+        if (events.isEmpty()) {
+            return when (characterId) {
+                "yuna" -> characterYuna.timeline
+                "noa" -> characterNoa.timeline
+                else -> sampleCharacter.timeline
+            }
+        }
+        return events.mapIndexed { index, ev ->
+            TimelineEvent(
+                id = ev.id,
+                time = ev.time,
+                title = ev.title,
+                description = ev.description,
+                isCurrent = index == events.size - 1
+            )
+        }
+    }
+
+    fun getChatMessagesForCharacter(characterId: String): List<ChatMessage> {
+        return when (characterId.lowercase()) {
+            "yuna" -> listOf(
+                ChatMessage(
+                    id = "msg_yuna_1",
+                    sender = MessageSender.SYSTEM,
+                    type = MessageType.TEXT,
+                    text = "✨ AILUA 心网已连接 · 悠奈 当前状态：元气满格",
+                    timestamp = "20:30"
+                ),
+                ChatMessage(
+                    id = "msg_yuna_2",
+                    sender = MessageSender.CHARACTER,
+                    senderCharacterId = "yuna",
+                    senderName = "悠奈",
+                    type = MessageType.TEXT,
+                    text = "嗨嗨！你今天过得怎么样？我刚从便利店抢到了最后一盒焦糖布丁，超好吃！明天给你留一个🍮",
+                    timestamp = "20:55"
+                ),
+                ChatMessage(
+                    id = "msg_yuna_3",
+                    sender = MessageSender.CHARACTER,
+                    senderCharacterId = "yuna",
+                    senderName = "悠奈",
+                    type = MessageType.ACTION_NARRATIVE,
+                    text = "悠奈发来了一张在雨天撑着小黄伞冲进全家便利店的抓拍照片，眼睛弯成月牙～",
+                    timestamp = "20:56"
+                )
+            )
+            "noa" -> listOf(
+                ChatMessage(
+                    id = "msg_noa_1",
+                    sender = MessageSender.SYSTEM,
+                    type = MessageType.TEXT,
+                    text = "✨ AILUA 心网已连接 · 诺亚 当前状态：月光书阁藏书室",
+                    timestamp = "昨天"
+                ),
+                ChatMessage(
+                    id = "msg_noa_2",
+                    sender = MessageSender.CHARACTER,
+                    senderCharacterId = "noa",
+                    senderName = "诺亚",
+                    type = MessageType.TEXT,
+                    text = "晚上好。窗外的雨声节奏很适合阅读，月光书阁这盘1978年的爵士黑胶唱片随时可以借你听。",
+                    timestamp = "昨天 21:05"
+                ),
+                ChatMessage(
+                    id = "msg_noa_3",
+                    sender = MessageSender.CHARACTER,
+                    senderCharacterId = "noa",
+                    senderName = "诺亚",
+                    type = MessageType.MEMORY_CARD,
+                    text = "旧书扉页的字迹 · 星河十四行诗摘录",
+                    timestamp = "昨天 21:08"
+                )
+            )
+            else -> sampleChatMessages
+        }
+    }
 }

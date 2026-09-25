@@ -76,6 +76,9 @@ fun LivingScreen(
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    val timelineEvents = remember(character.id) {
+        MockData.getTimelineForCharacter(character.id).ifEmpty { character.timeline }
+    }
 
     Box(
         modifier = Modifier
@@ -268,10 +271,10 @@ fun LivingScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    character.timeline.forEachIndexed { index, event ->
+                    timelineEvents.forEachIndexed { index, event ->
                         TimelineEventRow(
                             event = event,
-                            isLast = index == character.timeline.size - 1
+                            isLast = index == timelineEvents.size - 1
                         )
                     }
                 }

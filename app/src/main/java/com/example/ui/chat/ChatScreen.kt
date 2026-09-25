@@ -91,7 +91,9 @@ fun ChatScreen(
     onBackToHome: () -> Unit = {},
     onOpenProfile: () -> Unit = {}
 ) {
-    val messages = remember { mutableStateListOf(*MockData.sampleChatMessages.toTypedArray()) }
+    val messages = remember(character.id) {
+        mutableStateListOf(*MockData.getChatMessagesForCharacter(character.id).toTypedArray())
+    }
     var inputText by remember { mutableStateOf("") }
     var showMenu by remember { mutableStateOf(false) }
     var showActionSheet by remember { mutableStateOf(false) }
@@ -241,7 +243,7 @@ fun ChatScreen(
                                 )
                                 // Trigger character reply
                                 coroutineScope.launch {
-                                    handleCharacterAutoReply(prompt, messages)
+                                    handleCharacterAutoReply(prompt, messages, character)
                                 }
                             }
                             .padding(horizontal = 10.dp, vertical = 5.dp)
@@ -273,7 +275,7 @@ fun ChatScreen(
                         )
                         inputText = ""
                         coroutineScope.launch {
-                            handleCharacterAutoReply(text, messages)
+                            handleCharacterAutoReply(text, messages, character)
                         }
                     }
                 },
@@ -827,24 +829,44 @@ private fun ActionSheetItem(
 
 private fun handleCharacterAutoReply(
     userText: String,
-    messages: MutableList<ChatMessage>
+    messages: MutableList<ChatMessage>,
+    character: CharacterProfile
 ) {
-    val replyText = when {
-        userText.contains("累") -> "（伸出手轻轻摸了摸你的发梢）今天真的辛苦啦。别想工作的事情了，闭上眼睛，我在这里陪着你，听一会儿雨声吧。"
-        userText.contains("做什么") -> "我刚才在看窗户上滑下来的雨珠，猜哪一颗能最先滑到底部呢～要不要一起猜一局？"
-        userText.contains("故事") -> "从前有一座静悄悄的钟表镇，夜晚下雨的时候，时间的齿轮会放慢两倍，只留给彼此心有灵犀的人慢慢相处…"
-        userText.contains("红茶") -> "温温热热的，放了半勺薄荷蜂蜜。留的那杯温度刚好，喝一口整个人都会暖和起来的。"
-        else -> "嗯，我在听。无论你想说什么，小弥都一直在这里陪着你。"
+    val replyText = when (character.id.lowercase()) {
+        "yuna" -> when {
+            userText.contains("累") -> "（拉住你的手晃了晃）累了就快停下来！我把焦糖布丁热一热分你一半，吃甜的心情立刻就会好起来哦！"
+            userText.contains("做什么") -> "我在整理今天扫街拍的雨天猫猫抓拍！你看，这只猫居然在屋檐下甩水，超级可爱～"
+            userText.contains("布丁") -> "是全家便利店最后一盒限定款！奶香超浓郁，明天我专门去给你多买两个！"
+            else -> "嘿嘿，听你说话好开心！我们明天再一起去木兰茶馆好不好？"
+        }
+        "noa" -> when {
+            userText.contains("累") -> "人的思绪如琴弦，紧绷太久便失了音准。坐下来，听一曲白噪音，把心事暂且搁置吧。"
+            userText.contains("做什么") -> "正在用雪松油擦拭老旧黑胶唱机的木壳。雨水天气容易受潮，这些老物件需要格外呵护。"
+            userText.contains("书") || userText.contains("故事") -> "月光书阁藏着一本1930年的星河十四行诗集，扉页写着：『微光纵然微弱，亦足照亮一页长夜。』"
+            else -> "静听长夜细雨，此中自有从容处。我在月光书阁，随时欢迎你的到来。"
+        }
+        else -> when {
+            userText.contains("累") -> "（伸出手轻轻摸了摸你的发梢）今天真的辛苦啦。别想工作的事情了，闭上眼睛，我在这里陪着你，听一会儿雨声吧。"
+            userText.contains("做什么") -> "我刚才在看窗户上滑下来的雨珠，猜哪一颗能最先滑到底部呢～要不要一起猜一局？"
+            userText.contains("故事") -> "从前有一座静悄悄的钟表镇，夜晚下雨的时候，时间的齿轮会放慢两倍，只留给彼此心有灵犀的人慢慢相处…"
+            userText.contains("红茶") -> "温温热热的，放了半勺薄荷蜂蜜。留的那杯温度刚好，喝一口整个人都会暖和起来的。"
+            else -> "嗯，我在听。无论你想说什么，小弥都一直在这里陪着你。"
+        }
     }
+
+    val senderName = character.name
+    val charAvatarId = character.avatarId
 
     messages.add(
         ChatMessage(
             id = "c_${System.currentTimeMillis()}",
             sender = MessageSender.CHARACTER,
+            senderCharacterId = charAvatarId,
+            senderName = senderName,
             type = MessageType.TEXT,
             text = replyText,
             timestamp = "刚才",
-            reactions = listOf("🌙", "🍵")
+            reactions = if (character.id == "yuna") listOf("🍮", "✨") else if (character.id == "noa") listOf("📖", "🌙") else listOf("🌙", "🍵")
         )
     )
 }
