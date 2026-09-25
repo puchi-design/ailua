@@ -72,8 +72,16 @@ fun MomentsScreen(
     onBackToHome: () -> Unit = {},
     onOpenProfile: () -> Unit = {}
 ) {
-    val posts = remember { mutableStateListOf(*MockData.sampleMoments.toTypedArray()) }
+    val posts = remember { mutableStateListOf(*MockData.getMomentsFromLifeEvents().toTypedArray()) }
     var selectedFilter by remember { mutableStateOf("全部") }
+    val filterOptions = listOf("全部", "小弥", "悠奈", "诺亚")
+    val filteredPosts = when (selectedFilter) {
+        "全部" -> posts
+        "小弥", "Mira" -> posts.filter { it.authorId == "mira" }
+        "悠奈", "Yuna" -> posts.filter { it.authorId == "yuna" }
+        "诺亚", "Noa" -> posts.filter { it.authorId == "noa" }
+        else -> posts.filter { it.authorName == selectedFilter }
+    }
 
     Box(
         modifier = Modifier
@@ -132,14 +140,14 @@ fun MomentsScreen(
                     }
                 }
 
-                // Filter Pill (All / Mira)
+                // Filter Pill (All / Characters)
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(14.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                         .padding(3.dp)
                 ) {
-                    listOf("全部", "Mira").forEach { filter ->
+                    filterOptions.forEach { filter ->
                         val isSelected = selectedFilter == filter
                         Box(
                             modifier = Modifier
@@ -171,7 +179,7 @@ fun MomentsScreen(
             ) {
                 item { Spacer(modifier = Modifier.height(6.dp)) }
 
-                items(posts, key = { it.id }) { post ->
+                items(filteredPosts, key = { it.id }) { post ->
                     MomentCard(
                         post = post,
                         onOpenProfile = onOpenProfile,
@@ -257,6 +265,7 @@ private fun MomentCard(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 AiluaAvatar(
+                    avatarId = post.authorId,
                     size = 42.dp,
                     showHalo = false,
                     onClick = onOpenProfile
@@ -477,7 +486,7 @@ private fun MomentCard(
                             .height(44.dp),
                         placeholder = {
                             Text(
-                                text = "写下对 Mira 的回应…",
+                                text = "写下对 ${post.authorName} 的回应…",
                                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                             )

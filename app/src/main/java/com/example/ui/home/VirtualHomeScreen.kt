@@ -559,7 +559,7 @@ private fun PageLifeBento(
 
                 pulseEvents.forEachIndexed { index, event ->
                     val charName = when (event.characterId) {
-                        "yuna" -> "尤娜"
+                        "yuna" -> "悠奈"
                         "noa" -> "诺亚"
                         else -> "小弥"
                     }
@@ -761,7 +761,7 @@ private fun PageLifeBento(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "小弥 · 尤娜 · 诺亚\nAI自主演绎进行中",
+                        text = "小弥 · 悠奈 · 诺亚\nAI自主演绎进行中",
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontSize = 10.sp,
                             lineHeight = 14.sp

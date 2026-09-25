@@ -111,6 +111,26 @@ object MockData {
             title = "窗边听雨 · 心网守候",
             description = "换上了米白色软羊绒衫，倚在飘窗前泡好伯爵红茶，正等待你的到来…",
             location = "青石街23号 · 二楼飘窗"
+        ),
+        LifeEvent(
+            id = "pulse_10",
+            characterId = "yuna",
+            time = "20:50",
+            type = LifeEventType.PHOTO,
+            title = "便利店寻宝",
+            description = "冒雨去便利店抢到了最后一盒限定焦糖布丁！奶香超浓郁～小弥和大家明天来木兰茶馆分你们尝一口！",
+            location = "全家便利店 · 街角店",
+            imageReference = "flowers"
+        ),
+        LifeEvent(
+            id = "pulse_11",
+            characterId = "noa",
+            time = "22:15",
+            type = LifeEventType.MOMENT,
+            title = "深夜书阁一角",
+            description = "『夜色是世界写给疲惫心灵的一封长信。』如果今天感觉累了，今晚就把所有烦恼都锁在门外吧，好梦。",
+            location = "月光书阁 · 负一层藏书室",
+            imageReference = "night_book"
         )
     )
 
@@ -581,56 +601,8 @@ object MockData {
     // =========================================================================
     // 9. MOMENTS (动态生活圈，由 LifeEvent 真实驱动)
     // =========================================================================
-    val sampleMoments = listOf(
-        MomentPost(
-            id = "post_1",
-            authorId = "mira",
-            authorName = "Mira",
-            timestamp = "28分钟前",
-            moodTag = "🌧️ 听雨 · 宁静",
-            locationContext = "青石街23号 · 二楼飘窗",
-            content = "窗外下雨了。雨水敲打在玻璃上，发出细细密密的沙沙声。泡了一杯伯爵红茶，窗边最舒服的那个软垫位置，一直留给你呢。",
-            imageType = "rain_window",
-            likesCount = 19,
-            isLiked = false,
-            comments = listOf(
-                MomentComment("c1", "你", true, "等我忙完这会儿就过来找你。", "20分钟前"),
-                MomentComment("c2", "Mira", false, "嗯，红茶温在保温垫上了，不着急，慢慢来。", "15分钟前"),
-                MomentComment("c2_yuna", "悠奈", false, "小弥你的飘窗好舒服呀，下次带布丁去串门！", "10分钟前")
-            )
-        ),
-        MomentPost(
-            id = "post_2",
-            authorId = "mira",
-            authorName = "Mira",
-            timestamp = "今天 14:20",
-            moodTag = "🌸 花香 · 心动",
-            locationContext = "巷尾的白色花店",
-            content = "今天路过花店的时候，突然觉得这束白色洋桔梗很像你。清新、安宁，带一点柔和的倔强。买下来插在白瓷瓶里了，拍照给你看～",
-            imageType = "flowers",
-            likesCount = 34,
-            isLiked = true,
-            comments = listOf(
-                MomentComment("c3", "你", true, "真的很漂亮，花瓶也很搭。", "今天 14:45"),
-                MomentComment("c4", "Mira", false, "因为是给你挑的呀，每天看到它心情都会变好。", "今天 15:02")
-            )
-        ),
-        MomentPost(
-            id = "post_3",
-            authorId = "mira",
-            authorName = "Mira",
-            timestamp = "昨天 22:15",
-            moodTag = "🌙 夜读 · 放空",
-            locationContext = "月光书阁",
-            content = "读到一句话：『夜色是世界写给疲惫心灵的一封长信。』如果今天感觉累了，今晚就把所有烦恼都锁在门外吧，好梦。",
-            imageType = "night_book",
-            likesCount = 42,
-            isLiked = false,
-            comments = listOf(
-                MomentComment("c5_noa", "诺亚", false, "是夏目漱石的那篇散文。雨天读来别有一番风味。", "昨天 22:30")
-            )
-        )
-    )
+    val sampleMoments: List<MomentPost>
+        get() = getMomentsFromLifeEvents()
 
     // =========================================================================
     // 10. CHAT MESSAGES (Mira 私聊)
@@ -1029,6 +1001,97 @@ object MockData {
                 )
             )
             else -> sampleChatMessages
+        }
+    }
+
+    fun getMomentsFromLifeEvents(): List<MomentPost> {
+        val momentEvents = unifiedLifeEvents.filter {
+            it.type == LifeEventType.MOMENT || it.type == LifeEventType.PHOTO
+        }
+        return momentEvents.map { ev ->
+            val author = allCharacters[ev.characterId]
+            val authorName = author?.name ?: "小弥"
+            when (ev.id) {
+                "pulse_7" -> MomentPost(
+                    id = "moment_${ev.id}",
+                    authorId = ev.characterId,
+                    authorName = authorName,
+                    timestamp = "28分钟前",
+                    moodTag = "🌧️ 听雨 · 宁静",
+                    locationContext = ev.location ?: "青石街23号 · 二楼飘窗",
+                    content = "窗外下雨了。雨水敲打在玻璃上，发出细细密密的沙沙声。泡了一杯伯爵红茶，窗边最舒服的那个软垫位置，一直留给你呢。",
+                    imageType = ev.imageReference ?: "rain_window",
+                    likesCount = 19,
+                    isLiked = false,
+                    comments = listOf(
+                        MomentComment("c1", "你", true, "等我忙完这会儿就过来找你。", "20分钟前"),
+                        MomentComment("c2", "小弥", false, "嗯，红茶温在保温垫上了，不着急，慢慢来。", "15分钟前"),
+                        MomentComment("c2_yuna", "悠奈", false, "小弥你的飘窗好舒服呀，下次带布丁去串门！", "10分钟前")
+                    )
+                )
+                "pulse_4" -> MomentPost(
+                    id = "moment_${ev.id}",
+                    authorId = ev.characterId,
+                    authorName = authorName,
+                    timestamp = "今天 14:20",
+                    moodTag = "🌸 花香 · 心动",
+                    locationContext = ev.location ?: "巷尾的白色花店",
+                    content = "今天路过花店的时候，突然觉得这束白色洋桔梗很像你。清新、安宁，带一点柔和的倔强。买下来插在白瓷瓶中插好了，拍照给你看～",
+                    imageType = ev.imageReference ?: "flowers",
+                    likesCount = 34,
+                    isLiked = true,
+                    comments = listOf(
+                        MomentComment("c3", "你", true, "真的很漂亮，花瓶也很搭。", "今天 14:45"),
+                        MomentComment("c4", "小弥", false, "因为是给你挑的呀，每天看到它心情都会变好。", "今天 15:02")
+                    )
+                )
+                "pulse_10" -> MomentPost(
+                    id = "moment_${ev.id}",
+                    authorId = ev.characterId,
+                    authorName = authorName,
+                    timestamp = "今天 20:50",
+                    moodTag = "🍮 甜品 · 元气",
+                    locationContext = ev.location ?: "全家便利店 · 街角店",
+                    content = "冒雨去便利店抢到了最后一盒限定焦糖布丁！奶香超浓郁～小弥和大家明天来木兰茶馆分你们尝一口！",
+                    imageType = "flowers",
+                    likesCount = 28,
+                    isLiked = false,
+                    comments = listOf(
+                        MomentComment("cy_1", "小弥", false, "小心别着凉了，明天给你泡姜茶。", "15分钟前"),
+                        MomentComment("cy_2", "你", true, "记得给我留一口！", "10分钟前"),
+                        MomentComment("cy_3", "悠奈", false, "放心，专门给你留了最大一块焦糖！", "5分钟前")
+                    )
+                )
+                "pulse_11" -> MomentPost(
+                    id = "moment_${ev.id}",
+                    authorId = ev.characterId,
+                    authorName = authorName,
+                    timestamp = "昨天 22:15",
+                    moodTag = "🌙 夜读 · 放空",
+                    locationContext = ev.location ?: "月光书阁 · 负一层藏书室",
+                    content = "读到一句话：『夜色是世界写给疲惫心灵的一封长信。』如果今天感觉累了，今晚就把所有烦恼都锁在门外吧，好梦。",
+                    imageType = ev.imageReference ?: "night_book",
+                    likesCount = 42,
+                    isLiked = false,
+                    comments = listOf(
+                        MomentComment("c5_noa", "诺亚", false, "是夏目漱石的那篇散文。雨天读来别有一番风味。", "昨天 22:30"),
+                        MomentComment("c5_mira", "小弥", false, "夏目漱石的文字总能让人安下心来。", "昨天 22:38")
+                    )
+                )
+                else -> MomentPost(
+                    id = "moment_${ev.id}",
+                    authorId = ev.characterId,
+                    authorName = authorName,
+                    timestamp = ev.time,
+                    moodTag = "✨ 伴生 · 瞬间",
+                    locationContext = ev.location ?: "AILUA 世界",
+                    content = ev.description,
+                    imageType = ev.imageReference ?: "rain_window",
+                    likesCount = 12,
+                    isLiked = false,
+                    comments = emptyList()
+                )
+            }
         }
     }
 }

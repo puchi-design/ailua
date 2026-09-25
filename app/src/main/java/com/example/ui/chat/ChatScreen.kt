@@ -101,13 +101,29 @@ fun ChatScreen(
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val quickPrompts = listOf(
-        "你在做什么呢？",
-        "今天有点累…",
-        "给我讲个故事吧",
-        "雨下得真大呢",
-        "红茶好喝吗？"
-    )
+    val quickPrompts = when (character.id.lowercase()) {
+        "yuna" -> listOf(
+            "你在做什么呢？",
+            "今天有点累…",
+            "布丁还有吗？",
+            "雨下得真大呢",
+            "明天去探店吧！"
+        )
+        "noa" -> listOf(
+            "你在做什么呢？",
+            "今天有点累…",
+            "给我讲个故事吧",
+            "雨下得真大呢",
+            "在听什么唱片？"
+        )
+        else -> listOf(
+            "你在做什么呢？",
+            "今天有点累…",
+            "给我讲个故事吧",
+            "雨下得真大呢",
+            "红茶好喝吗？"
+        )
+    }
 
     LaunchedEffect(messages.size) {
         listState.animateScrollToItem(messages.size - 1)
@@ -188,6 +204,7 @@ fun ChatScreen(
                 items(messages, key = { it.id }) { message ->
                     ChatMessageItem(
                         message = message,
+                        character = character,
                         onSaveMemory = {
                             coroutineScope.launch {
                                 snackbarHostState.showSnackbar("已保存到「记忆晶核」")
@@ -195,14 +212,30 @@ fun ChatScreen(
                         },
                         onRegenerate = {
                             coroutineScope.launch {
+                                val (regenText, reactions) = when (character.id.lowercase()) {
+                                    "yuna" -> Pair(
+                                        "（悠奈眨了眨眼睛，笑容灿烂）有你在身边，感觉每天都有数不完的新奇冒险！",
+                                        listOf("🍮", "✨")
+                                    )
+                                    "noa" -> Pair(
+                                        "（诺亚微微颔首，目光温和）无需过多言语，片刻的宁静，足抵万千喧嚣。",
+                                        listOf("📖", "🌙")
+                                    )
+                                    else -> Pair(
+                                        "（${character.name} 微微侧过头，眼眸里映着温柔的灯光）其实，能像现在这样安安静静地和你待着，我就已经很满足了。",
+                                        listOf("✨", "🌸")
+                                    )
+                                }
                                 messages.add(
                                     ChatMessage(
                                         id = "regen_${System.currentTimeMillis()}",
                                         sender = MessageSender.CHARACTER,
+                                        senderCharacterId = character.avatarId,
+                                        senderName = character.name,
                                         type = MessageType.TEXT,
-                                        text = "（Mira 微微侧过头，眼眸里映着温柔的灯光）其实，能像现在这样安安静静地和你待着，我就已经很满足了。",
+                                        text = regenText,
                                         timestamp = "刚才",
-                                        reactions = listOf("✨")
+                                        reactions = reactions
                                     )
                                 )
                             }
@@ -260,6 +293,7 @@ fun ChatScreen(
             // Chat Input Bar
             ChatInputBar(
                 inputText = inputText,
+                characterName = character.name,
                 onInputTextChange = { inputText = it },
                 onSend = {
                     if (inputText.isNotBlank()) {
@@ -298,19 +332,35 @@ fun ChatScreen(
                                 id = "act_${System.currentTimeMillis()}",
                                 sender = MessageSender.USER,
                                 type = MessageType.ACTION_NARRATIVE,
-                                text = "伸出手轻轻碰了碰 Mira 放在桌上的杯沿，对她温和地笑了笑。",
+                                text = "伸出手轻轻碰了碰 ${character.name} 放在桌上的杯沿，对 TA 温和地笑了笑。",
                                 timestamp = "刚才"
                             )
                         )
                         coroutineScope.launch {
+                            val (replyText, reactions) = when (character.id.lowercase()) {
+                                "yuna" -> Pair(
+                                    "指尖触碰的瞬间，悠奈像受惊的小鹿般笑出声来，顺手把刚烤好的松饼推到你面前～",
+                                    listOf("🍮", "🌸")
+                                )
+                                "noa" -> Pair(
+                                    "指尖微触，诺亚放下手中的诗卷，眼中掠过一丝温意，轻轻将温热的茶杯推近了些许。",
+                                    listOf("📖", "🌙")
+                                )
+                                else -> Pair(
+                                    "指尖感受到杯子的温热，${character.name} 微微睁大眼睛，随即莞尔一笑，将羊毛毯又往你身旁拉近了一些。",
+                                    listOf("🌸", "🍵")
+                                )
+                            }
                             messages.add(
                                 ChatMessage(
                                     id = "resp_${System.currentTimeMillis()}",
                                     sender = MessageSender.CHARACTER,
+                                    senderCharacterId = character.avatarId,
+                                    senderName = character.name,
                                     type = MessageType.ACTION_NARRATIVE,
-                                    text = "指尖感受到杯子的温热，Mira 微微睁大眼睛，随即莞尔一笑，将羊毛毯又往你身旁拉近了一些。",
+                                    text = replyText,
                                     timestamp = "刚才",
-                                    reactions = listOf("🌸")
+                                    reactions = reactions
                                 )
                             )
                         }
@@ -326,6 +376,9 @@ fun ChatScreen(
                                 timestamp = "刚才"
                             )
                         )
+                        coroutineScope.launch {
+                            handleCharacterAutoReply("照片", messages, character)
+                        }
                     }
                     ActionSheetItem("语音轻语", "🎙️") {
                         showActionSheet = false
@@ -333,6 +386,8 @@ fun ChatScreen(
                             ChatMessage(
                                 id = "v_${System.currentTimeMillis()}",
                                 sender = MessageSender.CHARACTER,
+                                senderCharacterId = character.avatarId,
+                                senderName = character.name,
                                 type = MessageType.VOICE,
                                 text = "［语音 8秒］",
                                 timestamp = "刚才",
@@ -402,6 +457,7 @@ private fun ChatHeader(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             AiluaAvatar(
+                avatarId = character.avatarId,
                 size = 38.dp,
                 showHalo = false,
                 showLivingStatus = true
@@ -465,6 +521,7 @@ private fun ChatHeader(
 @Composable
 private fun ChatMessageItem(
     message: ChatMessage,
+    character: CharacterProfile,
     onSaveMemory: () -> Unit,
     onRegenerate: () -> Unit
 ) {
@@ -527,7 +584,11 @@ private fun ChatMessageItem(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.Top
             ) {
-                AiluaAvatar(size = 34.dp, showHalo = false)
+                AiluaAvatar(
+                    avatarId = message.senderCharacterId ?: character.avatarId,
+                    size = 34.dp,
+                    showHalo = false
+                )
 
                 Column(modifier = Modifier.weight(1f, fill = false)) {
                     when (message.type) {
@@ -594,6 +655,7 @@ private fun ChatMessageItem(
                         MessageType.VOICE -> {
                             // Voice message representation
                             var isPlaying by remember { mutableStateOf(false) }
+                            val listeningName = message.senderName ?: character.name
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(16.dp))
@@ -617,7 +679,7 @@ private fun ChatMessageItem(
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Text(
-                                        text = if (isPlaying) "正在倾听 Mira..." else "语音轻诉 ${message.voiceDurationSeconds}\"",
+                                        text = if (isPlaying) "正在倾听 $listeningName..." else "语音轻诉 ${message.voiceDurationSeconds}\"",
                                         style = MaterialTheme.typography.bodyMedium.copy(
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.Medium
@@ -728,6 +790,7 @@ private fun ChatMessageItem(
 @Composable
 private fun ChatInputBar(
     inputText: String,
+    characterName: String,
     onInputTextChange: (String) -> Unit,
     onSend: () -> Unit,
     onAttachClick: () -> Unit
@@ -763,7 +826,7 @@ private fun ChatInputBar(
                 .testTag("chat_text_input"),
             placeholder = {
                 Text(
-                    text = "对 Mira 说点什么…",
+                    text = "对 $characterName 说点什么…",
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.5.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )
@@ -837,12 +900,16 @@ private fun handleCharacterAutoReply(
             userText.contains("累") -> "（拉住你的手晃了晃）累了就快停下来！我把焦糖布丁热一热分你一半，吃甜的心情立刻就会好起来哦！"
             userText.contains("做什么") -> "我在整理今天扫街拍的雨天猫猫抓拍！你看，这只猫居然在屋檐下甩水，超级可爱～"
             userText.contains("布丁") -> "是全家便利店最后一盒限定款！奶香超浓郁，明天我专门去给你多买两个！"
+            userText.contains("照片") -> "哇！这张照片的光影抓得太有感觉了！下次一定要带我去这里打卡！"
+            userText.contains("探店") -> "我知道三家超级棒的日落甜品店，这周末就出发！"
             else -> "嘿嘿，听你说话好开心！我们明天再一起去木兰茶馆好不好？"
         }
         "noa" -> when {
             userText.contains("累") -> "人的思绪如琴弦，紧绷太久便失了音准。坐下来，听一曲白噪音，把心事暂且搁置吧。"
             userText.contains("做什么") -> "正在用雪松油擦拭老旧黑胶唱机的木壳。雨水天气容易受潮，这些老物件需要格外呵护。"
             userText.contains("书") || userText.contains("故事") -> "月光书阁藏着一本1930年的星河十四行诗集，扉页写着：『微光纵然微弱，亦足照亮一页长夜。』"
+            userText.contains("照片") -> "石板路上倒映的冷色月光，确实有一种古典画作的沉静质感。"
+            userText.contains("唱片") -> "现在转盘上放的是1978年的爵士萨克斯独奏，音质温润醇厚。"
             else -> "静听长夜细雨，此中自有从容处。我在月光书阁，随时欢迎你的到来。"
         }
         else -> when {
@@ -850,7 +917,8 @@ private fun handleCharacterAutoReply(
             userText.contains("做什么") -> "我刚才在看窗户上滑下来的雨珠，猜哪一颗能最先滑到底部呢～要不要一起猜一局？"
             userText.contains("故事") -> "从前有一座静悄悄的钟表镇，夜晚下雨的时候，时间的齿轮会放慢两倍，只留给彼此心有灵犀的人慢慢相处…"
             userText.contains("红茶") -> "温温热热的，放了半勺薄荷蜂蜜。留的那杯温度刚好，喝一口整个人都会暖和起来的。"
-            else -> "嗯，我在听。无论你想说什么，小弥都一直在这里陪着你。"
+            userText.contains("照片") -> "真美…仿佛我也和你并肩站在那条湿漉漉的街道上，吹着同一缕夜风。"
+            else -> "嗯，我在听。无论你想说什么，${character.name}都一直在这里陪着你。"
         }
     }
 
