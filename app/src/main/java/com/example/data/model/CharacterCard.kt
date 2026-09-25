@@ -1,36 +1,43 @@
 package com.example.data.model
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
 /**
  * Character Card V2 Specification data structures.
  * Inspired by character-card-spec-v2 & SillyTavern.
  */
+@Serializable
 data class CharacterCard(
-    val spec: String = "chara_card_v2",
-    val specVersion: String = "2.0",
-    val data: CharacterCardData
+    @SerialName("spec") val spec: String = "chara_card_v2",
+    @SerialName("spec_version") val specVersion: String = "2.0",
+    @SerialName("data") val data: CharacterCardData
 )
 
+@Serializable
 data class CharacterCardData(
-    val id: String = "",
-    val name: String,
-    val description: String = "",
-    val personality: String = "",
-    val scenario: String = "",
-    val firstMessage: String = "",
-    val exampleMessages: String = "",
-    val creatorNotes: String = "",
-    val systemPrompt: String = "",
-    val postHistoryInstructions: String = "",
-    val alternateGreetings: List<String> = emptyList(),
-    val tags: List<String> = emptyList(),
-    val creator: String = "AILUA Artisan",
-    val characterVersion: String = "1.0",
-    val avatarReference: String = "mira",
-    val characterBook: WorldBook? = null
+    @SerialName("id") val id: String = "",
+    @SerialName("name") val name: String,
+    @SerialName("description") val description: String = "",
+    @SerialName("personality") val personality: String = "",
+    @SerialName("scenario") val scenario: String = "",
+    @SerialName("first_mes") val firstMessage: String = "",
+    @SerialName("mes_example") val exampleMessages: String = "",
+    @SerialName("creator_notes") val creatorNotes: String = "",
+    @SerialName("system_prompt") val systemPrompt: String = "",
+    @SerialName("post_history_instructions") val postHistoryInstructions: String = "",
+    @SerialName("alternate_greetings") val alternateGreetings: List<String> = emptyList(),
+    @SerialName("tags") val tags: List<String> = emptyList(),
+    @SerialName("creator") val creator: String = "AILUA Artisan",
+    @SerialName("character_version") val characterVersion: String = "1.0",
+    @SerialName("avatar_reference") val avatarReference: String = "mira",
+    @SerialName("character_book") val characterBook: WorldBook? = null,
+    @SerialName("extensions") val extensions: Map<String, String> = emptyMap()
 )
 
 // === World Book & Lore Models ===
 
+@Serializable
 enum class LoreActivationMode {
     ALWAYS,
     KEYWORD,
@@ -39,6 +46,7 @@ enum class LoreActivationMode {
     EVENT
 }
 
+@Serializable
 data class LoreEntry(
     val id: String,
     val title: String,
@@ -54,6 +62,7 @@ data class LoreEntry(
     val notes: String = ""
 )
 
+@Serializable
 data class WorldBook(
     val id: String,
     val name: String,
@@ -84,6 +93,7 @@ data class VirtualPlace(
 
 // === Branching Narrative / Theater Models (Inspired by inkle/ink) ===
 
+@Serializable
 data class TheaterChoice(
     val id: String,
     val text: String,
@@ -95,6 +105,7 @@ data class TheaterChoice(
     val bondIncrease: Int = 1
 )
 
+@Serializable
 data class TheaterDialogueNode(
     val id: String,
     val speakerId: String,
@@ -107,6 +118,7 @@ data class TheaterDialogueNode(
     val endingTitle: String? = null
 )
 
+@Serializable
 data class TheaterStory(
     val id: String,
     val title: String,
@@ -118,3 +130,23 @@ data class TheaterStory(
     val initialVariables: Map<String, String> = emptyMap(),
     val coverTag: String = "雨夜茶话"
 )
+
+@Serializable
+data class TheaterHistoryStep(
+    val nodeId: String,
+    val speakerName: String,
+    val text: String,
+    val choiceMadeText: String? = null
+)
+
+@Serializable
+data class TheaterBookmark(
+    val storyId: String,
+    val storyTitle: String,
+    val currentNodeId: String,
+    val variables: Map<String, String>,
+    val bondScore: Int,
+    val history: List<TheaterHistoryStep>,
+    val savedAtTimestamp: Long = System.currentTimeMillis()
+)
+

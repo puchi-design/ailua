@@ -80,7 +80,10 @@ fun AppLibraryScreen(
     onNavigateToCharacterCreator: () -> Unit = {},
     onNavigateToWorldBook: () -> Unit = {},
     onNavigateToWorldMap: () -> Unit = {},
-    onNavigateToTheater: () -> Unit = {}
+    onNavigateToTheater: () -> Unit = {},
+    onNavigateToMailbox: () -> Unit = {},
+    onNavigateToCall: () -> Unit = {},
+    onNavigateToGallery: () -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("全部") }
@@ -252,6 +255,9 @@ fun AppLibraryScreen(
                                 "lore_books" -> onNavigateToWorldBook()
                                 "world_map" -> onNavigateToWorldMap()
                                 "theater" -> onNavigateToTheater()
+                                "mailbox" -> onNavigateToMailbox()
+                                "call", "companion_call" -> onNavigateToCall()
+                                "gallery" -> onNavigateToGallery()
                                 else -> selectedAppForModal = app
                             }
                         }

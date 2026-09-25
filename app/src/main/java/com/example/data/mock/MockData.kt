@@ -779,14 +779,34 @@ object MockData {
             route = "memories"
         ),
         AiluaApp(
+            id = "mailbox",
+            name = "信箱 · Mailbox",
+            category = "核心伴生",
+            description = "伴生者寄送的温存纸质信笺与信物，随时间脉搏递送，沉浸式信纸交互与珍藏",
+            status = AppStatus.AVAILABLE,
+            badge = "信札",
+            iconKey = "mailbox",
+            route = "mailbox"
+        ),
+        AiluaApp(
+            id = "companion_call",
+            name = "心契通话 · Calls",
+            category = "核心伴生",
+            description = "伴生虚拟语音通话与来电历史，灵犀声波、免提扬声与夜话共鸣（无Telecom/WebRTC沉重依赖）",
+            status = AppStatus.AVAILABLE,
+            badge = "语音",
+            iconKey = "call",
+            route = "call_history"
+        ),
+        AiluaApp(
             id = "gallery",
             name = "影集 · Gallery",
             category = "核心伴生",
-            description = "陪伴者私藏的照片、生活瞬间合影与手绘风插画胶卷",
-            status = AppStatus.COMING_SOON,
-            badge = "规划中",
+            description = "伴生者私藏的照片、生活瞬间胶卷，支持Android标准PhotoPicker零权限安全导入",
+            status = AppStatus.AVAILABLE,
+            badge = "PhotoPicker",
             iconKey = "gallery",
-            route = null
+            route = "gallery"
         ),
 
         // Virtual World & Spaces

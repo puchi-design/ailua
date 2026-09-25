@@ -19,9 +19,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Contacts
+import androidx.compose.material.icons.filled.Drafts
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -192,6 +194,14 @@ fun getAppVisuals(iconKey: String): Pair<ImageVector, List<Color>> {
         "memories" -> Pair(
             Icons.Default.Stars,
             listOf(Color(0xFFD8BD8C), Color(0xFFBA9C67))
+        )
+        "mailbox", "mail", "letter" -> Pair(
+            Icons.Default.Drafts,
+            listOf(Color(0xFFDCA8B5), Color(0xFFB88291))
+        )
+        "call", "phone" -> Pair(
+            Icons.Default.Call,
+            listOf(Color(0xFF86B9A5), Color(0xFF5E9A84))
         )
         "gallery" -> Pair(
             Icons.Default.PhotoAlbum,

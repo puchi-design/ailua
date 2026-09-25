@@ -23,9 +23,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.data.engine.CallStateEngine
+import com.example.data.local.AiluaLocalStore
 import com.example.data.mock.MockData
+import com.example.data.model.CallAction
+import com.example.data.registry.CharacterRegistry
 import com.example.navigation.AiluaDestinations
 import com.example.ui.apps.AppLibraryScreen
+import com.example.ui.call.CallHistoryScreen
+import com.example.ui.call.CallScreen
+import com.example.ui.call.IncomingCallScreen
 import com.example.ui.character.CharacterProfileScreen
 import com.example.ui.chat.ChatScreen
 import com.example.ui.chat.ConversationListScreen
@@ -34,9 +41,11 @@ import com.example.ui.checkphone.CheckPhoneScreen
 import com.example.ui.contacts.ContactsScreen
 import com.example.ui.creator.CharacterCreatorScreen
 import com.example.ui.diary.DiaryScreen
+import com.example.ui.gallery.GalleryScreen
 import com.example.ui.home.VirtualHomeScreen
 import com.example.ui.living.LivingScreen
 import com.example.ui.lore.WorldBookScreen
+import com.example.ui.mailbox.MailboxScreen
 import com.example.ui.memories.MemoriesScreen
 import com.example.ui.moments.MomentsScreen
 import com.example.ui.relations.RelationsScreen
@@ -47,6 +56,7 @@ import com.example.ui.world.WorldPlacesScreen
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AiluaLocalStore.init(applicationContext)
         enableEdgeToEdge()
         setContent {
             AiluaAppRoot()

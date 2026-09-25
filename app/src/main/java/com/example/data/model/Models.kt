@@ -101,7 +101,8 @@ enum class LifeEventType {
     MESSAGE,
     DIARY,
     SLEEP,
-    SURPRISE
+    SURPRISE,
+    LOCATION_CHANGE
 }
 
 data class LifeEvent(
@@ -129,14 +130,14 @@ data class CharacterProfile(
     val mood: String,
     val location: String,
     val contextualQuote: String,
-    val bondLevel: Int,
-    val bondName: String,
-    val bondProgress: Int, // 0 - 100
-    val daysTogether: Int,
-    val energyLevel: Int, // 0 - 100
-    val personalityTags: List<String>,
-    val memories: List<MemorySnippet>,
-    val timeline: List<TimelineEvent>,
+    val bondLevel: Int = 1,
+    val bondName: String = "知交初契",
+    val bondProgress: Int = 20, // 0 - 100
+    val daysTogether: Int = 1,
+    val energyLevel: Int = 85, // 0 - 100
+    val personalityTags: List<String> = emptyList(),
+    val memories: List<MemorySnippet> = emptyList(),
+    val timeline: List<TimelineEvent> = emptyList(),
     val avatarId: String = "mira",
     val isOnline: Boolean = true,
     val relationshipType: String = "伴生心契"

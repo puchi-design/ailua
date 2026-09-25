@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.mock.MockData
 import com.example.data.model.ContactItem
+import com.example.data.registry.CharacterRegistry
 import com.example.ui.components.AiluaAvatar
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
@@ -59,7 +60,24 @@ fun ContactsScreen(
     onStartPrivateChat: (String) -> Unit = {},
     onOpenRelations: () -> Unit = {}
 ) {
-    val contacts = MockData.contactsList
+    val allRegisteredCharacters = CharacterRegistry.getAllCharacters()
+    val registeredCustoms = allRegisteredCharacters.filter { it.id != "mira" && it.id != "yuna" && it.id != "noa" }
+    val customContacts = registeredCustoms.map { profile ->
+        ContactItem(
+            id = "c_${profile.id}",
+            characterId = profile.id,
+            name = profile.name,
+            englishName = profile.englishName,
+            avatarId = profile.avatarId,
+            shortStatus = profile.contextualQuote.ifBlank { profile.currentActivity },
+            relationshipType = profile.relationshipType,
+            relationshipLevel = profile.bondLevel,
+            lastActivity = "刚刚活跃",
+            unreadCount = 0,
+            onlineState = "在线"
+        )
+    }
+    val contacts = MockData.contactsList + customContacts
     val primaryCompanion = contacts.firstOrNull { it.characterId == "mira" }
     val otherCharacters = contacts.filter { it.characterId != "mira" }
 

@@ -407,6 +407,14 @@ object WorldData {
                         text = "静静靠在窗边，和她并肩倾听夜雨与风铃声",
                         targetNodeId = "node_ending_perfect",
                         bondIncrease = 5
+                    ),
+                    TheaterChoice(
+                        id = "c3_secret_letter",
+                        text = "取出信箱里刚收到的信笺与她共读：「刚才信箱送达了一封信…想先和你分享。」",
+                        targetNodeId = "node_ending_letter",
+                        requiredVariableKey = "teaShared",
+                        requiredVariableValue = "true",
+                        bondIncrease = 6
                     )
                 )
             ),
@@ -442,6 +450,15 @@ object WorldData {
                 text = "✨【结局 · 桔梗与风的约定】\n小弥把开得最饱满的一支白洋桔梗包好递到你手中。雨声渐歇，但关于下一个雨天的约定已悄然生根。",
                 isEnding = true,
                 endingTitle = "桔梗与风的约定 (未来之约)"
+            ),
+            "node_ending_letter" to TheaterDialogueNode(
+                id = "node_ending_letter",
+                speakerId = "mira",
+                speakerName = "小弥",
+                avatarId = "mira",
+                text = "✨【隐藏分支结局 · 纸短情长的共鸣】\n小弥展信轻读，眸中泛起欣喜与柔光。你们在茶香与雨夜中，共同品读了这份跨越心网的手写温情。羁绊达到至臻境地！",
+                isEnding = true,
+                endingTitle = "纸短情长的共鸣 (隐藏信笺线)"
             )
         )
     )
