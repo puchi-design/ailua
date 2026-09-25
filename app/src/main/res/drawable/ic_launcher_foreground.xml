@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Orbital Halo Ring -->
+    <path
+        android:pathData="M38,62 C34,65 33,68 36,69 C41,71 58,69 72,63 C80,59 81,56 78,54 C74,52 64,54 53,58"
+        android:strokeColor="#7880A5D0"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round" />
+    <!-- Crescent Moon Body -->
+    <path
+        android:fillColor="#F6F1E6"
+        android:pathData="M56,33 C44.4,33 35,42.4 35,54 C35,65.6 44.4,75 56,75 C52.2,70.5 50,64.8 50,58.5 C50,47.8 56.4,38.6 65.5,34.8 C62.5,33.6 59.3,33 56,33 Z" />
+    <!-- Glowing Star Motif -->
+    <path
+        android:fillColor="#E1D7FF"
+        android:pathData="M66,45 C66,47 68,48 70,48 C68,48 66,49 66,51 C66,49 64,48 62,48 C64,48 66,47 66,45 Z" />
+    <!-- Secondary Tiny Star -->
+    <path
+        android:fillColor="#C6D3FF"
+        android:pathData="M45,41 C45,42.2 46.2,43 47.5,43 C46.2,43 45,43.8 45,45 C45,43.8 43.8,43 42.5,43 C43.8,43 45,42.2 45,41 Z" />
+    <!-- Soft Core Dot -->
+    <path
+        android:fillColor="#F8EDE3"
+        android:pathData="M58,62 A2,2 0 1,1 58,58 A2,2 0 1,1 58,62 Z" />
+</vector>

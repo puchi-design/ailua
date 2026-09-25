@@ -1,0 +1,6 @@
+{
+  "name": "AILUA",
+  "description": "AI Virtual Phone & Life OS — a living companion world in your pocket",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
