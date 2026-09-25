@@ -70,7 +70,7 @@ fun MomentsScreen(
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
     onBackToHome: () -> Unit = {},
-    onOpenProfile: () -> Unit = {}
+    onOpenProfile: (String) -> Unit = {}
 ) {
     val posts = remember { mutableStateListOf(*MockData.getMomentsFromLifeEvents().toTypedArray()) }
     var selectedFilter by remember { mutableStateOf("全部") }
@@ -225,7 +225,7 @@ fun MomentsScreen(
 @Composable
 private fun MomentCard(
     post: MomentPost,
-    onOpenProfile: () -> Unit,
+    onOpenProfile: (String) -> Unit,
     onToggleLike: () -> Unit,
     onAddComment: (String) -> Unit
 ) {
@@ -268,7 +268,7 @@ private fun MomentCard(
                     avatarId = post.authorId,
                     size = 42.dp,
                     showHalo = false,
-                    onClick = onOpenProfile
+                    onClick = { onOpenProfile(post.authorId) }
                 )
 
                 Column(modifier = Modifier.weight(1f)) {
@@ -536,6 +536,7 @@ private fun MomentVisualCard(imageType: String) {
         "rain_window" -> listOf(Color(0xFF869EB5), Color(0xFF6B8399), Color(0xFF536A80))
         "flowers" -> listOf(Color(0xFFE4BCBC), Color(0xFFCCA2A2), Color(0xFFB08686))
         "night_book" -> listOf(Color(0xFF655F7A), Color(0xFF4C4760), Color(0xFF37324B))
+        "pudding", "convenience_store", "dessert" -> listOf(Color(0xFFF6C279), Color(0xFFE59443), Color(0xFFB8591D))
         else -> listOf(AiluaMistBlue, AiluaMutedLavender)
     }
 
@@ -593,6 +594,40 @@ private fun MomentVisualCard(imageType: String) {
                         radius = 8.dp.toPx()
                     )
                 }
+                "pudding", "convenience_store", "dessert" -> {
+                    // Glass dish & Caramel Custard Pudding
+                    drawCircle(
+                        color = Color(0xFFFFF8EA).copy(alpha = 0.4f),
+                        center = Offset(w * 0.5f, h * 0.55f),
+                        radius = 48.dp.toPx()
+                    )
+                    // Custard base body
+                    drawRoundRect(
+                        color = Color(0xFFFFE89E),
+                        topLeft = Offset(w * 0.38f, h * 0.38f),
+                        size = Size(w * 0.24f, h * 0.36f),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(18f, 18f)
+                    )
+                    // Rich caramel topping
+                    drawRoundRect(
+                        color = Color(0xFF8F4200),
+                        topLeft = Offset(w * 0.38f, h * 0.38f),
+                        size = Size(w * 0.24f, h * 0.12f),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(12f, 12f)
+                    )
+                    // Caramel drip highlight
+                    drawCircle(
+                        color = Color(0xFF8F4200),
+                        center = Offset(w * 0.44f, h * 0.54f),
+                        radius = 4.dp.toPx()
+                    )
+                    // Glossy shine
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.55f),
+                        center = Offset(w * 0.42f, h * 0.42f),
+                        radius = 3.dp.toPx()
+                    )
+                }
                 "night_book" -> {
                     // Warm desk lamp glow & open book silhouette
                     drawCircle(
@@ -622,6 +657,7 @@ private fun MomentVisualCard(imageType: String) {
                 text = when (imageType) {
                     "rain_window" -> "📷 窗边雨景留影"
                     "flowers" -> "📷 白瓷花瓶与洋桔梗"
+                    "pudding", "convenience_store", "dessert" -> "🍮 便利店限定焦糖布丁"
                     "night_book" -> "📷 月光下的一页书"
                     else -> "📷 AILUA 心网图影"
                 },

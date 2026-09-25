@@ -120,7 +120,7 @@ object MockData {
             title = "便利店寻宝",
             description = "冒雨去便利店抢到了最后一盒限定焦糖布丁！奶香超浓郁～小弥和大家明天来木兰茶馆分你们尝一口！",
             location = "全家便利店 · 街角店",
-            imageReference = "flowers"
+            imageReference = "pudding"
         ),
         LifeEvent(
             id = "pulse_11",
@@ -791,6 +791,16 @@ object MockData {
 
         // Virtual World & Spaces
         AiluaApp(
+            id = "world_map",
+            name = "虚拟地图 · World Map",
+            category = "虚拟空间",
+            description = "探索AILUA伴生世界的地理与空间：青石街23号、木兰茶馆、月光书阁与街角便利店",
+            status = AppStatus.AVAILABLE,
+            badge = "6地点",
+            iconKey = "world",
+            route = "world_map"
+        ),
+        AiluaApp(
             id = "world_3d",
             name = "拟界 · 3D World",
             category = "虚拟空间",
@@ -813,6 +823,26 @@ object MockData {
 
         // Entertainment & Creation
         AiluaApp(
+            id = "character_creation",
+            name = "角色创造 · Character Creator",
+            category = "游艺与工坊",
+            description = "塑造新的AI生命体：Character Card V2规格、灵魂性格、初见台词与关联世界书",
+            status = AppStatus.AVAILABLE,
+            badge = "Card V2",
+            iconKey = "creator",
+            route = "character_creator"
+        ),
+        AiluaApp(
+            id = "lore_books",
+            name = "世界观秘典 · Lore",
+            category = "游艺与工坊",
+            description = "探索AILUA生命体诞生的心网宇宙法则、青石街23号与8项核心激活词条",
+            status = AppStatus.AVAILABLE,
+            badge = "8词条",
+            iconKey = "lore",
+            route = "world_book"
+        ),
+        AiluaApp(
             id = "game_center",
             name = "游艺室 · Games",
             category = "游艺与工坊",
@@ -820,26 +850,6 @@ object MockData {
             status = AppStatus.BETA,
             badge = "体验中",
             iconKey = "games",
-            route = null
-        ),
-        AiluaApp(
-            id = "character_creation",
-            name = "伴生工坊 · Creator",
-            category = "游艺与工坊",
-            description = "塑造新的AI生命体：定制灵魂性格、声音质感、生活作息与背景故事",
-            status = AppStatus.PREVIEW,
-            badge = "探索中",
-            iconKey = "creator",
-            route = null
-        ),
-        AiluaApp(
-            id = "lore_books",
-            name = "世界观秘典 · Lore",
-            category = "游艺与工坊",
-            description = "探索AILUA生命体诞生的心网宇宙法则、星轨文明与奇迹物语",
-            status = AppStatus.COMING_SOON,
-            badge = "规划中",
-            iconKey = "lore",
             route = null
         ),
 
@@ -890,11 +900,11 @@ object MockData {
             id = "theater",
             name = "沉浸剧场 · Theater",
             category = "剧场与私密",
-            description = "多角色互动剧目，观赏陪伴者演出的微电影剧本与声音剧场",
-            status = AppStatus.BETA,
-            badge = "公测",
+            description = "多分支互动剧目，分支选择驱动羁绊成长与多重结局（inkle/ink 叙事状态机灵感）",
+            status = AppStatus.AVAILABLE,
+            badge = "雨夜茶话",
             iconKey = "theater",
-            route = null
+            route = "theater"
         ),
         AiluaApp(
             id = "black_market",
@@ -1053,7 +1063,7 @@ object MockData {
                     moodTag = "🍮 甜品 · 元气",
                     locationContext = ev.location ?: "全家便利店 · 街角店",
                     content = "冒雨去便利店抢到了最后一盒限定焦糖布丁！奶香超浓郁～小弥和大家明天来木兰茶馆分你们尝一口！",
-                    imageType = "flowers",
+                    imageType = "pudding",
                     likesCount = 28,
                     isLiked = false,
                     comments = listOf(

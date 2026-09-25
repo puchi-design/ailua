@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Icon
@@ -88,7 +89,7 @@ fun VirtualHomeScreen(
         HomeAppDef("memories", "记忆", "memories", null),
         HomeAppDef("relations", "关系谱", "relations", null),
         HomeAppDef("diary", "心声日记", "diary", null),
-        HomeAppDef("games", "游艺", "games", null),
+        HomeAppDef("theater", "沉浸剧场", "theater", "HOT"),
         HomeAppDef("apps", "应用库", "apps", null)
     )
 
@@ -151,7 +152,8 @@ fun VirtualHomeScreen(
                         onNavigateToCheckPhone = onNavigateToCheckPhone,
                         onNavigateToDiary = onNavigateToDiary,
                         onNavigateToRelations = onNavigateToRelations,
-                        onNavigateToLiving = onNavigateToLiving
+                        onNavigateToLiving = onNavigateToLiving,
+                        onAppClick = onAppClick
                     )
                 }
             }
@@ -444,7 +446,8 @@ private fun PageLifeBento(
     onNavigateToCheckPhone: () -> Unit,
     onNavigateToDiary: () -> Unit,
     onNavigateToRelations: () -> Unit,
-    onNavigateToLiving: () -> Unit
+    onNavigateToLiving: () -> Unit,
+    onAppClick: (String) -> Unit
 ) {
     val scrollState = rememberScrollState()
     val pulseEvents = MockData.unifiedLifeEvents.take(4)
@@ -911,6 +914,156 @@ private fun PageLifeBento(
                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                     modifier = Modifier.size(18.dp)
                 )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Widget 4: Pass 2 World & Narrative Hub (Virtual Places & Lorebook)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Left: Virtual Map
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .shadow(2.dp, RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(
+                        Brush.linearGradient(
+                            listOf(
+                                AiluaMistBlue.copy(alpha = 0.15f),
+                                MaterialTheme.colorScheme.surface
+                            )
+                        )
+                    )
+                    .border(
+                        0.5.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                        RoundedCornerShape(18.dp)
+                    )
+                    .clickable { onAppClick("world_map") }
+                    .padding(12.dp)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Language,
+                            contentDescription = null,
+                            tint = AiluaMistBlue,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(AiluaMistBlue.copy(alpha = 0.2f))
+                                .padding(horizontal = 5.dp, vertical = 1.dp)
+                        ) {
+                            Text(
+                                text = "6地点",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 9.sp,
+                                    color = AiluaMistBlue,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "虚拟世界地图",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "青石街23号 · 木兰茶馆\n月光书阁 · 实时驻留",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 10.sp,
+                            lineHeight = 14.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                    )
+                }
+            }
+
+            // Right: Lore Book
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .shadow(2.dp, RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(
+                        Brush.linearGradient(
+                            listOf(
+                                AiluaMoonGold.copy(alpha = 0.15f),
+                                MaterialTheme.colorScheme.surface
+                            )
+                        )
+                    )
+                    .border(
+                        0.5.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                        RoundedCornerShape(18.dp)
+                    )
+                    .clickable { onAppClick("lore_books") }
+                    .padding(12.dp)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.BookmarkBorder,
+                            contentDescription = null,
+                            tint = AiluaMoonGold,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(AiluaMoonGold.copy(alpha = 0.2f))
+                                .padding(horizontal = 5.dp, vertical = 1.dp)
+                        ) {
+                            Text(
+                                text = "8设定",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 9.sp,
+                                    color = AiluaMoonGold,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "世界设定秘典",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "地点 · 习惯 · 共同记忆\n动态词条激活引擎",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 10.sp,
+                            lineHeight = 14.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                    )
+                }
             }
         }
 

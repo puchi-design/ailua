@@ -32,13 +32,17 @@ import com.example.ui.chat.ConversationListScreen
 import com.example.ui.chat.GroupChatScreen
 import com.example.ui.checkphone.CheckPhoneScreen
 import com.example.ui.contacts.ContactsScreen
+import com.example.ui.creator.CharacterCreatorScreen
 import com.example.ui.diary.DiaryScreen
 import com.example.ui.home.VirtualHomeScreen
 import com.example.ui.living.LivingScreen
+import com.example.ui.lore.WorldBookScreen
 import com.example.ui.memories.MemoriesScreen
 import com.example.ui.moments.MomentsScreen
 import com.example.ui.relations.RelationsScreen
+import com.example.ui.theater.TheaterScreen
 import com.example.ui.theme.AiluaTheme
+import com.example.ui.world.WorldPlacesScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -111,6 +115,10 @@ fun AiluaAppRoot() {
                                 "moments" -> navController.navigate(AiluaDestinations.MOMENTS)
                                 "living" -> navController.navigate(AiluaDestinations.LIVING)
                                 "memories" -> navController.navigate(AiluaDestinations.MEMORIES)
+                                "character_creation" -> navController.navigate(AiluaDestinations.CHARACTER_CREATOR)
+                                "lore_books" -> navController.navigate(AiluaDestinations.WORLD_BOOK)
+                                "world_map" -> navController.navigate(AiluaDestinations.WORLD_MAP)
+                                "theater" -> navController.navigate(AiluaDestinations.THEATER)
                                 "apps" -> navController.navigate(AiluaDestinations.APPS)
                                 else -> navController.navigate(AiluaDestinations.APPS)
                             }
@@ -213,7 +221,9 @@ fun AiluaAppRoot() {
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBackToHome = { navController.popBackStack() },
-                        onOpenProfile = { navController.navigate(AiluaDestinations.profileRoute("mira")) }
+                        onOpenProfile = { charId ->
+                            navController.navigate(AiluaDestinations.profileRoute(charId))
+                        }
                     )
                 }
 
@@ -241,7 +251,11 @@ fun AiluaAppRoot() {
                         onNavigateToDiary = { navController.navigate(AiluaDestinations.DIARY) },
                         onNavigateToCheckPhone = { navController.navigate(AiluaDestinations.CHECK_PHONE) },
                         onNavigateToRelations = { navController.navigate(AiluaDestinations.RELATIONS) },
-                        onNavigateToMemories = { navController.navigate(AiluaDestinations.MEMORIES) }
+                        onNavigateToMemories = { navController.navigate(AiluaDestinations.MEMORIES) },
+                        onNavigateToCharacterCreator = { navController.navigate(AiluaDestinations.CHARACTER_CREATOR) },
+                        onNavigateToWorldBook = { navController.navigate(AiluaDestinations.WORLD_BOOK) },
+                        onNavigateToWorldMap = { navController.navigate(AiluaDestinations.WORLD_MAP) },
+                        onNavigateToTheater = { navController.navigate(AiluaDestinations.THEATER) }
                     )
                 }
 
@@ -279,6 +293,48 @@ fun AiluaAppRoot() {
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBackToHome = { navController.popBackStack() }
+                    )
+                }
+
+                // Screen 14: Character Creator (Pass 2 Feature A)
+                composable(AiluaDestinations.CHARACTER_CREATOR) {
+                    CharacterCreatorScreen(
+                        isDarkTheme = isDarkTheme,
+                        onToggleTheme = { isDarkTheme = !isDarkTheme },
+                        onBack = { navController.popBackStack() },
+                        onPreviewCharacter = { charId ->
+                            navController.navigate(AiluaDestinations.profileRoute(charId))
+                        }
+                    )
+                }
+
+                // Screen 15: World Book / Lore (Pass 2 Feature B)
+                composable(AiluaDestinations.WORLD_BOOK) {
+                    WorldBookScreen(
+                        isDarkTheme = isDarkTheme,
+                        onToggleTheme = { isDarkTheme = !isDarkTheme },
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+
+                // Screen 16: World Places / Map (Pass 2 Feature C)
+                composable(AiluaDestinations.WORLD_MAP) {
+                    WorldPlacesScreen(
+                        isDarkTheme = isDarkTheme,
+                        onToggleTheme = { isDarkTheme = !isDarkTheme },
+                        onBack = { navController.popBackStack() },
+                        onVisitPlaceChat = { charId ->
+                            navController.navigate(AiluaDestinations.chatRoute(charId))
+                        }
+                    )
+                }
+
+                // Screen 17: Theater / Branching Narrative (Pass 2 Feature E)
+                composable(AiluaDestinations.THEATER) {
+                    TheaterScreen(
+                        isDarkTheme = isDarkTheme,
+                        onToggleTheme = { isDarkTheme = !isDarkTheme },
+                        onBack = { navController.popBackStack() }
                     )
                 }
             }

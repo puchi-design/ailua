@@ -76,7 +76,11 @@ fun AppLibraryScreen(
     onNavigateToDiary: () -> Unit = {},
     onNavigateToCheckPhone: () -> Unit = {},
     onNavigateToRelations: () -> Unit = {},
-    onNavigateToMemories: () -> Unit = {}
+    onNavigateToMemories: () -> Unit = {},
+    onNavigateToCharacterCreator: () -> Unit = {},
+    onNavigateToWorldBook: () -> Unit = {},
+    onNavigateToWorldMap: () -> Unit = {},
+    onNavigateToTheater: () -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("全部") }
@@ -244,6 +248,10 @@ fun AppLibraryScreen(
                                 "check_phone" -> onNavigateToCheckPhone()
                                 "relations" -> onNavigateToRelations()
                                 "memories" -> onNavigateToMemories()
+                                "character_creation" -> onNavigateToCharacterCreator()
+                                "lore_books" -> onNavigateToWorldBook()
+                                "world_map" -> onNavigateToWorldMap()
+                                "theater" -> onNavigateToTheater()
                                 else -> selectedAppForModal = app
                             }
                         }

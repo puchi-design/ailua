@@ -14,6 +14,10 @@ object AiluaDestinations {
     const val APPS = "apps"
     const val PROFILE = "profile/{characterId}"
     const val MEMORIES = "memories"
+    const val CHARACTER_CREATOR = "character_creator"
+    const val WORLD_BOOK = "world_book"
+    const val WORLD_MAP = "world_map"
+    const val THEATER = "theater"
 
     fun chatRoute(characterId: String = "mira"): String = "chat/$characterId"
     fun profileRoute(characterId: String = "mira"): String = "profile/$characterId"

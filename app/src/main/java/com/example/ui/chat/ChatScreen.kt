@@ -29,15 +29,22 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AddCircleOutline
+import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -48,8 +55,10 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -97,9 +106,17 @@ fun ChatScreen(
     var inputText by remember { mutableStateOf("") }
     var showMenu by remember { mutableStateOf(false) }
     var showActionSheet by remember { mutableStateOf(false) }
+    var isVoiceRecording by remember { mutableStateOf(false) }
+    val bookmarkedMsgIds = remember { mutableStateListOf<String>() }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val showJumpToBottom by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex < (messages.size - 2).coerceAtLeast(0)
+        }
+    }
 
     val quickPrompts = when (character.id.lowercase()) {
         "yuna" -> listOf(
@@ -202,9 +219,20 @@ fun ChatScreen(
                 item { Spacer(modifier = Modifier.height(6.dp)) }
 
                 items(messages, key = { it.id }) { message ->
+                    val isBookmarked = bookmarkedMsgIds.contains(message.id)
                     ChatMessageItem(
                         message = message,
                         character = character,
+                        isBookmarked = isBookmarked,
+                        onToggleBookmark = {
+                            if (bookmarkedMsgIds.contains(message.id)) {
+                                bookmarkedMsgIds.remove(message.id)
+                                coroutineScope.launch { snackbarHostState.showSnackbar("已取消心契书签") }
+                            } else {
+                                bookmarkedMsgIds.add(message.id)
+                                coroutineScope.launch { snackbarHostState.showSnackbar("已添加至心契书签 ★") }
+                            }
+                        },
                         onSaveMemory = {
                             coroutineScope.launch {
                                 snackbarHostState.showSnackbar("已保存到「记忆晶核」")
@@ -290,31 +318,53 @@ fun ChatScreen(
                 }
             }
 
-            // Chat Input Bar
-            ChatInputBar(
-                inputText = inputText,
-                characterName = character.name,
-                onInputTextChange = { inputText = it },
-                onSend = {
-                    if (inputText.isNotBlank()) {
-                        val text = inputText.trim()
+            // Chat Input Bar / Voice Recording Bar
+            if (isVoiceRecording) {
+                VoiceRecordingBar(
+                    onCancel = { isVoiceRecording = false },
+                    onSendVoice = {
+                        isVoiceRecording = false
                         messages.add(
                             ChatMessage(
-                                id = "u_${System.currentTimeMillis()}",
+                                id = "v_u_${System.currentTimeMillis()}",
                                 sender = MessageSender.USER,
                                 type = MessageType.TEXT,
-                                text = text,
+                                text = "［语音轻语 6秒］今晚能一起听着雨声多聊一会儿吗？",
                                 timestamp = "刚才"
                             )
                         )
-                        inputText = ""
                         coroutineScope.launch {
-                            handleCharacterAutoReply(text, messages, character)
+                            handleCharacterAutoReply("语音轻语", messages, character)
                         }
                     }
-                },
-                onAttachClick = { showActionSheet = !showActionSheet }
-            )
+                )
+            } else {
+                ChatInputBar(
+                    inputText = inputText,
+                    characterName = character.name,
+                    onInputTextChange = { inputText = it },
+                    onSend = {
+                        if (inputText.isNotBlank()) {
+                            val text = inputText.trim()
+                            messages.add(
+                                ChatMessage(
+                                    id = "u_${System.currentTimeMillis()}",
+                                    sender = MessageSender.USER,
+                                    type = MessageType.TEXT,
+                                    text = text,
+                                    timestamp = "刚才"
+                                )
+                            )
+                            inputText = ""
+                            coroutineScope.launch {
+                                handleCharacterAutoReply(text, messages, character)
+                            }
+                        }
+                    },
+                    onAttachClick = { showActionSheet = !showActionSheet },
+                    onMicClick = { isVoiceRecording = true }
+                )
+            }
 
             // Additional Action Sheet
             AnimatedVisibility(visible = showActionSheet) {
@@ -410,6 +460,44 @@ fun ChatScreen(
                 onBack = onBackToHome,
                 onGoHome = onBackToHome
             )
+        }
+
+        // Jump To Bottom Button (Jetchat inspired pattern)
+        AnimatedVisibility(
+            visible = showJumpToBottom,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 125.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, AiluaMistBlue.copy(alpha = 0.6f), RoundedCornerShape(20.dp))
+                    .shadow(3.dp, RoundedCornerShape(20.dp))
+                    .clickable {
+                        coroutineScope.launch {
+                            listState.animateScrollToItem(messages.size - 1)
+                        }
+                    }
+                    .padding(horizontal = 14.dp, vertical = 6.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowDownward,
+                        contentDescription = "回到底部",
+                        modifier = Modifier.size(14.dp),
+                        tint = AiluaMistBlue
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "回到最新消息",
+                        fontSize = 11.sp,
+                        color = AiluaMistBlue,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
         }
 
         SnackbarHost(
@@ -522,9 +610,23 @@ private fun ChatHeader(
 private fun ChatMessageItem(
     message: ChatMessage,
     character: CharacterProfile,
+    isBookmarked: Boolean = false,
+    onToggleBookmark: () -> Unit = {},
     onSaveMemory: () -> Unit,
     onRegenerate: () -> Unit
 ) {
+    var alternateIndex by remember(message.id) { mutableStateOf(0) }
+    val alternateTexts = remember(message.id, message.text) {
+        listOf(
+            message.text,
+            when (character.id.lowercase()) {
+                "yuna" -> "（悠奈晃了晃手中的甜品包装袋，眼睛笑得眯起来）哼哼，无论什么时候，只要你需要，我都在你一抬眼就能看到的地方！"
+                "noa" -> "（诺亚翻过手中泛黄的旧书页，轻声应答）夜雨是天地间最好的伴奏，很高兴能与你共享这份安谧。"
+                else -> "（小弥把温热的茶杯轻轻推到你手边，睫毛轻颤）其实……今天在窗边看雨的时候，心里也一直在悄悄想着你。"
+            }
+        )
+    }
+
     when (message.sender) {
         MessageSender.SYSTEM -> {
             Box(
@@ -617,7 +719,7 @@ private fun ChatMessageItem(
                                     .padding(horizontal = 14.dp, vertical = 10.dp)
                             ) {
                                 Text(
-                                    text = message.text,
+                                    text = if (message.sender == MessageSender.CHARACTER) alternateTexts[alternateIndex % alternateTexts.size] else message.text,
                                     style = MaterialTheme.typography.bodyMedium.copy(
                                         fontSize = 14.5.sp,
                                         lineHeight = 20.sp
@@ -763,6 +865,53 @@ private fun ChatMessageItem(
                             }
                         }
 
+                        // SillyTavern-style Swipe Alternate picker pill
+                        if (message.sender == MessageSender.CHARACTER && message.type == MessageType.TEXT) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ChevronLeft,
+                                    contentDescription = "上一回复分支",
+                                    modifier = Modifier
+                                        .size(13.dp)
+                                        .clickable {
+                                            alternateIndex = (alternateIndex - 1 + alternateTexts.size) % alternateTexts.size
+                                        },
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "${(alternateIndex % alternateTexts.size) + 1}/${alternateTexts.size}",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.ChevronRight,
+                                    contentDescription = "下一回复分支",
+                                    modifier = Modifier
+                                        .size(13.dp)
+                                        .clickable {
+                                            alternateIndex = (alternateIndex + 1) % alternateTexts.size
+                                        },
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        // Bookmark Toggle
+                        Icon(
+                            imageVector = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                            contentDescription = "心契书签",
+                            modifier = Modifier
+                                .size(13.dp)
+                                .clickable { onToggleBookmark() },
+                            tint = if (isBookmarked) AiluaMoonGold else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+
                         // Subtle affordances: Save Memory & Regenerate
                         Icon(
                             imageVector = Icons.Default.BookmarkBorder,
@@ -793,7 +942,8 @@ private fun ChatInputBar(
     characterName: String,
     onInputTextChange: (String) -> Unit,
     onSend: () -> Unit,
-    onAttachClick: () -> Unit
+    onAttachClick: () -> Unit,
+    onMicClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -817,12 +967,23 @@ private fun ChatInputBar(
             )
         }
 
+        IconButton(
+            onClick = onMicClick,
+            modifier = Modifier.size(38.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Mic,
+                contentDescription = "语音轻语",
+                tint = AiluaMistBlue
+            )
+        }
+
         OutlinedTextField(
             value = inputText,
             onValueChange = onInputTextChange,
             modifier = Modifier
                 .weight(1f)
-                .padding(horizontal = 6.dp)
+                .padding(horizontal = 4.dp)
                 .testTag("chat_text_input"),
             placeholder = {
                 Text(
@@ -855,6 +1016,65 @@ private fun ChatInputBar(
                 modifier = Modifier.size(16.dp),
                 tint = if (inputText.isNotBlank()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
             )
+        }
+    }
+}
+
+@Composable
+private fun VoiceRecordingBar(
+    onCancel: () -> Unit,
+    onSendVoice: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(AiluaDustyRose.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Mic,
+                    contentDescription = null,
+                    tint = AiluaDustyRose,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Column {
+                Text(
+                    text = "🎙️ 正在录制心声轻语… 0:04",
+                    style = MaterialTheme.typography.titleSmall.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
+                    color = AiluaDustyRose
+                )
+                Text(
+                    text = "模拟声纹识别: [ ▂▃▅▆▇▅▃▂ ]",
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onCancel, modifier = Modifier.size(32.dp)) {
+                Icon(Icons.Default.Close, contentDescription = "取消", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Button(
+                onClick = onSendVoice,
+                colors = ButtonDefaults.buttonColors(containerColor = AiluaMistBlue),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("发送轻语", fontSize = 12.sp, color = Color.White)
+            }
         }
     }
 }
