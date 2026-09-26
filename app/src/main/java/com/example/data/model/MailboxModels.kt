@@ -29,3 +29,6 @@ data class Letter(
     val relatedLifeEventId: String? = null,
     val paperColorHex: Long = 0xFFFDFBF7
 )
+
+val Letter.isRead: Boolean
+    get() = deliveryState == LetterDeliveryState.OPENED || deliveryState == LetterDeliveryState.REPLIED

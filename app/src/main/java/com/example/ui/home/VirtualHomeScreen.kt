@@ -55,6 +55,7 @@ import com.example.data.engine.WorldStateRepository
 import com.example.data.mock.MockData
 import com.example.data.model.CharacterProfile
 import com.example.data.model.LetterDeliveryState
+import com.example.data.model.isRead
 import com.example.data.repository.MailboxRepository
 import com.example.ui.components.AiluaAvatar
 import com.example.ui.components.AppIconItem

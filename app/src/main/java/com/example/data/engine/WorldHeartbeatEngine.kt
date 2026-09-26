@@ -3,18 +3,52 @@ package com.example.data.engine
 import com.example.data.local.AiluaLocalStore
 import com.example.data.mock.MockData
 import com.example.data.model.DayPhase
-import com.example.data.model.HeartbeatState
 import com.example.data.model.LifeEvent
 import com.example.data.model.LifeEventType
-import com.example.data.model.ScheduledActionType
-import com.example.data.model.ScheduledWorldAction
-import com.example.data.model.TimeOfDayPhase
 import com.example.data.model.WeatherState
 import com.example.data.model.WorldClock
 import com.example.data.repository.MailboxRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+
+enum class ScheduledActionType {
+    LIFE_EVENT,
+    LETTER_DELIVERY,
+    INCOMING_CALL,
+    GALLERY_ASSET,
+    MOMENT,
+    LOCATION_CHANGE
+}
+
+data class ScheduledWorldAction(
+    val id: String,
+    val triggerTimeMinutes: Int,
+    val triggerTimeString: String,
+    val type: ScheduledActionType,
+    val characterId: String,
+    val payloadId: String,
+    val title: String,
+    val description: String,
+    var fired: Boolean = false
+)
+
+enum class TimeOfDayPhase(val label: String, val icon: String, val atmosphere: String) {
+    DAWN("清晨薄曦", "🌅", "微光穿透薄雾，窗外风铃初鸣"),
+    AFTERNOON("午后漫步", "☕", "阳光洒在木兰茶馆庭院，司康初出炉"),
+    DUSK("暮色斜照", "🌇", "街角路灯次第亮起，晚风微凉"),
+    RAINY_NIGHT("秋雨夜谈", "🌧️", "窗外细雨连绵，室内红茶温热，心网守候")
+}
+
+data class WorldHeartbeatState(
+    val currentPhase: TimeOfDayPhase = TimeOfDayPhase.RAINY_NIGHT,
+    val activePlaceId: String = "place_street_23",
+    val activeCharacterId: String = "mira",
+    val isProactiveTakeoverActive: Boolean = false,
+    val proactiveMessage: String? = null,
+    val initiativeScores: Map<String, Int> = mapOf("mira" to 88, "yuna" to 75, "noa" to 65),
+    val lastPulseTime: String = "21:30"
+)
 
 /**
  * WorldHeartbeatEngine
@@ -38,7 +72,7 @@ object WorldHeartbeatEngine {
     val worldClock: StateFlow<WorldClock> = _worldClock.asStateFlow()
 
     private val _heartbeatState = MutableStateFlow(
-        HeartbeatState(
+        WorldHeartbeatState(
             currentPhase = TimeOfDayPhase.DUSK,
             isProactiveTakeoverActive = false,
             activeCharacterId = "mira",
@@ -46,7 +80,7 @@ object WorldHeartbeatEngine {
             proactiveMessage = null
         )
     )
-    val heartbeatState: StateFlow<HeartbeatState> = _heartbeatState.asStateFlow()
+    val heartbeatState: StateFlow<WorldHeartbeatState> = _heartbeatState.asStateFlow()
 
     private val initialActions = listOf(
         ScheduledWorldAction(

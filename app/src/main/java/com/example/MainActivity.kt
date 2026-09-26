@@ -145,7 +145,7 @@ fun AiluaAppRoot() {
                         character = MockData.sampleCharacter,
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
-                        onNavigateToMessages = { navController.navigate(AiluaDestinations.CONVERSATIONS) },
+                        onNavigateToMessages = { navController.navigate(AiluaDestinations.MESSAGES) },
                         onNavigateToChat = { navController.navigate(AiluaDestinations.chatRoute("mira")) },
                         onNavigateToGroupChat = { navController.navigate(AiluaDestinations.GROUP_CHAT) },
                         onNavigateToContacts = { navController.navigate(AiluaDestinations.CONTACTS) },
@@ -163,8 +163,7 @@ fun AiluaAppRoot() {
                         onNavigateToGallery = { navController.navigate(AiluaDestinations.GALLERY) },
                         onAppClick = { appId ->
                             when (appId) {
-                                "messages" -> navController.navigate(AiluaDestinations.CONVERSATIONS)
-                                "chat" -> navController.navigate(AiluaDestinations.chatRoute("mira"))
+                                "messages", "chat" -> navController.navigate(AiluaDestinations.MESSAGES)
                                 "group_chat" -> navController.navigate(AiluaDestinations.GROUP_CHAT)
                                 "contacts" -> navController.navigate(AiluaDestinations.CONTACTS)
                                 "relations" -> navController.navigate(AiluaDestinations.RELATIONS)
@@ -188,20 +187,23 @@ fun AiluaAppRoot() {
                 }
 
                 // Screen 2: Conversation List
-                composable(AiluaDestinations.CONVERSATIONS) {
+                composable(AiluaDestinations.MESSAGES) {
                     ConversationListScreen(
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBackToHome = { navController.popBackStack() },
-                        onOpenConversation = { conv ->
-                            if (conv.type == com.example.data.model.ConversationType.GROUP) {
-                                navController.navigate(AiluaDestinations.GROUP_CHAT)
-                            } else {
-                                val charId = conv.characterId ?: "mira"
-                                navController.navigate(AiluaDestinations.chatRoute(charId))
-                            }
+                        onOpenMiraChat = {
+                            navController.navigate(AiluaDestinations.chatRoute("mira"))
                         },
-                        onOpenContacts = { navController.navigate(AiluaDestinations.CONTACTS) }
+                        onOpenGroupChat = {
+                            navController.navigate(AiluaDestinations.GROUP_CHAT)
+                        },
+                        onOpenContacts = {
+                            navController.navigate(AiluaDestinations.CONTACTS)
+                        },
+                        onSelectCharacterChat = { charId ->
+                            navController.navigate(AiluaDestinations.chatRoute(charId))
+                        }
                     )
                 }
 
@@ -219,10 +221,10 @@ fun AiluaAppRoot() {
                         character = character,
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
-                        onBack = { navController.popBackStack() },
-                        onOpenProfile = { navController.navigate(AiluaDestinations.profileRoute(character.id)) },
-                        onOpenLiving = { navController.navigate(AiluaDestinations.LIVING) },
-                        onNavigateToDiary = { navController.navigate(AiluaDestinations.DIARY) }
+                        onBackToHome = { navController.popBackStack() },
+                        onOpenProfile = {
+                            navController.navigate(AiluaDestinations.profileRoute(character.id))
+                        }
                     )
                 }
 
@@ -232,9 +234,7 @@ fun AiluaAppRoot() {
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBack = { navController.popBackStack() },
-                        onOpenMemberProfile = { charId ->
-                            navController.navigate(AiluaDestinations.profileRoute(charId))
-                        }
+                        onOpenRelations = { navController.navigate(AiluaDestinations.RELATIONS) }
                     )
                 }
 
@@ -244,11 +244,11 @@ fun AiluaAppRoot() {
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBackToHome = { navController.popBackStack() },
-                        onSelectContact = { contact ->
-                            navController.navigate(AiluaDestinations.chatRoute(contact.characterId))
+                        onOpenProfile = { charId ->
+                            navController.navigate(AiluaDestinations.profileRoute(charId))
                         },
-                        onViewProfile = { contact ->
-                            navController.navigate(AiluaDestinations.profileRoute(contact.characterId))
+                        onStartPrivateChat = { charId ->
+                            navController.navigate(AiluaDestinations.chatRoute(charId))
                         },
                         onOpenRelations = { navController.navigate(AiluaDestinations.RELATIONS) }
                     )
@@ -259,8 +259,7 @@ fun AiluaAppRoot() {
                     CheckPhoneScreen(
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
-                        onBackToHome = { navController.popBackStack() },
-                        onOpenChat = { navController.navigate(AiluaDestinations.chatRoute("mira")) }
+                        onBackToHome = { navController.popBackStack() }
                     )
                 }
 
@@ -269,10 +268,7 @@ fun AiluaAppRoot() {
                     DiaryScreen(
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
-                        onBackToHome = { navController.popBackStack() },
-                        onOpenChatWithAuthor = { charId ->
-                            navController.navigate(AiluaDestinations.chatRoute(charId))
-                        }
+                        onBackToHome = { navController.popBackStack() }
                     )
                 }
 
@@ -281,10 +277,7 @@ fun AiluaAppRoot() {
                     RelationsScreen(
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
-                        onBackToHome = { navController.popBackStack() },
-                        onOpenCharacter = { charId ->
-                            navController.navigate(AiluaDestinations.profileRoute(charId))
-                        }
+                        onBack = { navController.popBackStack() }
                     )
                 }
 
@@ -294,8 +287,8 @@ fun AiluaAppRoot() {
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBackToHome = { navController.popBackStack() },
-                        onOpenChat = { charId ->
-                            navController.navigate(AiluaDestinations.chatRoute(charId))
+                        onOpenProfile = { charId ->
+                            navController.navigate(AiluaDestinations.profileRoute(charId))
                         }
                     )
                 }
@@ -318,8 +311,7 @@ fun AiluaAppRoot() {
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBackToHome = { navController.popBackStack() },
-                        onNavigateToChat = { navController.navigate(AiluaDestinations.chatRoute("mira")) },
-                        onNavigateToGroupChat = { navController.navigate(AiluaDestinations.GROUP_CHAT) },
+                        onNavigateToMessages = { navController.navigate(AiluaDestinations.MESSAGES) },
                         onNavigateToContacts = { navController.navigate(AiluaDestinations.CONTACTS) },
                         onNavigateToMoments = { navController.navigate(AiluaDestinations.MOMENTS) },
                         onNavigateToLiving = { navController.navigate(AiluaDestinations.LIVING) },
@@ -433,7 +425,7 @@ fun AiluaAppRoot() {
                     CallHistoryScreen(
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
-                        onBackToHome = { navController.popBackStack() },
+                        onBack = { navController.popBackStack() },
                         onStartCall = { charId ->
                             CallStateEngine.triggerIncomingCall(
                                 characterId = charId,

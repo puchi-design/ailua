@@ -3,6 +3,7 @@ package com.example.navigation
 object AiluaDestinations {
     const val HOME = "home"
     const val MESSAGES = "messages"
+    const val CONVERSATIONS = "messages"
     const val CHAT = "chat/{characterId}"
     const val GROUP_CHAT = "group_chat"
     const val CONTACTS = "contacts"
