@@ -1,5 +1,6 @@
 package com.example.ui.home
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -7,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +18,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -55,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.engine.WorldHeartbeatEngine
 import com.example.data.engine.WorldStateRepository
+import com.example.data.local.AiluaLocalStore
 import com.example.data.mock.MockData
 import com.example.data.model.CharacterProfile
 import com.example.data.model.LetterDeliveryState
@@ -73,6 +80,8 @@ import com.example.ui.theme.AiluaDustyRose
 import com.example.ui.theme.AiluaMistBlue
 import com.example.ui.theme.AiluaMoonGold
 import com.example.ui.theme.AiluaMutedLavender
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyGridState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,7 +105,8 @@ fun VirtualHomeScreen(
     onNavigateToCall: () -> Unit = {},
     onNavigateToCallHistory: () -> Unit = {},
     onNavigateToGallery: () -> Unit = {},
-    onAppClick: (String) -> Unit = {}
+    onAppClick: (String) -> Unit = {},
+    initialEditing: Boolean = false
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
     val worldClock by WorldHeartbeatEngine.worldClock.collectAsStateWithLifecycle()
@@ -107,8 +117,13 @@ fun VirtualHomeScreen(
     var showThemeSheet by remember { mutableStateOf(false) }
     val homeTheme = HomeThemeCatalog.byId(HomeThemeStore.selectedId)
 
+    // Edit mode: entered by long pressing the wallpaper or an app icon,
+    // left by tapping blank space, the [完成] pill, the Home bar or Back.
+    var isEditing by remember { mutableStateOf(initialEditing) }
+    var isGridDragging by remember { mutableStateOf(false) }
+
     // Desktop grid only holds apps that are not already pinned in the dock
-    val homeApps = listOf(
+    val defaultHomeApps = listOf(
         HomeAppDef("mailbox", "信箱", "mailbox", if (unreadLettersCount > 0) "$unreadLettersCount" else null),
         HomeAppDef("gallery", "相册", "gallery", null),
         HomeAppDef("check_phone", "窥屏", "check_phone", null),
@@ -119,6 +134,18 @@ fun VirtualHomeScreen(
         HomeAppDef("call_history", "通话记录", "call", null)
     )
 
+    // Saved order wins, unknown ids drop, brand new apps append at the end
+    var homeAppOrder by remember {
+        mutableStateOf(
+            HomeAppOrder.normalize(
+                savedIds = AiluaLocalStore.getHomeAppOrder(),
+                availableIds = defaultHomeApps.map { it.id }
+            )
+        )
+    }
+    val homeApps = homeAppOrder.mapNotNull { id -> defaultHomeApps.firstOrNull { it.id == id } }
+    val persistHomeAppOrder = { AiluaLocalStore.saveHomeAppOrder(homeAppOrder) }
+
     // Wallpaper: default theme tracks the AILUA world clock, the other themes stay fixed
     val wallpaper = themeWallpaper(
         theme = homeTheme,
@@ -127,12 +154,26 @@ fun VirtualHomeScreen(
         isDarkTheme = isDarkTheme
     )
 
+    // Long press the wallpaper enters edit mode, tapping blank space leaves it
+    BackHandler(enabled = isEditing) {
+        persistHomeAppOrder()
+        isEditing = false
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(wallpaper.colors))
             .pointerInput(Unit) {
-                detectTapGestures(onLongPress = { showThemeSheet = true })
+                detectTapGestures(
+                    onTap = {
+                        if (isEditing) {
+                            persistHomeAppOrder()
+                            isEditing = false
+                        }
+                    },
+                    onLongPress = { isEditing = true }
+                )
             }
             .testTag("virtual_home_screen")
     ) {
@@ -148,6 +189,7 @@ fun VirtualHomeScreen(
             // Paged Workspace (ARK Launcher Reference: multi-page workspace)
             HorizontalPager(
                 state = pagerState,
+                userScrollEnabled = !isGridDragging,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
@@ -159,6 +201,13 @@ fun VirtualHomeScreen(
                         worldClock = worldClock,
                         heartbeatState = heartbeatState,
                         accent = homeTheme.accent,
+                        isEditing = isEditing,
+                        onEnterEdit = { isEditing = true },
+                        onOrderMove = { fromIndex, toIndex ->
+                            homeAppOrder = HomeAppOrder.move(homeAppOrder, fromIndex, toIndex)
+                            persistHomeAppOrder()
+                        },
+                        onDragStateChange = { isGridDragging = it },
                         onOpenDevTime = { showDevTimeSheet = true },
                         onNavigateToMessages = onNavigateToMessages,
                         onNavigateToChat = onNavigateToChat,
@@ -184,31 +233,59 @@ fun VirtualHomeScreen(
                 }
             }
 
-            // Pager Indicator Dots (ARK Launcher Smartspace/Workspace indicator)
+            // Pager Indicator Dots + lightweight edit control strip
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.Center,
+                    .padding(horizontal = 18.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                repeat(2) { index ->
-                    val isSelected = pagerState.currentPage == index
-                    val dotWidth by animateDpAsState(
-                        targetValue = if (isSelected) 18.dp else 6.dp,
-                        label = "dot_width"
-                    )
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 3.dp)
-                            .height(6.dp)
-                            .width(dotWidth)
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(
-                                if (isSelected) homeTheme.accent
-                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
-                            )
-                    )
+                Box(modifier = Modifier.weight(1f)) {
+                    if (isEditing) {
+                        HomeEditPill(
+                            label = "完成",
+                            testTag = "home_edit_done",
+                            accent = homeTheme.accent
+                        ) {
+                            persistHomeAppOrder()
+                            isEditing = false
+                        }
+                    }
+                }
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    repeat(2) { index ->
+                        val isSelected = pagerState.currentPage == index
+                        val dotWidth by animateDpAsState(
+                            targetValue = if (isSelected) 18.dp else 6.dp,
+                            label = "dot_width"
+                        )
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 3.dp)
+                                .height(6.dp)
+                                .width(dotWidth)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(
+                                    if (isSelected) homeTheme.accent
+                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
+                                )
+                        )
+                    }
+                }
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                    if (isEditing) {
+                        HomeEditPill(
+                            label = "主题",
+                            testTag = "home_edit_theme",
+                            accent = homeTheme.accent
+                        ) {
+                            showThemeSheet = true
+                        }
+                    }
                 }
             }
 
@@ -225,7 +302,12 @@ fun VirtualHomeScreen(
             // Virtual Home Indicator Bar
             VirtualPhoneHomeBar(
                 canGoBack = false,
-                onGoHome = {}
+                onGoHome = {
+                    if (isEditing) {
+                        persistHomeAppOrder()
+                        isEditing = false
+                    }
+                }
             )
         }
 
@@ -250,6 +332,10 @@ private fun PageMainHome(
     worldClock: com.example.data.model.WorldClock,
     heartbeatState: com.example.data.engine.WorldHeartbeatState,
     accent: Color,
+    isEditing: Boolean,
+    onEnterEdit: () -> Unit,
+    onOrderMove: (Int, Int) -> Unit,
+    onDragStateChange: (Boolean) -> Unit,
     onOpenDevTime: () -> Unit,
     onNavigateToMessages: () -> Unit,
     onNavigateToChat: () -> Unit,
@@ -264,8 +350,6 @@ private fun PageMainHome(
     onOpenProfile: () -> Unit,
     onAppClick: (String) -> Unit
 ) {
-    val scrollState = rememberScrollState()
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -293,37 +377,34 @@ private fun PageMainHome(
 
         Spacer(modifier = Modifier.height(22.dp))
 
-        // Launcher icon grid fills the rest of the desktop page
+        // Launcher icon grid fills the rest of the desktop page (scrolls itself)
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-            ) {
-                AppIconGrid(
-                    apps = homeApps,
-                    onAppClick = { app ->
-                        dispatchAppAction(
-                            app.id,
-                            onNavigateToMessages,
-                            onNavigateToMoments,
-                            onNavigateToLiving,
-                            onNavigateToContacts,
-                            onNavigateToCheckPhone,
-                            onNavigateToDiary,
-                            onNavigateToMemories,
-                            onNavigateToRelations,
-                            onNavigateToApps,
-                            onAppClick
-                        )
-                    }
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-            }
+            AppIconGrid(
+                apps = homeApps,
+                isEditing = isEditing,
+                onEnterEdit = onEnterEdit,
+                onOrderMove = onOrderMove,
+                onDragStateChange = onDragStateChange,
+                onAppClick = { app ->
+                    dispatchAppAction(
+                        app.id,
+                        onNavigateToMessages,
+                        onNavigateToMoments,
+                        onNavigateToLiving,
+                        onNavigateToContacts,
+                        onNavigateToCheckPhone,
+                        onNavigateToDiary,
+                        onNavigateToMemories,
+                        onNavigateToRelations,
+                        onNavigateToApps,
+                        onAppClick
+                    )
+                }
+            )
         }
     }
 }
@@ -563,34 +644,86 @@ private fun LivingPresenceStrip(
 @Composable
 private fun AppIconGrid(
     apps: List<HomeAppDef>,
+    isEditing: Boolean,
+    onEnterEdit: () -> Unit,
+    onOrderMove: (Int, Int) -> Unit,
+    onDragStateChange: (Boolean) -> Unit,
     onAppClick: (HomeAppDef) -> Unit
 ) {
-    Column(
+    val lazyGridState = rememberLazyGridState()
+    val reorderableLazyGridState = rememberReorderableLazyGridState(lazyGridState) { from, to ->
+        onOrderMove(from.index, to.index)
+    }
+
+    LazyVerticalGrid(
+        state = lazyGridState,
+        columns = GridCells.Fixed(4),
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .testTag("home_app_grid"),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+        contentPadding = PaddingValues(bottom = 10.dp)
     ) {
-        apps.chunked(4).forEach { rowApps ->
-            Row(modifier = Modifier.fillMaxWidth()) {
-                rowApps.forEach { app ->
-                    Box(
-                        modifier = Modifier.weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        AppIconItem(
-                            name = app.name,
-                            iconKey = app.iconKey,
-                            badge = app.badge,
-                            onClick = { onAppClick(app) }
-                        )
-                    }
-                }
-                repeat(4 - rowApps.size) {
-                    Spacer(modifier = Modifier.weight(1f))
+        items(apps, key = { it.id }) { app ->
+            ReorderableItem(reorderableLazyGridState, key = app.id) { isDraggingItem ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .pointerInput(app.id) {
+                            detectTapGestures(
+                                onLongPress = { if (!isEditing) onEnterEdit() }
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    AppIconItem(
+                        name = app.name,
+                        iconKey = app.iconKey,
+                        badge = app.badge,
+                        editMode = isEditing,
+                        isDragging = isDraggingItem,
+                        onClick = if (isEditing) ({}) else ({ onAppClick(app) }),
+                        modifier = if (isEditing) {
+                            Modifier.draggableHandle(
+                                onDragStarted = { onDragStateChange(true) },
+                                onDragStopped = { onDragStateChange(false) }
+                            )
+                        } else {
+                            Modifier
+                        }
+                    )
                 }
             }
         }
+    }
+}
+
+/** Lightweight pill used for the edit mode control strip: [完成] / [主题]. */
+@Composable
+private fun HomeEditPill(
+    label: String,
+    testTag: String,
+    accent: Color,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(14.dp)
+    Box(
+        modifier = Modifier
+            .clip(shape)
+            .background(accent.copy(alpha = 0.16f))
+            .border(1.dp, accent.copy(alpha = 0.40f), shape)
+            .clickable { onClick() }
+            .padding(horizontal = 12.dp, vertical = 5.dp)
+            .testTag(testTag)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = accent
+        )
     }
 }
 

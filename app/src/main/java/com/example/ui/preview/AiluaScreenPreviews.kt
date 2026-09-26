@@ -47,6 +47,39 @@ fun PreviewVirtualHomeScreenDark() {
     }
 }
 
+@Preview(
+    name = "VirtualHomeScreen - Edit Mode - Light",
+    showBackground = true,
+    device = "spec:width=411dp,height=891dp"
+)
+@Composable
+fun PreviewVirtualHomeEditModeLight() {
+    AiluaPreviewDevice(isDarkTheme = false) {
+        VirtualHomeScreen(
+            character = PreviewFixtures.sampleMira,
+            isDarkTheme = false,
+            initialEditing = true
+        )
+    }
+}
+
+@Preview(
+    name = "VirtualHomeScreen - Edit Mode - Dark",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    device = "spec:width=411dp,height=891dp"
+)
+@Composable
+fun PreviewVirtualHomeEditModeDark() {
+    AiluaPreviewDevice(isDarkTheme = true) {
+        VirtualHomeScreen(
+            character = PreviewFixtures.sampleMira,
+            isDarkTheme = true,
+            initialEditing = true
+        )
+    }
+}
+
 // ==========================================
 // 2. LivingScreen Previews
 // ==========================================

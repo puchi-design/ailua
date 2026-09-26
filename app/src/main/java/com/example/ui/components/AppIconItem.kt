@@ -1,7 +1,12 @@
 package com.example.ui.components
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -59,6 +64,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -119,21 +125,40 @@ fun AppIconItem(
     size: Dp = AppIconDefaults.ContainerSize,
     badge: String? = null,
     showLabel: Boolean = true,
+    editMode: Boolean = false,
+    isDragging: Boolean = false,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
+    val pressScale by animateFloatAsState(
         targetValue = if (isPressed) 0.92f else 1.0f,
         animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f),
         label = "icon_press_scale"
     )
+    val dragScale by animateFloatAsState(
+        targetValue = if (isDragging) 1.04f else 1.0f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 500f),
+        label = "icon_drag_scale"
+    )
+    val editFactor by animateFloatAsState(
+        targetValue = if (editMode) 1f else 0f,
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
+        label = "icon_edit_factor"
+    )
+    val wiggle by rememberInfiniteTransition(label = "icon_wiggle")
+        .animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(tween(1100, easing = LinearEasing)),
+            label = "icon_wiggle_phase"
+        )
 
     val (iconVector, gradientColors) = getAppVisuals(iconKey)
 
     Column(
         modifier = modifier
-            .scale(scale)
+            .scale(pressScale * dragScale)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -150,8 +175,11 @@ fun AppIconItem(
             Box(
                 modifier = Modifier
                     .size(size)
+                    .graphicsLayer {
+                        rotationZ = sin(wiggle * PI / 180.0).toFloat() * 2.4f * editFactor
+                    }
                     .shadow(
-                        elevation = 2.dp,
+                        elevation = if (isDragging) 8.dp else 2.dp,
                         shape = AppIconShape,
                         ambientColor = Color.Black.copy(alpha = 0.22f),
                         spotColor = Color.Black.copy(alpha = 0.28f)

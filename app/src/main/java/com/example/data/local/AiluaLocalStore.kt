@@ -42,6 +42,7 @@ object AiluaLocalStore {
     const val KEY_FIRED_WORLD_ACTION_IDS = "fired_world_action_ids"
     const val KEY_WORLD_EVENTS = "world_events_json"
     const val KEY_BOOKMARKED_MSGS = "bookmarked_message_ids"
+    const val KEY_HOME_APP_ORDER = "home_app_order"
 
     private var sharedPrefs: SharedPreferences? = null
 
@@ -75,6 +76,9 @@ object AiluaLocalStore {
 
     private val _bookmarkedMessageIds = MutableStateFlow<Set<String>>(emptySet())
     val bookmarkedMessageIds: StateFlow<Set<String>> = _bookmarkedMessageIds.asStateFlow()
+
+    private val _homeAppOrder = MutableStateFlow<List<String>>(emptyList())
+    val homeAppOrder: StateFlow<List<String>> = _homeAppOrder.asStateFlow()
 
     fun init(context: Context) {
         if (sharedPrefs != null) return
@@ -129,6 +133,13 @@ object AiluaLocalStore {
 
         // 7. Message bookmarks
         _bookmarkedMessageIds.value = prefs.getStringSet(KEY_BOOKMARKED_MSGS, emptySet()) ?: emptySet()
+
+        // 8. Home app order (comma separated stable ids)
+        _homeAppOrder.value = prefs.getString(KEY_HOME_APP_ORDER, null)
+            ?.split(',')
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            ?: emptyList()
     }
 
     // === Custom Cards ===
@@ -267,5 +278,15 @@ object AiluaLocalStore {
         _bookmarkedMessageIds.value = set
         sharedPrefs?.edit()?.putStringSet(KEY_BOOKMARKED_MSGS, set)?.apply()
         return isNowBookmarked
+    }
+
+    // === Home App Order ===
+    fun getHomeAppOrder(): List<String> {
+        return _homeAppOrder.value
+    }
+
+    fun saveHomeAppOrder(ids: List<String>) {
+        _homeAppOrder.value = ids
+        sharedPrefs?.edit()?.putString(KEY_HOME_APP_ORDER, ids.joinToString(","))?.apply()
     }
 }
