@@ -38,7 +38,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -72,7 +72,7 @@ fun GalleryScreen(
     onToggleTheme: () -> Unit = {},
     onBack: () -> Unit = {}
 ) {
-    val assets by GalleryRepository.assets.collectAsState()
+    val assets by GalleryRepository.assets.collectAsStateWithLifecycle()
     var selectedAlbum by remember { mutableStateOf("全部") }
     var viewingAsset by remember { mutableStateOf<GalleryAsset?>(null) }
 

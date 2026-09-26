@@ -28,7 +28,7 @@ import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,8 +49,8 @@ fun WorldTimeDevSheet(
     onDismiss: () -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState()
 ) {
-    val clock by WorldHeartbeatEngine.worldClock.collectAsState()
-    val scheduledActions by WorldHeartbeatEngine.scheduledActions.collectAsState()
+    val clock by WorldHeartbeatEngine.worldClock.collectAsStateWithLifecycle()
+    val scheduledActions by WorldHeartbeatEngine.scheduledActions.collectAsStateWithLifecycle()
 
     val nextAction = scheduledActions.firstOrNull { !it.fired && it.triggerTimeMinutes >= clock.minutesOfDay }
         ?: scheduledActions.firstOrNull { !it.fired }

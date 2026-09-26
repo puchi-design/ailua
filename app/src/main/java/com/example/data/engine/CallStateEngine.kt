@@ -1,5 +1,6 @@
 package com.example.data.engine
 
+import com.example.data.local.AiluaLocalStore
 import com.example.data.model.CallAction
 import com.example.data.model.CallSession
 import com.example.data.model.CallState
@@ -13,9 +14,9 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * CallStateEngine
  *
- * Lightweight virtual companion call state machine inspired by
- * Android TelecomCall repository and call state samples.
+ * Single authority for virtual companion call state machine.
  * Manages virtual companion voice sessions without system Telecom / WebRTC bloat.
+ * Persists completed sessions in AiluaLocalStore and emits life events on call end.
  */
 object CallStateEngine {
 
@@ -28,23 +29,35 @@ object CallStateEngine {
     private val _isSpeaker = MutableStateFlow(true)
     val isSpeaker: StateFlow<Boolean> = _isSpeaker.asStateFlow()
 
-    private val _callHistory = MutableStateFlow<List<CallSession>>(
-        listOf(
-            CallSession(
-                id = "call_past_1",
-                characterId = "mira",
-                callerName = "小弥",
-                avatarId = "mira",
-                type = CallType.VOICE,
-                state = CallState.ENDED,
-                reason = "傍晚散步时的随心轻语",
-                scheduledAtMinutes = 18 * 60 + 20,
-                scheduledAtTime = "18:20",
-                durationSeconds = 142
-            )
+    private val defaultHistory = listOf(
+        CallSession(
+            id = "call_past_1",
+            characterId = "mira",
+            callerName = "小弥",
+            avatarId = "mira",
+            type = CallType.VOICE,
+            state = CallState.ENDED,
+            reason = "傍晚散步时的随心轻语",
+            scheduledAtMinutes = 18 * 60 + 20,
+            scheduledAtTime = "18:20",
+            durationSeconds = 142
         )
     )
+
+    private val _callHistory = MutableStateFlow<List<CallSession>>(initialHistory())
     val callHistory: StateFlow<List<CallSession>> = _callHistory.asStateFlow()
+
+    private fun initialHistory(): List<CallSession> {
+        val saved = AiluaLocalStore.savedCallHistory.value
+        return if (saved.isNotEmpty()) saved else defaultHistory
+    }
+
+    fun syncWithLocalStore() {
+        val saved = AiluaLocalStore.savedCallHistory.value
+        if (saved.isNotEmpty()) {
+            _callHistory.value = (saved + _callHistory.value).distinctBy { it.id }
+        }
+    }
 
     fun triggerIncomingCall(
         characterId: String = "mira",
@@ -67,6 +80,9 @@ object CallStateEngine {
         return session
     }
 
+    /**
+     * Single action handling API for all call state transitions.
+     */
     fun handleAction(action: CallAction) {
         val session = _currentCall.value ?: return
         when (action) {
@@ -82,7 +98,10 @@ object CallStateEngine {
                     endedAt = System.currentTimeMillis()
                 )
                 _currentCall.value = null
-                _callHistory.value = listOf(finished) + _callHistory.value
+                val updated = listOf(finished) + _callHistory.value
+                _callHistory.value = updated
+                AiluaLocalStore.appendCallHistory(finished)
+                AiluaLocalStore.saveCallHistory(updated)
             }
             CallAction.END -> {
                 val finished = session.copy(
@@ -91,7 +110,10 @@ object CallStateEngine {
                     durationSeconds = if (session.durationSeconds > 0) session.durationSeconds else 45
                 )
                 _currentCall.value = null
-                _callHistory.value = listOf(finished) + _callHistory.value
+                val updated = listOf(finished) + _callHistory.value
+                _callHistory.value = updated
+                AiluaLocalStore.appendCallHistory(finished)
+                AiluaLocalStore.saveCallHistory(updated)
 
                 // Record life event into unified timeline
                 WorldStateRepository.appendLifeEvent(

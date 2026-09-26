@@ -3,7 +3,9 @@ package com.example.data.local
 import android.content.Context
 import android.content.SharedPreferences
 import com.example.data.codec.CharacterCardJsonCodec
+import com.example.data.model.CallSession
 import com.example.data.model.CharacterCard
+import com.example.data.model.LifeEvent
 import com.example.data.model.TheaterBookmark
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,36 +16,39 @@ import kotlinx.serialization.json.Json
 /**
  * AiluaLocalStore
  *
- * Lightweight durable local persistence inspired by Now in Android's
- * NiaPreferencesDataSource, using SharedPreferences and kotlinx.serialization.
+ * Durable lightweight persistence inspired by Now in Android's
+ * PreferencesDataSource patterns, using SharedPreferences and kotlinx.serialization.
+ *
  * Persists:
- * - Custom Character Cards
- * - Theater Bookmark & Progress
- * - Virtual Clock Time & Date
- * - Delivered / Opened Letter States
- * - Virtual Companion Call History
- * - User Imported Gallery Assets
- * - Chat Message Bookmarks
+ * - Fired World Action IDs (KEY_FIRED_WORLD_ACTION_IDS)
+ * - Generated World Life Events (KEY_WORLD_EVENTS)
+ * - Call Session History (KEY_CALL_HISTORY)
+ * - Virtual Clock Time & Date (KEY_VIRTUAL_MINUTES, KEY_VIRTUAL_DATE)
+ * - Delivered / Opened Letter States (KEY_DELIVERED_LETTERS, KEY_OPENED_LETTERS)
+ * - Custom Character Cards (KEY_CUSTOM_CARDS)
+ * - Theater Bookmark & Progress (KEY_THEATER_BOOKMARK)
+ * - Chat Message Bookmarks (KEY_BOOKMARKED_MSGS)
  */
 object AiluaLocalStore {
-
     private const val PREFS_NAME = "ailua_os_store"
-    private const val KEY_CUSTOM_CARDS = "custom_character_cards"
-    private const val KEY_THEATER_BOOKMARK = "theater_bookmark"
-    private const val KEY_VIRTUAL_MINUTES = "virtual_minutes_of_day"
-    private const val KEY_VIRTUAL_DATE = "virtual_date_label"
-    private const val KEY_DELIVERED_LETTERS = "delivered_letter_ids"
-    private const val KEY_OPENED_LETTERS = "opened_letter_ids"
-    private const val KEY_CALL_HISTORY = "call_history_json"
-    private const val KEY_GALLERY_ASSETS = "gallery_imported_assets"
-    private const val KEY_BOOKMARKED_MSGS = "bookmarked_message_ids"
+
+    const val KEY_CUSTOM_CARDS = "custom_character_cards"
+    const val KEY_THEATER_BOOKMARK = "theater_bookmark"
+    const val KEY_VIRTUAL_MINUTES = "virtual_minutes_of_day"
+    const val KEY_VIRTUAL_DATE = "virtual_date_label"
+    const val KEY_DELIVERED_LETTERS = "delivered_letter_ids"
+    const val KEY_OPENED_LETTERS = "opened_letter_ids"
+    const val KEY_CALL_HISTORY = "call_history_json"
+    const val KEY_FIRED_WORLD_ACTION_IDS = "fired_world_action_ids"
+    const val KEY_WORLD_EVENTS = "world_events_json"
+    const val KEY_BOOKMARKED_MSGS = "bookmarked_message_ids"
 
     private var sharedPrefs: SharedPreferences? = null
 
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
-        prettyPrint = true
+        prettyPrint = false
     }
 
     // In-memory reactive state
@@ -59,6 +64,15 @@ object AiluaLocalStore {
     private val _openedLetterIds = MutableStateFlow<Set<String>>(emptySet())
     val openedLetterIds: StateFlow<Set<String>> = _openedLetterIds.asStateFlow()
 
+    private val _firedWorldActionIds = MutableStateFlow<Set<String>>(emptySet())
+    val firedWorldActionIds: StateFlow<Set<String>> = _firedWorldActionIds.asStateFlow()
+
+    private val _savedWorldEvents = MutableStateFlow<List<LifeEvent>>(emptyList())
+    val savedWorldEvents: StateFlow<List<LifeEvent>> = _savedWorldEvents.asStateFlow()
+
+    private val _savedCallHistory = MutableStateFlow<List<CallSession>>(emptyList())
+    val savedCallHistory: StateFlow<List<CallSession>> = _savedCallHistory.asStateFlow()
+
     private val _bookmarkedMessageIds = MutableStateFlow<Set<String>>(emptySet())
     val bookmarkedMessageIds: StateFlow<Set<String>> = _bookmarkedMessageIds.asStateFlow()
 
@@ -68,7 +82,7 @@ object AiluaLocalStore {
         loadFromDisk()
     }
 
-    private fun loadFromDisk() {
+    fun loadFromDisk() {
         val prefs = sharedPrefs ?: return
 
         // 1. Custom cards
@@ -92,12 +106,32 @@ object AiluaLocalStore {
         _deliveredLetterIds.value = prefs.getStringSet(KEY_DELIVERED_LETTERS, emptySet()) ?: emptySet()
         _openedLetterIds.value = prefs.getStringSet(KEY_OPENED_LETTERS, emptySet()) ?: emptySet()
 
-        // 4. Message bookmarks
+        // 4. Fired scheduled world action IDs
+        _firedWorldActionIds.value = prefs.getStringSet(KEY_FIRED_WORLD_ACTION_IDS, emptySet()) ?: emptySet()
+
+        // 5. World Life Events
+        val eventsJson = prefs.getString(KEY_WORLD_EVENTS, null)
+        if (!eventsJson.isNullOrBlank()) {
+            try {
+                val list = json.decodeFromString(ListSerializer(LifeEvent.serializer()), eventsJson)
+                _savedWorldEvents.value = list
+            } catch (_: Exception) {}
+        }
+
+        // 6. Call History
+        val callJson = prefs.getString(KEY_CALL_HISTORY, null)
+        if (!callJson.isNullOrBlank()) {
+            try {
+                val list = json.decodeFromString(ListSerializer(CallSession.serializer()), callJson)
+                _savedCallHistory.value = list
+            } catch (_: Exception) {}
+        }
+
+        // 7. Message bookmarks
         _bookmarkedMessageIds.value = prefs.getStringSet(KEY_BOOKMARKED_MSGS, emptySet()) ?: emptySet()
     }
 
     // === Custom Cards ===
-
     fun saveCustomCard(card: CharacterCard) {
         val current = _customCards.value.toMutableList()
         val index = current.indexOfFirst { it.data.id == card.data.id }
@@ -123,7 +157,6 @@ object AiluaLocalStore {
     }
 
     // === Theater Bookmark ===
-
     fun saveTheaterBookmark(bookmark: TheaterBookmark) {
         _theaterBookmark.value = bookmark
         sharedPrefs?.edit()?.putString(
@@ -138,7 +171,6 @@ object AiluaLocalStore {
     }
 
     // === Letters ===
-
     fun markLetterDelivered(letterId: String) {
         val updated = _deliveredLetterIds.value + letterId
         _deliveredLetterIds.value = updated
@@ -156,8 +188,56 @@ object AiluaLocalStore {
             ?.apply()
     }
 
-    // === Virtual Clock ===
+    // === Fired Scheduled Action IDs ===
+    fun getFiredWorldActionIds(): Set<String> {
+        return _firedWorldActionIds.value
+    }
 
+    fun markWorldActionFired(actionId: String) {
+        val updated = _firedWorldActionIds.value + actionId
+        _firedWorldActionIds.value = updated
+        sharedPrefs?.edit()?.putStringSet(KEY_FIRED_WORLD_ACTION_IDS, updated)?.apply()
+    }
+
+    // === World Life Events ===
+    fun saveWorldEvents(events: List<LifeEvent>) {
+        _savedWorldEvents.value = events
+        try {
+            sharedPrefs?.edit()?.putString(
+                KEY_WORLD_EVENTS,
+                json.encodeToString(ListSerializer(LifeEvent.serializer()), events)
+            )?.apply()
+        } catch (_: Exception) {}
+    }
+
+    fun appendWorldEvent(event: LifeEvent) {
+        val current = _savedWorldEvents.value
+        if (current.none { it.id == event.id }) {
+            val updated = listOf(event) + current
+            saveWorldEvents(updated)
+        }
+    }
+
+    // === Call History ===
+    fun saveCallHistory(history: List<CallSession>) {
+        _savedCallHistory.value = history
+        try {
+            sharedPrefs?.edit()?.putString(
+                KEY_CALL_HISTORY,
+                json.encodeToString(ListSerializer(CallSession.serializer()), history)
+            )?.apply()
+        } catch (_: Exception) {}
+    }
+
+    fun appendCallHistory(session: CallSession) {
+        val current = _savedCallHistory.value
+        if (current.none { it.id == session.id }) {
+            val updated = listOf(session) + current
+            saveCallHistory(updated)
+        }
+    }
+
+    // === Virtual Clock ===
     fun getVirtualMinutes(defaultVal: Int = 21 * 60 + 30): Int {
         return sharedPrefs?.getInt(KEY_VIRTUAL_MINUTES, defaultVal) ?: defaultVal
     }
@@ -175,7 +255,6 @@ object AiluaLocalStore {
     }
 
     // === Message Bookmarks ===
-
     fun toggleMessageBookmark(messageId: String): Boolean {
         val set = _bookmarkedMessageIds.value.toMutableSet()
         val isNowBookmarked = if (set.contains(messageId)) {

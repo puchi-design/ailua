@@ -1,5 +1,6 @@
 package com.example.data.engine
 
+import com.example.data.local.AiluaLocalStore
 import com.example.data.mock.MockData
 import com.example.data.model.LifeEvent
 import com.example.data.model.LifeEventType
@@ -12,17 +13,34 @@ import kotlinx.coroutines.flow.asStateFlow
  *
  * Single source of truth for the living companion world events stream.
  * Shared reactively across Home, Living, Moments, Gallery, and Mailbox.
+ * Restores and persists events using AiluaLocalStore.
  */
 object WorldStateRepository {
 
-    private val _events = MutableStateFlow<List<LifeEvent>>(MockData.unifiedLifeEvents)
+    private val _events = MutableStateFlow<List<LifeEvent>>(initialEvents())
     val events: StateFlow<List<LifeEvent>> = _events.asStateFlow()
+
+    private fun initialEvents(): List<LifeEvent> {
+        val saved = AiluaLocalStore.savedWorldEvents.value
+        return if (saved.isNotEmpty()) {
+            (saved + MockData.unifiedLifeEvents).distinctBy { it.id }
+        } else {
+            MockData.unifiedLifeEvents
+        }
+    }
+
+    fun syncWithLocalStore() {
+        val saved = AiluaLocalStore.savedWorldEvents.value
+        if (saved.isNotEmpty()) {
+            _events.value = (saved + _events.value).distinctBy { it.id }
+        }
+    }
 
     fun appendLifeEvent(event: LifeEvent) {
         val current = _events.value
-        // Avoid duplicate ID
         if (current.none { it.id == event.id }) {
             _events.value = listOf(event) + current
+            AiluaLocalStore.appendWorldEvent(event)
         }
     }
 

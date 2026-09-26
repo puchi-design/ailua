@@ -30,7 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,9 +53,9 @@ import kotlinx.coroutines.delay
 fun CallScreen(
     onCallEnded: () -> Unit
 ) {
-    val currentCall by CallStateEngine.currentCall.collectAsState()
-    val isMuted by CallStateEngine.isMuted.collectAsState()
-    val isSpeaker by CallStateEngine.isSpeaker.collectAsState()
+    val currentCall by CallStateEngine.currentCall.collectAsStateWithLifecycle()
+    val isMuted by CallStateEngine.isMuted.collectAsStateWithLifecycle()
+    val isSpeaker by CallStateEngine.isSpeaker.collectAsStateWithLifecycle()
 
     // Timer effect for call duration
     LaunchedEffect(Unit) {

@@ -37,7 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,8 +75,8 @@ fun MailboxScreen(
     onBack: () -> Unit = {},
     onReplyInChat: (String) -> Unit = {}
 ) {
-    val letters by MailboxRepository.letters.collectAsState()
-    val clock by WorldHeartbeatEngine.worldClock.collectAsState()
+    val letters by MailboxRepository.letters.collectAsStateWithLifecycle()
+    val clock by WorldHeartbeatEngine.worldClock.collectAsStateWithLifecycle()
     var selectedCategory by remember { mutableStateOf("未读来信") }
     var viewingLetter by remember { mutableStateOf<Letter?>(null) }
     var showDevTimeSheet by remember { mutableStateOf(false) }

@@ -35,7 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -93,9 +93,9 @@ fun VirtualHomeScreen(
     onAppClick: (String) -> Unit = {}
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
-    val worldClock by WorldHeartbeatEngine.worldClock.collectAsState()
-    val heartbeatState by WorldHeartbeatEngine.heartbeatState.collectAsState()
-    val letters by MailboxRepository.letters.collectAsState()
+    val worldClock by WorldHeartbeatEngine.worldClock.collectAsStateWithLifecycle()
+    val heartbeatState by WorldHeartbeatEngine.heartbeatState.collectAsStateWithLifecycle()
+    val letters by MailboxRepository.letters.collectAsStateWithLifecycle()
     val unreadLettersCount = letters.count { it.deliveryState == LetterDeliveryState.DELIVERED && !it.isRead }
     var showDevTimeSheet by remember { mutableStateOf(false) }
 
@@ -566,7 +566,7 @@ private fun PageLifeBento(
     onAppClick: (String) -> Unit
 ) {
     val scrollState = rememberScrollState()
-    val allLifeEvents by WorldStateRepository.events.collectAsState()
+    val allLifeEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
     val pulseEvents = allLifeEvents.take(4)
 
     Column(

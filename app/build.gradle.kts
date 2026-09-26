@@ -19,7 +19,6 @@ android {
     targetSdk = 36
     versionCode = 1
     versionName = "1.0"
-
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
@@ -31,12 +30,6 @@ android {
       keyAlias = "upload"
       keyPassword = System.getenv("KEY_PASSWORD")
     }
-    create("debugConfig") {
-      storeFile = file("${rootDir}/debug.keystore")
-      storePassword = "android"
-      keyAlias = "androiddebugkey"
-      keyPassword = "android"
-    }
   }
 
   buildTypes {
@@ -46,17 +39,23 @@ android {
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       signingConfig = signingConfigs.getByName("release")
     }
-    debug { signingConfig = signingConfigs.getByName("debugConfig") }
+    debug {
+      // Uses default Android / AGP debug signing keystore without requiring repository-root debug.keystore
+    }
   }
+
   compileOptions {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
   }
+
   buildFeatures {
     compose = true
     buildConfig = true
   }
+
   testOptions { unitTests { isIncludeAndroidResources = true } }
+
   dependenciesInfo {
     includeInApk = false
     includeInBundle = true
@@ -103,7 +102,6 @@ dependencies {
   implementation(libs.firebase.ai)
   // Uncomment to use Firestore:
   // implementation(libs.firebase.firestore)
-
   // Uncomment ALL FOUR of the following dependencies together to use Firebase Auth and Google
   // Sign-In via Credential Manager:
   // implementation(libs.firebase.auth)

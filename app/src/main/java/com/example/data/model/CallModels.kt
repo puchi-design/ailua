@@ -2,11 +2,13 @@ package com.example.data.model
 
 import kotlinx.serialization.Serializable
 
+@Serializable
 enum class CallType(val label: String) {
     VOICE("心契音频通话"),
     VIDEO_PLACEHOLDER("全息伴生视界")
 }
 
+@Serializable
 enum class CallState {
     INCOMING,
     RINGING,

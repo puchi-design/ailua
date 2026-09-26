@@ -2,10 +2,13 @@ package com.example.data.engine
 
 import com.example.data.local.AiluaLocalStore
 import com.example.data.mock.MockData
-import com.example.data.model.CallSession
 import com.example.data.model.DayPhase
+import com.example.data.model.HeartbeatState
 import com.example.data.model.LifeEvent
 import com.example.data.model.LifeEventType
+import com.example.data.model.ScheduledActionType
+import com.example.data.model.ScheduledWorldAction
+import com.example.data.model.TimeOfDayPhase
 import com.example.data.model.WeatherState
 import com.example.data.model.WorldClock
 import com.example.data.repository.MailboxRepository
@@ -13,95 +16,81 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-enum class ScheduledActionType {
-    LIFE_EVENT,
-    LETTER_DELIVERY,
-    INCOMING_CALL,
-    GALLERY_ASSET,
-    MOMENT,
-    LOCATION_CHANGE
-}
-
-data class ScheduledWorldAction(
-    val id: String,
-    val triggerTimeMinutes: Int, // minutes from 00:00
-    val triggerTimeString: String,
-    val type: ScheduledActionType,
-    val characterId: String,
-    val payloadId: String,
-    val title: String,
-    val description: String,
-    var fired: Boolean = false
-)
-
-enum class TimeOfDayPhase(val label: String, val icon: String, val atmosphere: String) {
-    DAWN("清晨薄曦", "🌅", "微光穿透薄雾，窗外风铃初鸣"),
-    AFTERNOON("午后漫步", "☕", "阳光洒在木兰茶馆庭院，司康初出炉"),
-    DUSK("暮色斜照", "🌇", "街角路灯次第亮起，晚风微凉"),
-    RAINY_NIGHT("秋雨夜谈", "🌧️", "窗外细雨连绵，室内红茶温热，心网守候")
-}
-
-data class WorldHeartbeatState(
-    val currentPhase: TimeOfDayPhase = TimeOfDayPhase.RAINY_NIGHT,
-    val activePlaceId: String = "place_street_23",
-    val activeCharacterId: String = "mira",
-    val isProactiveTakeoverActive: Boolean = false,
-    val proactiveMessage: String? = null,
-    val initiativeScores: Map<String, Int> = mapOf("mira" to 88, "yuna" to 75, "noa" to 65),
-    val lastPulseTime: String = "21:30"
-)
-
+/**
+ * WorldHeartbeatEngine
+ *
+ * Core engine driving the living autonomous pulse of the companion world.
+ * - Maintains dynamic reactive WorldClock with midnight advancement
+ * - Evaluates scheduled timeline actions crossing time intervals
+ * - Dispatches letters to Mailbox and incoming calls to CallStateEngine (sole authority)
+ * - Persists clock time and fired actions to AiluaLocalStore
+ */
 object WorldHeartbeatEngine {
 
-    // 1. World Clock (Single Source of Virtual Time)
     private val _worldClock = MutableStateFlow(
         WorldClock(
             dateLabel = "9月25日",
             minutesOfDay = 21 * 60 + 30, // 21:30
-            dayPhase = DayPhase.NIGHT,
+            dayPhase = DayPhase.EVENING,
             weather = WeatherState.RAIN
         )
     )
     val worldClock: StateFlow<WorldClock> = _worldClock.asStateFlow()
 
-    // 2. Heartbeat State
-    private val _heartbeatState = MutableStateFlow(WorldHeartbeatState())
-    val heartbeatState: StateFlow<WorldHeartbeatState> = _heartbeatState.asStateFlow()
+    private val _heartbeatState = MutableStateFlow(
+        HeartbeatState(
+            currentPhase = TimeOfDayPhase.DUSK,
+            isProactiveTakeoverActive = false,
+            activeCharacterId = "mira",
+            lastPulseTime = "21:30",
+            proactiveMessage = null
+        )
+    )
+    val heartbeatState: StateFlow<HeartbeatState> = _heartbeatState.asStateFlow()
 
-    // 3. Scheduled World Actions (Pass 2B scheduler)
     private val initialActions = listOf(
         ScheduledWorldAction(
-            id = "sched_takeover_2140",
-            triggerTimeMinutes = 21 * 60 + 40,
-            triggerTimeString = "21:40",
+            id = "sched_mira_tea_1930",
+            triggerTimeMinutes = 19 * 60 + 30,
+            triggerTimeString = "19:30",
             type = ScheduledActionType.LIFE_EVENT,
             characterId = "mira",
-            payloadId = "pulse_takeover_mira",
-            title = "小弥在飘窗前为你温茶",
-            description = "夜雨渐急，小弥伸手微调保温垫温度，让热伯爵红茶一直温润适口。"
+            payloadId = "event_tea_1",
+            title = "小弥在飘窗前泡了一壶红茶",
+            description = "傍晚的雨声中，小弥把刚煮好的大吉岭红茶倒进骨瓷杯，静静看着窗外雾气。"
         ),
         ScheduledWorldAction(
-            id = "sched_letter_yuna_2230",
+            id = "sched_mira_window_2145",
+            triggerTimeMinutes = 21 * 60 + 45,
+            triggerTimeString = "21:45",
+            type = ScheduledActionType.LIFE_EVENT,
+            characterId = "mira",
+            payloadId = "event_window_rain",
+            title = "小弥在书桌前整理秋雨随笔",
+            description = "桌角暖灯微亮，小弥在日记本写下：‘今日青石街雨水清澈，想念随心网悄悄漫延’。"
+        ),
+        ScheduledWorldAction(
+            id = "sched_yuna_letter_2230",
             triggerTimeMinutes = 22 * 60 + 30,
             triggerTimeString = "22:30",
             type = ScheduledActionType.LETTER_DELIVERY,
             characterId = "yuna",
             payloadId = "letter_yuna_1",
-            title = "悠奈寄达了限定布丁兑换券",
-            description = "信箱收到一封带着焦糖甜香的手写便签，信封印着布丁贴纸。"
+            title = "悠奈寄来了全家手写便签",
+            description = "全家便利店门口避雨时写下的心绪，附带一张热豆浆的手绘明信片。"
         ),
         ScheduledWorldAction(
-            id = "sched_incoming_call_2245",
+            id = "sched_mira_call_2245",
             triggerTimeMinutes = 22 * 60 + 45,
             triggerTimeString = "22:45",
             type = ScheduledActionType.INCOMING_CALL,
             characterId = "mira",
-            payloadId = "call_mira_night",
-            title = "小弥的伴生夜雨来电",
-            description = "小弥拨通了心契虚拟电话：“窗外雨下得很大，要不要陪我听一会儿？”"
+            payloadId = "call_mira_rain_night",
+            title = "小弥打来伴生夜话通话",
+            description = "窗外雨下得很大，要不要陪我听一会儿？"
         ),
         ScheduledWorldAction(
-            id = "sched_letter_noa_2300",
+            id = "sched_noa_letter_2300",
             triggerTimeMinutes = 23 * 60 + 0,
             triggerTimeString = "23:00",
             type = ScheduledActionType.LETTER_DELIVERY,
@@ -122,28 +111,44 @@ object WorldHeartbeatEngine {
         )
     )
 
-    private val _scheduledActions = MutableStateFlow(initialActions)
+    private val _scheduledActions = MutableStateFlow<List<ScheduledWorldAction>>(emptyList())
     val scheduledActions: StateFlow<List<ScheduledWorldAction>> = _scheduledActions.asStateFlow()
 
-    // Reactive callback for incoming call prompt
-    var onIncomingCallTriggered: ((CallSession) -> Unit)? = null
-
     init {
-        // Sync clock with local store if saved
+        // Sync clock and actions with local store
         val savedMinutes = AiluaLocalStore.getVirtualMinutes(21 * 60 + 30)
         val savedDate = AiluaLocalStore.getVirtualDate("9月25日")
+        val firedIds = AiluaLocalStore.getFiredWorldActionIds()
+
+        val restoredActions = initialActions.map { action ->
+            if (firedIds.contains(action.id)) {
+                action.copy(fired = true)
+            } else {
+                action
+            }
+        }
+        _scheduledActions.value = restoredActions
         updateClockInternal(savedMinutes, savedDate)
     }
 
     /**
-     * Advances virtual time by delta minutes (e.g. +10, +30, +60).
-     * Evaluates scheduled actions, updates WorldStateRepository, Mailbox, Calls, and Heartbeat.
+     * Advances virtual time by [deltaMinutes].
+     * Uses WorldTimeAdvancer to calculate exact midnight and date progression,
+     * evaluates scheduled actions crossed in the interval, and persists state.
      */
     fun advanceTime(deltaMinutes: Int) {
-        val currentMinutes = _worldClock.value.minutesOfDay
-        val newMinutes = (currentMinutes + deltaMinutes) % (24 * 60)
-        updateClockInternal(newMinutes, _worldClock.value.dateLabel)
-        evaluateDueScheduledActions(newMinutes)
+        if (deltaMinutes <= 0) return
+        val currentClock = _worldClock.value
+        val startMinutes = currentClock.minutesOfDay
+
+        val result = WorldTimeAdvancer.advance(
+            currentMinutes = startMinutes,
+            currentDateLabel = currentClock.dateLabel,
+            deltaMinutes = deltaMinutes
+        )
+
+        updateClockInternal(result.newMinutes, result.newDateLabel)
+        evaluateDueScheduledActions(startMinutes, deltaMinutes)
     }
 
     /**
@@ -151,11 +156,20 @@ object WorldHeartbeatEngine {
      */
     fun jumpToNextScheduledEvent() {
         val currentMinutes = _worldClock.value.minutesOfDay
-        val nextAction = _scheduledActions.value.firstOrNull { !it.fired && it.triggerTimeMinutes > currentMinutes }
-            ?: _scheduledActions.value.firstOrNull { !it.fired }
+        val firedIds = AiluaLocalStore.getFiredWorldActionIds()
+        val nextAction = _scheduledActions.value.firstOrNull {
+            !it.fired && !firedIds.contains(it.id) && it.triggerTimeMinutes > currentMinutes
+        } ?: _scheduledActions.value.firstOrNull {
+            !it.fired && !firedIds.contains(it.id)
+        }
+
         if (nextAction != null) {
-            updateClockInternal(nextAction.triggerTimeMinutes, _worldClock.value.dateLabel)
-            evaluateDueScheduledActions(nextAction.triggerTimeMinutes)
+            val delta = if (nextAction.triggerTimeMinutes >= currentMinutes) {
+                nextAction.triggerTimeMinutes - currentMinutes
+            } else {
+                (1440 - currentMinutes) + nextAction.triggerTimeMinutes
+            }
+            advanceTime(delta)
         } else {
             advanceTime(30)
         }
@@ -180,7 +194,7 @@ object WorldHeartbeatEngine {
             DayPhase.NIGHT, DayPhase.LATE_NIGHT -> TimeOfDayPhase.RAINY_NIGHT
         }
 
-        val weather = if (minutes >= 1140) WeatherState.RAIN else WeatherState.CLOUDY
+        val weather = if (minutes >= 1140 || minutes < 300) WeatherState.RAIN else WeatherState.CLOUDY
 
         _worldClock.value = WorldClock(
             dateLabel = date,
@@ -198,15 +212,18 @@ object WorldHeartbeatEngine {
         AiluaLocalStore.saveVirtualMinutes(minutes)
         AiluaLocalStore.saveVirtualDate(date)
 
-        // Sync Mailbox
+        // Sync Mailbox deliveries
         MailboxRepository.checkScheduledDeliveries(minutes)
     }
 
-    private fun evaluateDueScheduledActions(currentMinutes: Int) {
+    private fun evaluateDueScheduledActions(startMinutes: Int, deltaMinutes: Int) {
+        val firedIds = AiluaLocalStore.getFiredWorldActionIds()
         val updated = _scheduledActions.value.map { action ->
-            if (!action.fired && action.triggerTimeMinutes <= currentMinutes) {
-                // Execute scheduled action
+            if (!action.fired && !firedIds.contains(action.id) &&
+                WorldTimeAdvancer.isActionTriggeredInInterval(action.triggerTimeMinutes, startMinutes, deltaMinutes)
+            ) {
                 executeAction(action)
+                AiluaLocalStore.markWorldActionFired(action.id)
                 action.copy(fired = true)
             } else {
                 action
@@ -234,13 +251,13 @@ object WorldHeartbeatEngine {
                 MailboxRepository.checkScheduledDeliveries(action.triggerTimeMinutes)
             }
             ScheduledActionType.INCOMING_CALL -> {
-                val session = CallStateEngine.triggerIncomingCall(
+                // CallStateEngine is the sole authority
+                CallStateEngine.triggerIncomingCall(
                     characterId = action.characterId,
                     callerName = if (action.characterId == "yuna") "悠奈" else if (action.characterId == "noa") "诺亚" else "小弥",
                     reason = action.description,
                     timeLabel = action.triggerTimeString
                 )
-                onIncomingCallTriggered?.invoke(session)
             }
             ScheduledActionType.LOCATION_CHANGE -> {
                 WorldStateRepository.appendLifeEvent(
@@ -259,16 +276,10 @@ object WorldHeartbeatEngine {
         }
     }
 
-    /**
-     * Backward-compatible phase cycler.
-     */
     fun cycleTimePhase() {
         advanceTime(90)
     }
 
-    /**
-     * Simulates scheduled takeover event (proactive companion presence).
-     */
     fun triggerScheduledTakeover(characterId: String = "mira"): LifeEvent {
         val character = MockData.allCharacters[characterId] ?: MockData.sampleCharacter
         val newEvent = LifeEvent(
@@ -284,16 +295,12 @@ object WorldHeartbeatEngine {
             },
             location = character.location
         )
-
-        // Append to shared repository
         WorldStateRepository.appendLifeEvent(newEvent)
-
         _heartbeatState.value = _heartbeatState.value.copy(
             isProactiveTakeoverActive = true,
             activeCharacterId = characterId,
             proactiveMessage = newEvent.description
         )
-
         return newEvent
     }
 

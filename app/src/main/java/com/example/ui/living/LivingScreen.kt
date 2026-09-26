@@ -40,7 +40,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,8 +84,8 @@ fun LivingScreen(
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    val worldEvents by WorldStateRepository.events.collectAsState()
-    val worldClock by WorldHeartbeatEngine.worldClock.collectAsState()
+    val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
+    val worldClock by WorldHeartbeatEngine.worldClock.collectAsStateWithLifecycle()
     var showDevTimeSheet by remember { mutableStateOf(false) }
 
     val timelineEvents = remember(character.id, worldEvents) {

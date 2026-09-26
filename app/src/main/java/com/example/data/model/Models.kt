@@ -1,5 +1,7 @@
 package com.example.data.model
 
+import kotlinx.serialization.Serializable
+
 enum class MessageSender {
     USER,
     CHARACTER,
@@ -57,7 +59,10 @@ data class TimelineEvent(
     val title: String,
     val description: String,
     val isCurrent: Boolean = false,
-    val category: String = "routine"
+    val category: String = "routine",
+    val location: String? = null,
+    val mood: String? = null,
+    val relatedCharacterIds: List<String> = emptyList()
 )
 
 data class MemorySnippet(
@@ -89,6 +94,7 @@ data class AiluaApp(
 
 // === Proactive Life Pulse & Unified Engine ===
 
+@Serializable
 enum class LifeEventType {
     WAKE_UP,
     MEAL,
@@ -105,6 +111,7 @@ enum class LifeEventType {
     LOCATION_CHANGE
 }
 
+@Serializable
 data class LifeEvent(
     val id: String,
     val characterId: String,

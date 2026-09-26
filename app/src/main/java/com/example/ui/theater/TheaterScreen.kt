@@ -43,7 +43,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -85,7 +85,7 @@ fun TheaterScreen(
     val story = WorldData.rainyNightStory
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val savedBookmark by AiluaLocalStore.theaterBookmark.collectAsState()
+    val savedBookmark by AiluaLocalStore.theaterBookmark.collectAsStateWithLifecycle()
 
     var currentNodeId by remember { mutableStateOf(story.initialNodeId) }
     var bondScore by remember { mutableIntStateOf(50) }

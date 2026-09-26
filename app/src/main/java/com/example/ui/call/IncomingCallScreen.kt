@@ -27,7 +27,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,7 +53,7 @@ fun IncomingCallScreen(
     onDecline: () -> Unit,
     onDismissLater: () -> Unit
 ) {
-    val callSession by CallStateEngine.currentCall.collectAsState()
+    val callSession by CallStateEngine.currentCall.collectAsStateWithLifecycle()
     val session = callSession
 
     val infiniteTransition = rememberInfiniteTransition(label = "pulse_halo")
