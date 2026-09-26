@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -70,6 +71,7 @@ import com.example.ui.theme.AiluaMistBlue
 import com.example.ui.theme.AiluaMoonGold
 import com.example.ui.theme.AiluaMutedLavender
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VirtualHomeScreen(
     character: CharacterProfile = MockData.sampleCharacter,
