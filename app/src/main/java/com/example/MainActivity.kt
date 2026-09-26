@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +48,8 @@ import com.example.ui.chat.ChatScreen
 import com.example.ui.chat.ConversationListScreen
 import com.example.ui.chat.GroupChatScreen
 import com.example.ui.checkphone.CheckPhoneScreen
+import com.example.ui.components.LocalOsChromeState
+import com.example.ui.components.rememberOsChromeState
 import com.example.ui.contacts.ContactsScreen
 import com.example.ui.creator.CharacterCreatorScreen
 import com.example.ui.diary.DiaryScreen
@@ -86,7 +89,9 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            AiluaAppRoot()
+            CompositionLocalProvider(LocalOsChromeState provides rememberOsChromeState()) {
+                AiluaAppRoot()
+            }
         }
     }
 }

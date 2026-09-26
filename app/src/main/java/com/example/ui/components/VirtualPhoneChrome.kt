@@ -51,7 +51,8 @@ import com.example.ui.theme.AiluaMutedLavender
 fun VirtualPhoneStatusBar(
     modifier: Modifier = Modifier,
     isDarkTheme: Boolean = false,
-    onToggleTheme: () -> Unit = {}
+    onToggleTheme: () -> Unit = {},
+    state: OsChromeState = LocalOsChromeState.current
 ) {
     val textColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
     val subtleColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
@@ -69,7 +70,7 @@ fun VirtualPhoneStatusBar(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "21:48",
+                text = state.timeLabel,
                 style = MaterialTheme.typography.labelLarge.copy(
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 13.sp
@@ -121,13 +122,13 @@ fun VirtualPhoneStatusBar(
                     tint = AiluaMistBlue
                 )
                 Text(
-                    text = "心网 5G",
+                    text = state.networkLabel,
                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                     color = subtleColor
                 )
             }
 
-            // Virtual Battery (92% with subtle moon shape)
+            // Virtual Battery (with subtle moon shape)
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
@@ -137,7 +138,7 @@ fun VirtualPhoneStatusBar(
                 horizontalArrangement = Arrangement.spacedBy(3.dp)
             ) {
                 Text(
-                    text = "92%",
+                    text = state.batteryLabel,
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Medium

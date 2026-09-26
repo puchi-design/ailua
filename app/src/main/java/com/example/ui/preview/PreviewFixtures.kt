@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import com.example.data.mock.MockData
 import com.example.data.model.CallSession
@@ -19,6 +20,8 @@ import com.example.data.model.MomentComment
 import com.example.data.model.MomentPost
 import com.example.data.model.WeatherState
 import com.example.data.model.WorldClock
+import com.example.ui.components.LocalOsChromeState
+import com.example.ui.components.OsChromeState
 import com.example.ui.theme.AiluaTheme
 
 /**
@@ -37,6 +40,12 @@ object PreviewFixtures {
         dayPhase = DayPhase.NIGHT,
         weather = WeatherState.RAIN
     )
+
+    /**
+     * Fixed OS chrome snapshot so preview renders never drift with the device
+     * clock. Mirrors [OsChromeState.PreviewBaseline].
+     */
+    val sampleOsChromeState: OsChromeState = OsChromeState.PreviewBaseline
 
     val sampleIncomingCall = CallSession(
         id = "preview_incoming_call",
@@ -151,12 +160,14 @@ fun AiluaPreviewDevice(
     content: @Composable () -> Unit
 ) {
     AiluaTheme(darkTheme = isDarkTheme) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            content()
+        CompositionLocalProvider(LocalOsChromeState provides PreviewFixtures.sampleOsChromeState) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
+                content()
+            }
         }
     }
 }
