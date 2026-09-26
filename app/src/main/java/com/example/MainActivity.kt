@@ -314,6 +314,8 @@ fun AiluaAppRoot() {
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBackToHome = { navController.popBackStack() },
                         onNavigateToChat = { navController.navigate(AiluaDestinations.chatRoute("mira")) },
+                        onNavigateToCall = { navController.navigate(AiluaDestinations.callRoute("mira")) },
+                        onNavigateToMailbox = { navController.navigate(AiluaDestinations.MAILBOX) },
                         onOpenProfile = { navController.navigate(AiluaDestinations.profileRoute("mira")) }
                     )
                 }

@@ -15,6 +15,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.data.engine.WorldHeartbeatEngine
+import com.example.data.model.DayPhase
+import com.example.data.model.WeatherState
+import com.example.data.model.WorldClock
 import com.example.ui.apps.AppLibraryScreen
 import com.example.ui.call.CallScreen
 import com.example.ui.call.IncomingCallScreen
@@ -113,7 +116,12 @@ fun PreviewLivingScreenLight() {
     AiluaPreviewDevice(isDarkTheme = false) {
         LivingScreen(
             character = PreviewFixtures.sampleMira,
-            isDarkTheme = false
+            isDarkTheme = false,
+            worldClockOverride = WorldClock(
+                minutesOfDay = 14 * 60,
+                dayPhase = DayPhase.AFTERNOON,
+                weather = WeatherState.CLEAR
+            )
         )
     }
 }
@@ -129,7 +137,33 @@ fun PreviewLivingScreenDark() {
     AiluaPreviewDevice(isDarkTheme = true) {
         LivingScreen(
             character = PreviewFixtures.sampleMira,
-            isDarkTheme = true
+            isDarkTheme = true,
+            worldClockOverride = WorldClock(
+                minutesOfDay = 21 * 60 + 40,
+                dayPhase = DayPhase.NIGHT,
+                weather = WeatherState.RAIN
+            )
+        )
+    }
+}
+
+@Preview(
+    name = "LivingScreen - Starry Snow Theme",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    device = "spec:width=411dp,height=891dp"
+)
+@Composable
+fun PreviewLivingScreenStarrySnowTheme() {
+    AiluaPreviewDevice(isDarkTheme = true) {
+        LivingScreen(
+            character = PreviewFixtures.sampleMira,
+            isDarkTheme = true,
+            worldClockOverride = WorldClock(
+                minutesOfDay = 1 * 60 + 20,
+                dayPhase = DayPhase.LATE_NIGHT,
+                weather = WeatherState.SNOW
+            )
         )
     }
 }
