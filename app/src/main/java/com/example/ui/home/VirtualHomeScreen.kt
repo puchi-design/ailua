@@ -25,15 +25,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,8 +50,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.engine.WorldHeartbeatEngine
+import com.example.data.engine.WorldStateRepository
 import com.example.data.mock.MockData
 import com.example.data.model.CharacterProfile
+import com.example.data.model.LetterDeliveryState
+import com.example.data.repository.MailboxRepository
 import com.example.ui.components.AiluaAvatar
 import com.example.ui.components.AppIconItem
 import com.example.ui.components.BondProgressWidget
@@ -53,6 +63,7 @@ import com.example.ui.components.LivingCharacterWidget
 import com.example.ui.components.MemorySnippetWidget
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
+import com.example.ui.components.WorldTimeDevSheet
 import com.example.ui.theme.AiluaDustyRose
 import com.example.ui.theme.AiluaMistBlue
 import com.example.ui.theme.AiluaMoonGold
@@ -75,13 +86,24 @@ fun VirtualHomeScreen(
     onNavigateToMemories: () -> Unit = {},
     onNavigateToApps: () -> Unit = {},
     onOpenProfile: () -> Unit = {},
+    onNavigateToMailbox: () -> Unit = {},
+    onNavigateToCall: () -> Unit = {},
+    onNavigateToCallHistory: () -> Unit = {},
+    onNavigateToGallery: () -> Unit = {},
     onAppClick: (String) -> Unit = {}
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
+    val worldClock by WorldHeartbeatEngine.worldClock.collectAsState()
+    val heartbeatState by WorldHeartbeatEngine.heartbeatState.collectAsState()
+    val letters by MailboxRepository.letters.collectAsState()
+    val unreadLettersCount = letters.count { it.deliveryState == LetterDeliveryState.DELIVERED && !it.isRead }
+    var showDevTimeSheet by remember { mutableStateOf(false) }
 
-    // 10 Desktop Apps on Page 1
+    // Desktop Apps on Page 1 (with live unread counters)
     val homeApps = listOf(
         HomeAppDef("messages", "通讯", "chat", "2"),
+        HomeAppDef("mailbox", "信箱", "mailbox", if (unreadLettersCount > 0) "$unreadLettersCount" else null),
+        HomeAppDef("gallery", "相册", "gallery", null),
         HomeAppDef("moments", "瞬间", "moments", "New"),
         HomeAppDef("living", "生活", "living", null),
         HomeAppDef("contacts", "联系人", "contacts", null),
@@ -90,6 +112,7 @@ fun VirtualHomeScreen(
         HomeAppDef("relations", "关系谱", "relations", null),
         HomeAppDef("diary", "心声日记", "diary", null),
         HomeAppDef("theater", "沉浸剧场", "theater", "HOT"),
+        HomeAppDef("call_history", "通话记录", "call", null),
         HomeAppDef("apps", "应用库", "apps", null)
     )
 
@@ -134,6 +157,9 @@ fun VirtualHomeScreen(
                     0 -> PageMainHome(
                         character = character,
                         homeApps = homeApps,
+                        worldClock = worldClock,
+                        heartbeatState = heartbeatState,
+                        onOpenDevTime = { showDevTimeSheet = true },
                         onNavigateToMessages = onNavigateToMessages,
                         onNavigateToChat = onNavigateToChat,
                         onNavigateToMoments = onNavigateToMoments,
@@ -260,6 +286,10 @@ fun VirtualHomeScreen(
                 onGoHome = {}
             )
         }
+
+        if (showDevTimeSheet) {
+            WorldTimeDevSheet(onDismiss = { showDevTimeSheet = false })
+        }
     }
 }
 
@@ -267,6 +297,9 @@ fun VirtualHomeScreen(
 private fun PageMainHome(
     character: CharacterProfile,
     homeApps: List<HomeAppDef>,
+    worldClock: com.example.data.model.WorldClock,
+    heartbeatState: com.example.data.engine.WorldHeartbeatState,
+    onOpenDevTime: () -> Unit,
     onNavigateToMessages: () -> Unit,
     onNavigateToChat: () -> Unit,
     onNavigateToMoments: () -> Unit,
@@ -319,7 +352,115 @@ private fun PageMainHome(
             )
         }
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // World Clock & Living Heartbeat Bar (Pass 2 Runtime Event Bus & Virtual Time)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(
+                    elevation = 1.dp,
+                    shape = RoundedCornerShape(16.dp),
+                    ambientColor = Color.Black.copy(alpha = 0.04f),
+                    spotColor = Color.Black.copy(alpha = 0.06f)
+                )
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(
+                    0.5.dp,
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    RoundedCornerShape(16.dp)
+                )
+                .clickable { onOpenDevTime() }
+                .padding(horizontal = 14.dp, vertical = 10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(AiluaMistBlue.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = AiluaMistBlue,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Column {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "${worldClock.dateLabel} · ${worldClock.timeFormatted}",
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 13.5.sp
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(AiluaMoonGold.copy(alpha = 0.15f))
+                                    .padding(horizontal = 5.dp, vertical = 1.5.dp)
+                            ) {
+                                Text(
+                                    text = "${worldClock.dayPhase.label} · ${worldClock.weather.label}",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 9.5.sp,
+                                        fontWeight = FontWeight.Medium
+                                    ),
+                                    color = AiluaMoonGold
+                                )
+                            }
+                        }
+                        Text(
+                            text = heartbeatState.currentPhase.atmosphere,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                            ),
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "跃迁",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = AiluaMistBlue
+                    )
+                    Icon(
+                        imageVector = Icons.Default.FastForward,
+                        contentDescription = "时间跃迁",
+                        tint = AiluaMistBlue,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
 
         // Desktop Apps Section Header
         Row(
@@ -356,7 +497,7 @@ private fun PageMainHome(
                     .padding(vertical = 4.dp)
             ) {
                 Text(
-                    text = "应用库 (17)",
+                    text = "应用库 (${homeApps.size + 4})",
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 11.sp,
                         color = AiluaMistBlue
@@ -373,65 +514,40 @@ private fun PageMainHome(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 2 Rows of 5 App Icons
+        // App Icons Grid (supports dynamic rows)
         Column(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Row 1
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                homeApps.take(5).forEach { app ->
-                    AppIconItem(
-                        name = app.name,
-                        iconKey = app.iconKey,
-                        badge = app.badge,
-                        onClick = {
-                            dispatchAppAction(
-                                app.id,
-                                onNavigateToMessages,
-                                onNavigateToMoments,
-                                onNavigateToLiving,
-                                onNavigateToContacts,
-                                onNavigateToCheckPhone,
-                                onNavigateToDiary,
-                                onNavigateToMemories,
-                                onNavigateToRelations,
-                                onNavigateToApps,
-                                onAppClick
-                            )
-                        }
-                    )
-                }
-            }
-
-            // Row 2
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                homeApps.drop(5).take(5).forEach { app ->
-                    AppIconItem(
-                        name = app.name,
-                        iconKey = app.iconKey,
-                        badge = app.badge,
-                        onClick = {
-                            dispatchAppAction(
-                                app.id,
-                                onNavigateToMessages,
-                                onNavigateToMoments,
-                                onNavigateToLiving,
-                                onNavigateToContacts,
-                                onNavigateToCheckPhone,
-                                onNavigateToDiary,
-                                onNavigateToMemories,
-                                onNavigateToRelations,
-                                onNavigateToApps,
-                                onAppClick
-                            )
-                        }
-                    )
+            homeApps.chunked(5).forEach { rowApps ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    rowApps.forEach { app ->
+                        AppIconItem(
+                            name = app.name,
+                            iconKey = app.iconKey,
+                            badge = app.badge,
+                            onClick = {
+                                dispatchAppAction(
+                                    app.id,
+                                    onNavigateToMessages,
+                                    onNavigateToMoments,
+                                    onNavigateToLiving,
+                                    onNavigateToContacts,
+                                    onNavigateToCheckPhone,
+                                    onNavigateToDiary,
+                                    onNavigateToMemories,
+                                    onNavigateToRelations,
+                                    onNavigateToApps,
+                                    onAppClick
+                                )
+                            }
+                        )
+                    }
+                    repeat(5 - rowApps.size) {
+                        Spacer(modifier = Modifier.size(56.dp))
+                    }
                 }
             }
         }
@@ -450,7 +566,8 @@ private fun PageLifeBento(
     onAppClick: (String) -> Unit
 ) {
     val scrollState = rememberScrollState()
-    val pulseEvents = MockData.unifiedLifeEvents.take(4)
+    val allLifeEvents by WorldStateRepository.events.collectAsState()
+    val pulseEvents = allLifeEvents.take(4)
 
     Column(
         modifier = Modifier

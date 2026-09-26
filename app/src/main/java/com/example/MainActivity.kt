@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,6 +25,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.data.engine.CallStateEngine
+import com.example.data.engine.WorldHeartbeatEngine
 import com.example.data.local.AiluaLocalStore
 import com.example.data.mock.MockData
 import com.example.data.model.CallAction
@@ -70,6 +72,13 @@ fun AiluaAppRoot() {
     var isDarkTheme by remember { mutableStateOf(systemDark) }
     val navController = rememberNavController()
 
+    // Global incoming call listener: automatically presents IncomingCallScreen when triggered
+    LaunchedEffect(Unit) {
+        WorldHeartbeatEngine.onIncomingCallTriggered = { session ->
+            navController.navigate(AiluaDestinations.INCOMING_CALL)
+        }
+    }
+
     AiluaTheme(darkTheme = isDarkTheme) {
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -114,6 +123,10 @@ fun AiluaAppRoot() {
                         onNavigateToMemories = { navController.navigate(AiluaDestinations.MEMORIES) },
                         onNavigateToApps = { navController.navigate(AiluaDestinations.APPS) },
                         onOpenProfile = { navController.navigate(AiluaDestinations.profileRoute("mira")) },
+                        onNavigateToMailbox = { navController.navigate(AiluaDestinations.MAILBOX) },
+                        onNavigateToCall = { navController.navigate(AiluaDestinations.callRoute("mira")) },
+                        onNavigateToCallHistory = { navController.navigate(AiluaDestinations.CALL_HISTORY) },
+                        onNavigateToGallery = { navController.navigate(AiluaDestinations.GALLERY) },
                         onAppClick = { appId ->
                             when (appId) {
                                 "messages", "chat" -> navController.navigate(AiluaDestinations.MESSAGES)
@@ -129,6 +142,10 @@ fun AiluaAppRoot() {
                                 "lore_books" -> navController.navigate(AiluaDestinations.WORLD_BOOK)
                                 "world_map" -> navController.navigate(AiluaDestinations.WORLD_MAP)
                                 "theater" -> navController.navigate(AiluaDestinations.THEATER)
+                                "mailbox" -> navController.navigate(AiluaDestinations.MAILBOX)
+                                "call", "companion_call" -> navController.navigate(AiluaDestinations.callRoute("mira"))
+                                "call_history" -> navController.navigate(AiluaDestinations.CALL_HISTORY)
+                                "gallery" -> navController.navigate(AiluaDestinations.GALLERY)
                                 "apps" -> navController.navigate(AiluaDestinations.APPS)
                                 else -> navController.navigate(AiluaDestinations.APPS)
                             }
@@ -265,7 +282,10 @@ fun AiluaAppRoot() {
                         onNavigateToCharacterCreator = { navController.navigate(AiluaDestinations.CHARACTER_CREATOR) },
                         onNavigateToWorldBook = { navController.navigate(AiluaDestinations.WORLD_BOOK) },
                         onNavigateToWorldMap = { navController.navigate(AiluaDestinations.WORLD_MAP) },
-                        onNavigateToTheater = { navController.navigate(AiluaDestinations.THEATER) }
+                        onNavigateToTheater = { navController.navigate(AiluaDestinations.THEATER) },
+                        onNavigateToMailbox = { navController.navigate(AiluaDestinations.MAILBOX) },
+                        onNavigateToCall = { navController.navigate(AiluaDestinations.callRoute("mira")) },
+                        onNavigateToGallery = { navController.navigate(AiluaDestinations.GALLERY) }
                     )
                 }
 
@@ -342,6 +362,80 @@ fun AiluaAppRoot() {
                 // Screen 17: Theater / Branching Narrative (Pass 2 Feature E)
                 composable(AiluaDestinations.THEATER) {
                     TheaterScreen(
+                        isDarkTheme = isDarkTheme,
+                        onToggleTheme = { isDarkTheme = !isDarkTheme },
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+
+                // Screen 18: Mailbox / Letters & Postcards (Pass 2 Feature D)
+                composable(AiluaDestinations.MAILBOX) {
+                    MailboxScreen(
+                        isDarkTheme = isDarkTheme,
+                        onToggleTheme = { isDarkTheme = !isDarkTheme },
+                        onBack = { navController.popBackStack() },
+                        onReplyInChat = { charId ->
+                            navController.navigate(AiluaDestinations.chatRoute(charId))
+                        }
+                    )
+                }
+
+                // Screen 19: Call History / Companion Voice Logs (Pass 2 Feature G)
+                composable(AiluaDestinations.CALL_HISTORY) {
+                    CallHistoryScreen(
+                        isDarkTheme = isDarkTheme,
+                        onToggleTheme = { isDarkTheme = !isDarkTheme },
+                        onBack = { navController.popBackStack() },
+                        onStartCall = { charId ->
+                            CallStateEngine.triggerIncomingCall(
+                                characterId = charId,
+                                callerName = CharacterRegistry.getCharacter(charId).name,
+                                reason = "主动拨通伴生语音倾听"
+                            )
+                            CallStateEngine.answerCall()
+                            navController.navigate(AiluaDestinations.callRoute(charId))
+                        }
+                    )
+                }
+
+                // Screen 20: Companion Call (Active Call Session)
+                composable(
+                    route = "call/{characterId}",
+                    arguments = listOf(navArgument("characterId") {
+                        type = NavType.StringType
+                        defaultValue = "mira"
+                    })
+                ) {
+                    CallScreen(
+                        onCallEnded = { navController.popBackStack() }
+                    )
+                }
+
+                // Screen 21: Incoming Call (Proactive Heartbeat Ringing)
+                composable(AiluaDestinations.INCOMING_CALL) {
+                    val session = CallStateEngine.currentCall.value
+                    IncomingCallScreen(
+                        onAnswer = {
+                            CallStateEngine.answerCall()
+                            val targetId = session?.characterId ?: "mira"
+                            navController.navigate(AiluaDestinations.callRoute(targetId)) {
+                                popUpTo(AiluaDestinations.INCOMING_CALL) { inclusive = true }
+                            }
+                        },
+                        onDecline = {
+                            CallStateEngine.declineCall()
+                            navController.popBackStack()
+                        },
+                        onDismissLater = {
+                            CallStateEngine.declineCall()
+                            navController.popBackStack()
+                        }
+                    )
+                }
+
+                // Screen 22: Gallery / Visual Companion Moments (Pass 2 Feature F)
+                composable(AiluaDestinations.GALLERY) {
+                    GalleryScreen(
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBack = { navController.popBackStack() }
