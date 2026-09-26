@@ -350,6 +350,18 @@ private fun PageMainHome(
     onOpenProfile: () -> Unit,
     onAppClick: (String) -> Unit
 ) {
+    val widgetContext = WidgetHostContext(
+        character = character,
+        accent = accent,
+        worldClock = worldClock,
+        heartbeatState = heartbeatState,
+        onOpenDevTime = onOpenDevTime,
+        onOpenLiving = onNavigateToLiving,
+        onOpenChat = onNavigateToChat,
+        onOpenProfile = onOpenProfile,
+        onNavigateToMemories = onNavigateToMemories
+    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -357,22 +369,11 @@ private fun PageMainHome(
     ) {
         Spacer(modifier = Modifier.height(2.dp))
 
-        // Desktop clock: AILUA world time sits directly on the wallpaper
-        DesktopWorldClock(
-            worldClock = worldClock,
-            heartbeatState = heartbeatState,
-            accent = accent,
-            onOpenDevTime = onOpenDevTime
-        )
-
-        Spacer(modifier = Modifier.height(18.dp))
-
-        // Character presence lives on the desktop instead of inside a dashboard card
-        LivingPresenceStrip(
-            character = character,
-            onOpenChat = onNavigateToChat,
-            onOpenLiving = onNavigateToLiving,
-            onOpenProfile = onOpenProfile
+        // Desktop widgets are rendered through the lightweight widget host
+        AiluaWidgetHost(
+            widgetIds = WidgetRegistry.defaultOrder.take(2),
+            context = widgetContext,
+            spacing = 18.dp
         )
 
         Spacer(modifier = Modifier.height(22.dp))
@@ -406,11 +407,21 @@ private fun PageMainHome(
                 }
             )
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Bottom desktop widgets: Memory Echo + Bond (same registry, real state)
+        AiluaWidgetHost(
+            widgetIds = WidgetRegistry.defaultOrder.drop(2),
+            context = widgetContext,
+            layout = WidgetHostLayout.Row,
+            spacing = 12.dp
+        )
     }
 }
 
 @Composable
-private fun DesktopWorldClock(
+internal fun DesktopWorldClock(
     worldClock: com.example.data.model.WorldClock,
     heartbeatState: com.example.data.engine.WorldHeartbeatState,
     accent: Color,
@@ -512,7 +523,7 @@ private fun DesktopWorldClock(
 }
 
 @Composable
-private fun LivingPresenceStrip(
+internal fun LivingPresenceStrip(
     character: CharacterProfile,
     onOpenChat: () -> Unit,
     onOpenLiving: () -> Unit,
