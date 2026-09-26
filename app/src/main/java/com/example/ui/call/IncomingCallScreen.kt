@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.engine.CallStateEngine
 import com.example.data.model.CallAction
+import com.example.data.model.CallSession
 import com.example.ui.components.AiluaAvatar
 import com.example.ui.theme.AiluaDustyRose
 import com.example.ui.theme.AiluaMistBlue
@@ -49,12 +50,13 @@ import com.example.ui.theme.AiluaMoonGold
 
 @Composable
 fun IncomingCallScreen(
-    onAnswer: () -> Unit,
-    onDecline: () -> Unit,
-    onDismissLater: () -> Unit
+    previewSession: CallSession? = null,
+    onAnswer: () -> Unit = {},
+    onDecline: () -> Unit = {},
+    onDismissLater: () -> Unit = {}
 ) {
     val callSession by CallStateEngine.currentCall.collectAsStateWithLifecycle()
-    val session = callSession
+    val session = previewSession ?: callSession
 
     val infiniteTransition = rememberInfiniteTransition(label = "pulse_halo")
     val pulseScale by infiniteTransition.animateFloat(

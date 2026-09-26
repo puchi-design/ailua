@@ -38,12 +38,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.engine.CallStateEngine
 import com.example.data.model.CallAction
+import com.example.data.model.CallSession
 import com.example.ui.components.AiluaAvatar
 import com.example.ui.theme.AiluaMistBlue
 import com.example.ui.theme.AiluaMoonGold
@@ -51,17 +53,23 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun CallScreen(
-    onCallEnded: () -> Unit
+    previewCallSession: CallSession? = null,
+    onCallEnded: () -> Unit = {}
 ) {
-    val currentCall by CallStateEngine.currentCall.collectAsStateWithLifecycle()
+    val isPreview = LocalInspectionMode.current
+    val liveCall by CallStateEngine.currentCall.collectAsStateWithLifecycle()
     val isMuted by CallStateEngine.isMuted.collectAsStateWithLifecycle()
     val isSpeaker by CallStateEngine.isSpeaker.collectAsStateWithLifecycle()
 
-    // Timer effect for call duration
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(1000)
-            CallStateEngine.incrementDuration(1)
+    val currentCall = previewCallSession ?: liveCall
+
+    // Timer effect for live call duration (disabled in Compose @Preview to protect state)
+    if (!isPreview) {
+        LaunchedEffect(Unit) {
+            while (true) {
+                delay(1000)
+                CallStateEngine.incrementDuration(1)
+            }
         }
     }
 
