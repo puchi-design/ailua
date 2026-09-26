@@ -4,10 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -59,6 +58,7 @@ import com.example.ui.living.LivingScreen
 import com.example.ui.lore.WorldBookScreen
 import com.example.ui.mailbox.MailboxScreen
 import com.example.ui.memories.MemoriesScreen
+import com.example.ui.motion.AppMotion
 import com.example.ui.moments.MomentsScreen
 import com.example.ui.relations.RelationsScreen
 import com.example.ui.theater.TheaterScreen
@@ -126,21 +126,29 @@ fun AiluaAppRoot() {
                 navController = navController,
                 startDestination = AiluaDestinations.HOME,
                 enterTransition = {
-                    fadeIn(animationSpec = tween(280)) + slideIntoContainer(
-                        AnimatedContentTransitionScope.SlideDirection.Start,
-                        animationSpec = tween(280)
-                    )
+                    fadeIn(animationSpec = AppMotion.enterSpec()) +
+                        scaleIn(
+                            initialScale = AppMotion.OPEN_SCALE,
+                            animationSpec = AppMotion.enterSpec()
+                        )
                 },
                 exitTransition = {
-                    fadeOut(animationSpec = tween(220))
+                    scaleOut(
+                        targetScale = AppMotion.CLOSE_SCALE,
+                        animationSpec = AppMotion.exitSpec()
+                    )
                 },
                 popEnterTransition = {
-                    fadeIn(animationSpec = tween(280))
+                    fadeIn(animationSpec = AppMotion.enterSpec()) +
+                        scaleIn(
+                            initialScale = AppMotion.OPEN_SCALE,
+                            animationSpec = AppMotion.enterSpec()
+                        )
                 },
                 popExitTransition = {
-                    fadeOut(animationSpec = tween(220)) + slideOutOfContainer(
-                        AnimatedContentTransitionScope.SlideDirection.End,
-                        animationSpec = tween(220)
+                    scaleOut(
+                        targetScale = AppMotion.CLOSE_SCALE,
+                        animationSpec = AppMotion.exitSpec()
                     )
                 }
             ) {
