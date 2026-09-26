@@ -63,6 +63,7 @@ import com.example.ui.components.AppIconItem
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
 import com.example.ui.components.WorldTimeDevSheet
+import com.example.ui.components.wallpaperPalette
 import com.example.ui.theme.AiluaDustyRose
 import com.example.ui.theme.AiluaMistBlue
 import com.example.ui.theme.AiluaMoonGold
@@ -111,25 +112,17 @@ fun VirtualHomeScreen(
         HomeAppDef("call_history", "通话记录", "call", null)
     )
 
-    // Wallpaper subtle gradient (soft mist cream in light mode, deep starry twilight in dark)
-    val wallpaperGradient = if (isDarkTheme) {
-        listOf(
-            Color(0xFF13121C),
-            Color(0xFF191724),
-            Color(0xFF1F1B2F)
-        )
-    } else {
-        listOf(
-            Color(0xFFF9F6F0),
-            Color(0xFFF4F0E8),
-            Color(0xFFEBE6DC)
-        )
-    }
+    // Wallpaper follows the AILUA world clock: day phase sets the base, weather tints it
+    val wallpaper = wallpaperPalette(
+        dayPhase = worldClock.dayPhase,
+        weather = worldClock.weather,
+        isDarkTheme = isDarkTheme
+    )
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(wallpaperGradient))
+            .background(Brush.verticalGradient(wallpaper.colors))
             .testTag("virtual_home_screen")
     ) {
         Column(
