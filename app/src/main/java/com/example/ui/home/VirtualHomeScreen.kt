@@ -24,11 +24,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -60,9 +60,6 @@ import com.example.data.model.isRead
 import com.example.data.repository.MailboxRepository
 import com.example.ui.components.AiluaAvatar
 import com.example.ui.components.AppIconItem
-import com.example.ui.components.BondProgressWidget
-import com.example.ui.components.LivingCharacterWidget
-import com.example.ui.components.MemorySnippetWidget
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
 import com.example.ui.components.WorldTimeDevSheet
@@ -102,21 +99,16 @@ fun VirtualHomeScreen(
     val unreadLettersCount = letters.count { it.deliveryState == LetterDeliveryState.DELIVERED && !it.isRead }
     var showDevTimeSheet by remember { mutableStateOf(false) }
 
-    // Desktop Apps on Page 1 (with live unread counters)
+    // Desktop grid only holds apps that are not already pinned in the dock
     val homeApps = listOf(
-        HomeAppDef("messages", "通讯", "chat", "2"),
         HomeAppDef("mailbox", "信箱", "mailbox", if (unreadLettersCount > 0) "$unreadLettersCount" else null),
         HomeAppDef("gallery", "相册", "gallery", null),
-        HomeAppDef("moments", "瞬间", "moments", "New"),
-        HomeAppDef("living", "生活", "living", null),
-        HomeAppDef("contacts", "联系人", "contacts", null),
-        HomeAppDef("check_phone", "窥屏", "check_phone", "HOT"),
+        HomeAppDef("check_phone", "窥屏", "check_phone", null),
         HomeAppDef("memories", "记忆", "memories", null),
         HomeAppDef("relations", "关系谱", "relations", null),
         HomeAppDef("diary", "心声日记", "diary", null),
-        HomeAppDef("theater", "沉浸剧场", "theater", "HOT"),
-        HomeAppDef("call_history", "通话记录", "call", null),
-        HomeAppDef("apps", "应用库", "apps", null)
+        HomeAppDef("theater", "沉浸剧场", "theater", null),
+        HomeAppDef("call_history", "通话记录", "call", null)
     )
 
     // Wallpaper subtle gradient (soft mist cream in light mode, deep starry twilight in dark)
@@ -321,241 +313,326 @@ private fun PageMainHome(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState)
             .padding(horizontal = 18.dp)
     ) {
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(2.dp))
 
-        // Hero Living Character Widget
-        LivingCharacterWidget(
+        // Desktop clock: AILUA world time sits directly on the wallpaper
+        DesktopWorldClock(
+            worldClock = worldClock,
+            heartbeatState = heartbeatState,
+            onOpenDevTime = onOpenDevTime
+        )
+
+        Spacer(modifier = Modifier.height(18.dp))
+
+        // Character presence lives on the desktop instead of inside a dashboard card
+        LivingPresenceStrip(
             character = character,
-            onOpenLiving = onNavigateToLiving,
             onOpenChat = onNavigateToChat,
+            onOpenLiving = onNavigateToLiving,
             onOpenProfile = onOpenProfile
         )
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(22.dp))
 
-        // Secondary Widgets Row: Bond & Memory
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            BondProgressWidget(
-                character = character,
-                modifier = Modifier.weight(1f),
-                onClick = onOpenProfile
-            )
-
-            MemorySnippetWidget(
-                title = "记忆回响",
-                snippet = character.memories.firstOrNull()?.snippet ?: "城市夜晚很温柔…",
-                modifier = Modifier.weight(1f),
-                onClick = onNavigateToMemories
-            )
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // World Clock & Living Heartbeat Bar (Pass 2 Runtime Event Bus & Virtual Time)
+        // Launcher icon grid fills the rest of the desktop page
         Box(
             modifier = Modifier
+                .weight(1f)
                 .fillMaxWidth()
-                .shadow(
-                    elevation = 1.dp,
-                    shape = RoundedCornerShape(16.dp),
-                    ambientColor = Color.Black.copy(alpha = 0.04f),
-                    spotColor = Color.Black.copy(alpha = 0.06f)
-                )
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.surface)
-                .border(
-                    0.5.dp,
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                    RoundedCornerShape(16.dp)
-                )
-                .clickable { onOpenDevTime() }
-                .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(AiluaMistBlue.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Schedule,
-                            contentDescription = null,
-                            tint = AiluaMistBlue,
-                            modifier = Modifier.size(16.dp)
+                AppIconGrid(
+                    apps = homeApps,
+                    onAppClick = { app ->
+                        dispatchAppAction(
+                            app.id,
+                            onNavigateToMessages,
+                            onNavigateToMoments,
+                            onNavigateToLiving,
+                            onNavigateToContacts,
+                            onNavigateToCheckPhone,
+                            onNavigateToDiary,
+                            onNavigateToMemories,
+                            onNavigateToRelations,
+                            onNavigateToApps,
+                            onAppClick
                         )
                     }
-                    Column {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text(
-                                text = "${worldClock.dateLabel} · ${worldClock.timeFormatted}",
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 13.5.sp
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(AiluaMoonGold.copy(alpha = 0.15f))
-                                    .padding(horizontal = 5.dp, vertical = 1.5.dp)
-                            ) {
-                                Text(
-                                    text = "${worldClock.dayPhase.label} · ${worldClock.weather.label}",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 9.5.sp,
-                                        fontWeight = FontWeight.Medium
-                                    ),
-                                    color = AiluaMoonGold
-                                )
-                            }
-                        }
-                        Text(
-                            text = heartbeatState.currentPhase.atmosphere,
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
-                            ),
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                        )
-                    }
-                }
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+        }
+    }
+}
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+@Composable
+private fun DesktopWorldClock(
+    worldClock: com.example.data.model.WorldClock,
+    heartbeatState: com.example.data.engine.WorldHeartbeatState,
+    onOpenDevTime: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onOpenDevTime() }
+            .testTag("desktop_world_clock"),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = worldClock.timeFormatted,
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 34.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(AiluaMoonGold.copy(alpha = 0.18f))
+                        .padding(horizontal = 7.dp, vertical = 3.dp)
                 ) {
                     Text(
-                        text = "跃迁",
+                        text = "${worldClock.dayPhase.label} · ${worldClock.weather.label}",
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium
                         ),
-                        color = AiluaMistBlue
-                    )
-                    Icon(
-                        imageVector = Icons.Default.FastForward,
-                        contentDescription = "时间跃迁",
-                        tint = AiluaMistBlue,
-                        modifier = Modifier.size(14.dp)
+                        color = AiluaMoonGold
                     )
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(3.dp))
 
-        // Desktop Apps Section Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
+                Text(
+                    text = worldClock.dateLabel,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
                 Box(
                     modifier = Modifier
-                        .size(4.dp)
+                        .size(3.dp)
                         .clip(CircleShape)
-                        .background(AiluaMoonGold)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
                 )
                 Text(
-                    text = "桌面应用",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
-                )
-            }
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clickable { onNavigateToApps() }
-                    .padding(vertical = 4.dp)
-            ) {
-                Text(
-                    text = "应用库 (${homeApps.size + 4})",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 11.sp,
-                        color = AiluaMistBlue
-                    )
-                )
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = "查看全部应用",
-                    modifier = Modifier.size(14.dp),
-                    tint = AiluaMistBlue
+                    text = heartbeatState.currentPhase.atmosphere,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // App Icons Grid (supports dynamic rows)
-        Column(
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(AiluaMistBlue.copy(alpha = 0.16f))
+                .clickable { onOpenDevTime() }
+                .padding(horizontal = 9.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            homeApps.chunked(5).forEach { rowApps ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+            Text(
+                text = "跃迁",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = AiluaMistBlue
+            )
+            Icon(
+                imageVector = Icons.Default.FastForward,
+                contentDescription = "时间跃迁",
+                tint = AiluaMistBlue,
+                modifier = Modifier.size(14.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun LivingPresenceStrip(
+    character: CharacterProfile,
+    onOpenChat: () -> Unit,
+    onOpenLiving: () -> Unit,
+    onOpenProfile: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onOpenLiving() }
+            .testTag("living_character_widget"),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        AiluaAvatar(
+            size = 58.dp,
+            showHalo = true,
+            showLivingStatus = true,
+            onClick = onOpenProfile
+        )
+
+        Column(modifier = Modifier.weight(1f)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = character.name,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 17.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "· ${character.englishName}",
+                    style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.5.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                    maxLines = 1
+                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(7.dp))
+                        .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
-                    rowApps.forEach { app ->
+                    Text(
+                        text = character.mood,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f))
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF6EC6A1))
+                    )
+                    Text(
+                        text = character.currentActivity,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                Text(
+                    text = character.location,
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(5.dp))
+
+            Text(
+                text = "“${character.contextualQuote}”",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 12.5.sp,
+                    lineHeight = 17.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f))
+                .clickable { onOpenChat() }
+                .testTag("home_quick_chat"),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.ChatBubbleOutline,
+                contentDescription = "找她聊天",
+                modifier = Modifier.size(17.dp),
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun AppIconGrid(
+    apps: List<HomeAppDef>,
+    onAppClick: (HomeAppDef) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("home_app_grid"),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
+    ) {
+        apps.chunked(4).forEach { rowApps ->
+            Row(modifier = Modifier.fillMaxWidth()) {
+                rowApps.forEach { app ->
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
                         AppIconItem(
                             name = app.name,
                             iconKey = app.iconKey,
                             badge = app.badge,
-                            onClick = {
-                                dispatchAppAction(
-                                    app.id,
-                                    onNavigateToMessages,
-                                    onNavigateToMoments,
-                                    onNavigateToLiving,
-                                    onNavigateToContacts,
-                                    onNavigateToCheckPhone,
-                                    onNavigateToDiary,
-                                    onNavigateToMemories,
-                                    onNavigateToRelations,
-                                    onNavigateToApps,
-                                    onAppClick
-                                )
-                            }
+                            onClick = { onAppClick(app) }
                         )
                     }
-                    repeat(5 - rowApps.size) {
-                        Spacer(modifier = Modifier.size(56.dp))
-                    }
+                }
+                repeat(4 - rowApps.size) {
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
