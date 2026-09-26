@@ -10,6 +10,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
@@ -117,6 +118,7 @@ val AppIconShape: Shape = GenericShape { size, _ ->
     close()
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun AppIconItem(
     name: String,
@@ -127,7 +129,8 @@ fun AppIconItem(
     showLabel: Boolean = true,
     editMode: Boolean = false,
     isDragging: Boolean = false,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -156,14 +159,25 @@ fun AppIconItem(
 
     val (iconVector, gradientColors) = getAppVisuals(iconKey)
 
+    val clickModifier = if (onLongClick != null) {
+        Modifier.combinedClickable(
+            interactionSource = interactionSource,
+            indication = null,
+            onLongClick = onLongClick,
+            onClick = onClick
+        )
+    } else {
+        Modifier.clickable(
+            interactionSource = interactionSource,
+            indication = null,
+            onClick = onClick
+        )
+    }
+
     Column(
         modifier = modifier
             .scale(pressScale * dragScale)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
+            .then(clickModifier)
             .testTag("app_icon_$iconKey"),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

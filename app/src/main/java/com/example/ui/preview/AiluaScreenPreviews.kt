@@ -303,6 +303,36 @@ fun PreviewAppLibraryScreenDark() {
     }
 }
 
+@Preview(
+    name = "AppLibraryScreen - Search Results",
+    showBackground = true,
+    device = "spec:width=411dp,height=891dp"
+)
+@Composable
+fun PreviewAppLibraryScreenSearchResults() {
+    AiluaPreviewDevice(isDarkTheme = false) {
+        AppLibraryScreen(
+            isDarkTheme = false,
+            initialSearchQuery = "虚拟"
+        )
+    }
+}
+
+@Preview(
+    name = "AppLibraryScreen - Empty Result",
+    showBackground = true,
+    device = "spec:width=411dp,height=891dp"
+)
+@Composable
+fun PreviewAppLibraryScreenEmptyResult() {
+    AiluaPreviewDevice(isDarkTheme = false) {
+        AppLibraryScreen(
+            isDarkTheme = false,
+            initialSearchQuery = "不存在的查询"
+        )
+    }
+}
+
 // ==========================================
 // 8. Theme Picker Previews
 // ==========================================
