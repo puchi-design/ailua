@@ -212,73 +212,15 @@ fun VirtualHomeScreen(
                 }
             }
 
-            // Persistent Virtual Phone Dock (ARK Launcher Persistent Dock Pattern)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 6.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(
-                            elevation = 6.dp,
-                            shape = RoundedCornerShape(26.dp),
-                            ambientColor = Color.Black.copy(alpha = 0.05f),
-                            spotColor = Color.Black.copy(alpha = 0.1f)
-                        )
-                        .clip(RoundedCornerShape(26.dp))
-                        .background(
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
-                        )
-                        .border(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
-                            RoundedCornerShape(26.dp)
-                        )
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                        .testTag("virtual_phone_dock")
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceAround,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        AppIconItem(
-                            name = "消息",
-                            iconKey = "chat",
-                            badge = "2",
-                            showLabel = false,
-                            onClick = onNavigateToMessages
-                        )
-                        AppIconItem(
-                            name = "动态",
-                            iconKey = "moments",
-                            badge = "New",
-                            showLabel = false,
-                            onClick = onNavigateToMoments
-                        )
-                        AppIconItem(
-                            name = "生活",
-                            iconKey = "living",
-                            showLabel = false,
-                            onClick = onNavigateToLiving
-                        )
-                        AppIconItem(
-                            name = "联系人",
-                            iconKey = "contacts",
-                            showLabel = false,
-                            onClick = onNavigateToContacts
-                        )
-                        AppIconItem(
-                            name = "应用",
-                            iconKey = "apps",
-                            showLabel = false,
-                            onClick = onNavigateToApps
-                        )
-                    }
-                }
-            }
+            // Persistent Virtual Phone Dock (system launcher style, translucent + theme tinted)
+            HomeDock(
+                accent = homeTheme.accent,
+                onNavigateToMessages = onNavigateToMessages,
+                onNavigateToMoments = onNavigateToMoments,
+                onNavigateToLiving = onNavigateToLiving,
+                onNavigateToContacts = onNavigateToContacts,
+                onNavigateToApps = onNavigateToApps
+            )
 
             // Virtual Home Indicator Bar
             VirtualPhoneHomeBar(
@@ -648,6 +590,91 @@ private fun AppIconGrid(
                     Spacer(modifier = Modifier.weight(1f))
                 }
             }
+        }
+    }
+}
+
+/**
+ * Bottom dock: translucent surface derived from the active [HomeTheme] so it
+ * follows wallpaper and theme switches without a per-theme copy.
+ * Badges are intentionally omitted — the dock only shows real state.
+ */
+@Composable
+private fun HomeDock(
+    accent: Color,
+    onNavigateToMessages: () -> Unit,
+    onNavigateToMoments: () -> Unit,
+    onNavigateToLiving: () -> Unit,
+    onNavigateToContacts: () -> Unit,
+    onNavigateToApps: () -> Unit
+) {
+    val dockShape = RoundedCornerShape(26.dp)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 18.dp, vertical = 6.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(
+                    elevation = 3.dp,
+                    shape = dockShape,
+                    ambientColor = Color.Black.copy(alpha = 0.10f),
+                    spotColor = Color.Black.copy(alpha = 0.16f)
+                )
+                .clip(dockShape)
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.58f))
+                .background(accent.copy(alpha = 0.10f))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color.White.copy(alpha = 0.14f),
+                            Color.White.copy(alpha = 0.02f)
+                        )
+                    )
+                )
+                .border(
+                    1.dp,
+                    accent.copy(alpha = 0.30f),
+                    dockShape
+                )
+                .padding(horizontal = 12.dp, vertical = 10.dp)
+                .testTag("virtual_phone_dock"),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AppIconItem(
+                name = "消息",
+                iconKey = "chat",
+                showLabel = false,
+                onClick = onNavigateToMessages
+            )
+            AppIconItem(
+                name = "动态",
+                iconKey = "moments",
+                showLabel = false,
+                onClick = onNavigateToMoments
+            )
+            AppIconItem(
+                name = "生活",
+                iconKey = "living",
+                showLabel = false,
+                onClick = onNavigateToLiving
+            )
+            AppIconItem(
+                name = "联系人",
+                iconKey = "contacts",
+                showLabel = false,
+                onClick = onNavigateToContacts
+            )
+            AppIconItem(
+                name = "应用",
+                iconKey = "apps",
+                showLabel = false,
+                onClick = onNavigateToApps
+            )
         }
     }
 }

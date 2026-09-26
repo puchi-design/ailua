@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BookmarkBorder
@@ -58,6 +58,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -70,13 +71,52 @@ import com.example.ui.theme.AiluaDustyRose
 import com.example.ui.theme.AiluaMistBlue
 import com.example.ui.theme.AiluaMoonGold
 import com.example.ui.theme.AiluaMutedLavender
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.pow
+import kotlin.math.sign
+import kotlin.math.sin
+
+/**
+ * Single source of truth for launcher icon geometry so the desktop grid,
+ * the dock and the app library always look like the same system.
+ */
+object AppIconDefaults {
+    val ContainerSize = 56.dp
+    const val GlyphScale = 0.46f
+    val LabelSpacing = 5.dp
+    val LabelSize = 11.sp
+    val BadgeOffsetX = 3.dp
+    val BadgeOffsetY = (-4).dp
+    val BadgeTextSize = 9.sp
+}
+
+private const val SquircleExponent = 4f
+
+/** Superellipse "squircle" used by modern system launchers. */
+val AppIconShape: Shape = GenericShape { size, _ ->
+    val halfWidth = size.width / 2f
+    val halfHeight = size.height / 2f
+    val steps = 72
+    val power = 2f / SquircleExponent
+    for (i in 0 until steps) {
+        val angle = (i.toFloat() / steps) * 2f * PI.toFloat()
+        val cosAngle = cos(angle)
+        val sinAngle = sin(angle)
+        val x = halfWidth + halfWidth * sign(cosAngle) * abs(cosAngle).pow(power)
+        val y = halfHeight + halfHeight * sign(sinAngle) * abs(sinAngle).pow(power)
+        if (i == 0) moveTo(x, y) else lineTo(x, y)
+    }
+    close()
+}
 
 @Composable
 fun AppIconItem(
     name: String,
     iconKey: String,
     modifier: Modifier = Modifier,
-    size: Dp = 56.dp,
+    size: Dp = AppIconDefaults.ContainerSize,
     badge: String? = null,
     showLabel: Boolean = true,
     onClick: () -> Unit
@@ -106,52 +146,52 @@ fun AppIconItem(
             modifier = Modifier.size(size),
             contentAlignment = Alignment.Center
         ) {
-            // App squircle container with soft gradient & subtle shadow
+            // App squircle container: neutral soft shadow, hairline rim, own gradient identity
             Box(
                 modifier = Modifier
                     .size(size)
                     .shadow(
-                        elevation = 3.dp,
-                        shape = RoundedCornerShape(17.dp),
-                        ambientColor = gradientColors.first().copy(alpha = 0.25f),
-                        spotColor = gradientColors.last().copy(alpha = 0.35f)
+                        elevation = 2.dp,
+                        shape = AppIconShape,
+                        ambientColor = Color.Black.copy(alpha = 0.22f),
+                        spotColor = Color.Black.copy(alpha = 0.28f)
                     )
-                    .clip(RoundedCornerShape(17.dp))
+                    .clip(AppIconShape)
                     .background(Brush.linearGradient(gradientColors))
                     .border(
                         width = 1.dp,
-                        color = Color.White.copy(alpha = 0.45f),
-                        shape = RoundedCornerShape(17.dp)
+                        color = Color.White.copy(alpha = 0.32f),
+                        shape = AppIconShape
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = iconVector,
                     contentDescription = name,
-                    modifier = Modifier.size(size * 0.48f),
+                    modifier = Modifier.size(size * AppIconDefaults.GlyphScale),
                     tint = Color.White
                 )
             }
 
-            // Notification / Unread Badge
+            // Notification / Unread Badge — only fed with real state by the caller
             if (!badge.isNullOrEmpty()) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .offset(x = 4.dp, y = (-3).dp)
+                        .offset(x = AppIconDefaults.BadgeOffsetX, y = AppIconDefaults.BadgeOffsetY)
                         .clip(CircleShape)
                         .background(
                             Brush.linearGradient(
                                 listOf(Color(0xFFE87A7A), Color(0xFFD45555))
                             )
                         )
-                        .border(1.5.dp, MaterialTheme.colorScheme.background, CircleShape)
+                        .border(1.5.dp, Color.White.copy(alpha = 0.95f), CircleShape)
                         .padding(horizontal = 5.dp, vertical = 1.dp)
                 ) {
                     Text(
                         text = badge,
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 9.sp,
+                            fontSize = AppIconDefaults.BadgeTextSize,
                             fontWeight = FontWeight.Bold
                         ),
                         color = Color.White
@@ -161,14 +201,14 @@ fun AppIconItem(
         }
 
         if (showLabel) {
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(AppIconDefaults.LabelSpacing))
             Text(
                 text = name,
                 style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 11.5.sp,
+                    fontSize = AppIconDefaults.LabelSize,
                     fontWeight = FontWeight.Medium
                 ),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center
