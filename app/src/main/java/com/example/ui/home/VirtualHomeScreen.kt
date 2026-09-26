@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -47,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -60,10 +62,13 @@ import com.example.data.model.isRead
 import com.example.data.repository.MailboxRepository
 import com.example.ui.components.AiluaAvatar
 import com.example.ui.components.AppIconItem
+import com.example.ui.components.HomeThemeCatalog
+import com.example.ui.components.HomeThemeStore
+import com.example.ui.components.ThemePickerSheet
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
 import com.example.ui.components.WorldTimeDevSheet
-import com.example.ui.components.wallpaperPalette
+import com.example.ui.components.themeWallpaper
 import com.example.ui.theme.AiluaDustyRose
 import com.example.ui.theme.AiluaMistBlue
 import com.example.ui.theme.AiluaMoonGold
@@ -99,6 +104,8 @@ fun VirtualHomeScreen(
     val letters by MailboxRepository.letters.collectAsStateWithLifecycle()
     val unreadLettersCount = letters.count { it.deliveryState == LetterDeliveryState.DELIVERED && !it.isRead }
     var showDevTimeSheet by remember { mutableStateOf(false) }
+    var showThemeSheet by remember { mutableStateOf(false) }
+    val homeTheme = HomeThemeCatalog.byId(HomeThemeStore.selectedId)
 
     // Desktop grid only holds apps that are not already pinned in the dock
     val homeApps = listOf(
@@ -112,8 +119,9 @@ fun VirtualHomeScreen(
         HomeAppDef("call_history", "通话记录", "call", null)
     )
 
-    // Wallpaper follows the AILUA world clock: day phase sets the base, weather tints it
-    val wallpaper = wallpaperPalette(
+    // Wallpaper: default theme tracks the AILUA world clock, the other themes stay fixed
+    val wallpaper = themeWallpaper(
+        theme = homeTheme,
         dayPhase = worldClock.dayPhase,
         weather = worldClock.weather,
         isDarkTheme = isDarkTheme
@@ -123,6 +131,9 @@ fun VirtualHomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(wallpaper.colors))
+            .pointerInput(Unit) {
+                detectTapGestures(onLongPress = { showThemeSheet = true })
+            }
             .testTag("virtual_home_screen")
     ) {
         Column(
@@ -147,6 +158,7 @@ fun VirtualHomeScreen(
                         homeApps = homeApps,
                         worldClock = worldClock,
                         heartbeatState = heartbeatState,
+                        accent = homeTheme.accent,
                         onOpenDevTime = { showDevTimeSheet = true },
                         onNavigateToMessages = onNavigateToMessages,
                         onNavigateToChat = onNavigateToChat,
@@ -193,7 +205,7 @@ fun VirtualHomeScreen(
                             .width(dotWidth)
                             .clip(RoundedCornerShape(3.dp))
                             .background(
-                                if (isSelected) AiluaMoonGold
+                                if (isSelected) homeTheme.accent
                                 else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
                             )
                     )
@@ -278,6 +290,14 @@ fun VirtualHomeScreen(
         if (showDevTimeSheet) {
             WorldTimeDevSheet(onDismiss = { showDevTimeSheet = false })
         }
+
+        if (showThemeSheet) {
+            ThemePickerSheet(
+                selectedId = homeTheme.id,
+                onSelect = { HomeThemeStore.selectedId = it },
+                onDismiss = { showThemeSheet = false }
+            )
+        }
     }
 }
 
@@ -287,6 +307,7 @@ private fun PageMainHome(
     homeApps: List<HomeAppDef>,
     worldClock: com.example.data.model.WorldClock,
     heartbeatState: com.example.data.engine.WorldHeartbeatState,
+    accent: Color,
     onOpenDevTime: () -> Unit,
     onNavigateToMessages: () -> Unit,
     onNavigateToChat: () -> Unit,
@@ -314,6 +335,7 @@ private fun PageMainHome(
         DesktopWorldClock(
             worldClock = worldClock,
             heartbeatState = heartbeatState,
+            accent = accent,
             onOpenDevTime = onOpenDevTime
         )
 
@@ -368,6 +390,7 @@ private fun PageMainHome(
 private fun DesktopWorldClock(
     worldClock: com.example.data.model.WorldClock,
     heartbeatState: com.example.data.engine.WorldHeartbeatState,
+    accent: Color,
     onOpenDevTime: () -> Unit
 ) {
     Row(
@@ -394,7 +417,7 @@ private fun DesktopWorldClock(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(AiluaMoonGold.copy(alpha = 0.18f))
+                        .background(accent.copy(alpha = 0.18f))
                         .padding(horizontal = 7.dp, vertical = 3.dp)
                 ) {
                     Text(
@@ -403,7 +426,7 @@ private fun DesktopWorldClock(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Medium
                         ),
-                        color = AiluaMoonGold
+                        color = accent
                     )
                 }
             }

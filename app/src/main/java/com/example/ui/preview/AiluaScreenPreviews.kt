@@ -6,6 +6,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.ui.apps.AppLibraryScreen
 import com.example.ui.call.CallScreen
 import com.example.ui.call.IncomingCallScreen
+import com.example.ui.components.ThemePickerContent
 import com.example.ui.home.VirtualHomeScreen
 import com.example.ui.living.LivingScreen
 import com.example.ui.mailbox.MailboxScreen
@@ -212,6 +213,41 @@ fun PreviewAppLibraryScreenDark() {
     AiluaPreviewDevice(isDarkTheme = true) {
         AppLibraryScreen(
             isDarkTheme = true
+        )
+    }
+}
+
+// ==========================================
+// 8. Theme Picker Previews
+// ==========================================
+
+@Preview(
+    name = "ThemePicker - Light",
+    showBackground = true,
+    device = "spec:width=411dp,height=891dp"
+)
+@Composable
+fun PreviewThemePickerLight() {
+    AiluaPreviewDevice(isDarkTheme = false) {
+        ThemePickerContent(
+            selectedId = "follow",
+            onSelect = {}
+        )
+    }
+}
+
+@Preview(
+    name = "ThemePicker - Dark",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    device = "spec:width=411dp,height=891dp"
+)
+@Composable
+fun PreviewThemePickerDark() {
+    AiluaPreviewDevice(isDarkTheme = true) {
+        ThemePickerContent(
+            selectedId = "sakura",
+            onSelect = {}
         )
     }
 }
