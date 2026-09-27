@@ -1,6 +1,6 @@
 package com.example
 
-import com.example.data.chat.repository.UuidIdGenerator
+import com.example.data.chat.local.platform.UuidIdGenerator
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertEquals
