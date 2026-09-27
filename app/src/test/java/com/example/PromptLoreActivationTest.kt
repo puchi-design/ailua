@@ -4,8 +4,8 @@ import com.example.data.ai.prompt.PromptAssemblyInput
 import com.example.data.ai.prompt.PromptAssembler
 import com.example.data.ai.prompt.PromptBudget
 import com.example.data.model.CharacterCardData
+import com.example.data.model.LoreActivationResult
 import com.example.data.model.LoreEntry
-import com.example.data.mock.WorldData
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -24,7 +24,7 @@ class PromptLoreActivationTest {
     private val miraCard = CharacterCardData(id = "mira", name = "Mira")
 
     private fun activation(title: String, content: String, priority: Int) =
-        WorldData.LoreActivationResult(
+        LoreActivationResult(
             entry = LoreEntry(
                 id = title.lowercase(),
                 title = title,
@@ -87,12 +87,12 @@ class PromptLoreActivationTest {
             PromptAssemblyInput(
                 character = miraCard,
                 activeLore = listOf(
-                    WorldData.LoreActivationResult(
+                    LoreActivationResult(
                         entry = LoreEntry(id = "blank", title = "BlankEntry", content = "   "),
                         activationReasons = listOf("test"),
                         effectivePriority = 10,
                     ),
-                    WorldData.LoreActivationResult(
+                    LoreActivationResult(
                         entry = LoreEntry(
                             id = "off",
                             title = "DisabledEntry",

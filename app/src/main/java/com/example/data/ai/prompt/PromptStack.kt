@@ -12,8 +12,10 @@ import com.example.data.ai.model.AiRole
  * entry point that builds those blocks; chat UI must never concatenate prompts.
  *
  * Determinism: rendering order is (category order, priority desc, insertion seq),
- * and every dropped block is recorded (blank / duplicate / budget) so the debug
- * result explains exactly what the prompt contains and why.
+ * and every dropped block is recorded (blank / duplicate / budget / orphan
+ * header) so the debug result explains exactly what the prompt contains and
+ * why. Section headers (`sectionHeader = true`) additionally drop together
+ * with the last surviving entry of their category — never headless.
  */
 class PromptStack(private val budget: PromptBudget = PromptBudget()) {
 
@@ -46,12 +48,24 @@ class PromptStack(private val budget: PromptBudget = PromptBudget()) {
         }
 
         val fit = budget.fit(deduped)
-        val included = fit.included.sortedWith(RENDER_ORDER)
-        val allDropped = (dropped + duplicateDropped + fit.dropped).sortedBy { it.seq }
+
+        // P3C-2.1 orphan-header rule: a section header may never render without
+        // content below it — if the budget left zero entries alive in the
+        // header's category, the header joins them in droppedBlocks.
+        val included = fit.included.toMutableList()
+        val orphanHeaders = included.filter { item ->
+            item.block.sectionHeader &&
+                included.none {
+                    it.block.category == item.block.category && !it.block.sectionHeader
+                }
+        }
+        included.removeAll(orphanHeaders.toSet())
+
+        val allDropped = (dropped + duplicateDropped + fit.dropped + orphanHeaders).sortedBy { it.seq }
 
         return PromptAssemblyResult(
-            messages = render(included.map { it.block }),
-            includedBlocks = included.map { it.block },
+            messages = render(included.sortedWith(RENDER_ORDER).map { it.block }),
+            includedBlocks = included.sortedWith(RENDER_ORDER).map { it.block },
             droppedBlocks = allDropped.map { it.block },
             estimatedCost = included.sumOf { estimateTokens(it.block.content) },
             overflow = fit.overflow,

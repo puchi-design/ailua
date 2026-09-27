@@ -5,12 +5,13 @@ import com.example.data.ai.model.AiRole
 import com.example.data.ai.prompt.PromptAssemblyInput
 import com.example.data.ai.prompt.PromptAssembler
 import com.example.data.ai.prompt.PromptBudget
+import com.example.data.ai.prompt.PromptCategory
 import com.example.data.ai.prompt.estimateTokens
 import com.example.data.model.CharacterCardData
 import com.example.data.model.LifeEvent
 import com.example.data.model.LifeEventType
+import com.example.data.model.LoreActivationResult
 import com.example.data.model.LoreEntry
-import com.example.data.mock.WorldData
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -38,7 +39,7 @@ class PromptBudgetTest {
     )
 
     private fun loreActivation(id: String, content: String, priority: Int) =
-        WorldData.LoreActivationResult(
+        LoreActivationResult(
             entry = LoreEntry(id = id, title = id, content = content, priority = priority),
             activationReasons = listOf("test"),
             effectivePriority = priority,
@@ -111,15 +112,72 @@ class PromptBudgetTest {
         val result = PromptAssembler.assemble(input, PromptBudget(5, 2500))
 
         assertTrue(result.overflow)
-        val ids = result.includedBlocks.map { it.id }
-        assertTrue("global_system must survive", ids.contains("global_system"))
-        assertTrue("character_core must survive", ids.contains("character_core"))
-        assertTrue("post_history must survive", ids.contains("post_history"))
-        assertTrue("history within reserve must survive", ids.containsAll(listOf("history:0", "history:1")))
-        assertFalse(ids.contains("lore:lore1"))
-        assertFalse(ids.contains("event:e1"))
+        // Soft reserve (P3C-2.1): phase 3 cuts even history before overflow is
+        // declared, so the survivors are exactly the required blocks.
+        assertEquals(
+            setOf("global_system", "character_core", "post_history"),
+            result.includedBlocks.map { it.id }.toSet(),
+        )
+        assertFalse(result.includedBlocks.any { it.id == "lore:lore1" })
+        assertFalse(result.includedBlocks.any { it.id == "event:e1" })
         assertTrue(result.messages.any { it.content.contains("Character: Mira") })
         assertTrue(result.messages.any { it.content.contains("Keep replies short.") })
+    }
+
+    @Test
+    fun historyFallsBelowReserveBeforeOverflow() {
+        val input = PromptAssemblyInput(
+            character = miraCard(),
+            activeLore = listOf(loreActivation("optional", "O".repeat(400), 10)),
+            history = listOf(
+                AiMessage(AiRole.USER, "u".repeat(200)),
+                AiMessage(AiRole.ASSISTANT, "a".repeat(200)),
+            ),
+        )
+        val full = PromptAssembler.assemble(input, unlimited())
+        // Deficit exceeds every optional block: optionals go first (phase 2),
+        // then history must fall below its 150-token reserve (phase 3) instead
+        // of declaring overflow.
+        val budget = PromptBudget(full.estimatedCost - 160, 150)
+        val result = PromptAssembler.assemble(input, budget)
+
+        assertFalse(result.overflow)
+        assertEquals(
+            setOf("global_system", "character_core", "post_history"),
+            result.includedBlocks.map { it.id }.toSet(),
+        )
+        assertTrue(result.droppedBlocks.any { it.id == "lore:optional" })
+        assertTrue(result.droppedBlocks.any { it.id == "history:0" })
+        assertTrue(result.droppedBlocks.any { it.id == "history:1" })
+    }
+
+    @Test
+    fun overflowOnlyWhenRequiredBlocksCannotFit() {
+        val input = PromptAssemblyInput(
+            character = miraCard(),
+            activeLore = listOf(loreActivation("lore1", "Some lore.", 10)),
+            history = listOf(
+                AiMessage(AiRole.USER, "hello"),
+                AiMessage(AiRole.ASSISTANT, "hi"),
+            ),
+        )
+        val requiredCost = PromptAssembler
+            .assemble(PromptAssemblyInput(character = miraCard()), unlimited())
+            .estimatedCost
+
+        // Exactly the required budget: everything else drops, no overflow.
+        val exact = PromptAssembler.assemble(input, PromptBudget(requiredCost, 0))
+        assertFalse(exact.overflow)
+        assertEquals(
+            setOf("global_system", "character_core", "post_history"),
+            exact.includedBlocks.map { it.id }.toSet(),
+        )
+
+        // One token below the required set: overflow, still nothing but required.
+        val impossible = PromptAssembler.assemble(input, PromptBudget(requiredCost - 1, 0))
+        assertTrue(impossible.overflow)
+        assertTrue(impossible.includedBlocks.all { it.required })
+        assertFalse(impossible.includedBlocks.any { it.category == PromptCategory.HISTORY })
     }
 
     @Test

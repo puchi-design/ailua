@@ -9,8 +9,8 @@ import com.example.data.ai.prompt.PromptMemory
 import com.example.data.model.CharacterCardData
 import com.example.data.model.LifeEvent
 import com.example.data.model.LifeEventType
+import com.example.data.model.LoreActivationResult
 import com.example.data.model.LoreEntry
-import com.example.data.mock.WorldData
 import com.example.data.projection.CharacterPresence
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -38,7 +38,7 @@ class PromptOrderingTest {
     )
 
     private fun lore(title: String, content: String, priority: Int) =
-        WorldData.LoreActivationResult(
+        LoreActivationResult(
             entry = LoreEntry(
                 id = title.lowercase(),
                 title = title,

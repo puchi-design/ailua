@@ -124,6 +124,7 @@ object PromptAssembler {
                     "Relevant memories:",
                     priority = HEADER_PRIORITY_OFFSET + PromptCategory.MEMORY.defaultPriority,
                     required = false,
+                    sectionHeader = true,
                 )
             )
             memories.forEachIndexed { index, memory ->
@@ -159,6 +160,7 @@ object PromptAssembler {
                     "Recent world events:",
                     priority = HEADER_PRIORITY_OFFSET + PromptCategory.LIFE_EVENTS.defaultPriority,
                     required = false,
+                    sectionHeader = true,
                 )
             )
             for (event in events) {
@@ -259,8 +261,11 @@ object PromptAssembler {
     private const val LORE_PRIORITY_SPAN: Int = 200
 
     /**
-     * Section headers yield only after their own entries under budget pressure,
-     * so a header never renders without content beneath it.
+     * Section headers sit 10 priority points ABOVE their own entries, so budget
+     * cuts always take entries first and a surviving entry keeps its header.
+     * The complementary half lives in [PromptStack]: once all entries of a
+     * section are gone, the leftover header is dropped there — a header never
+     * renders headless (P3C-2.1).
      */
     private const val HEADER_PRIORITY_OFFSET: Int = 10
 }

@@ -1,9 +1,9 @@
 package com.example.data.ai.prompt
 
 import com.example.data.ai.model.AiMessage
-import com.example.data.mock.WorldData
 import com.example.data.model.CharacterCardData
 import com.example.data.model.LifeEvent
+import com.example.data.model.LoreActivationResult
 import com.example.data.projection.CharacterPresence
 
 /**
@@ -23,7 +23,7 @@ import com.example.data.projection.CharacterPresence
 data class PromptAssemblyInput(
     val character: CharacterCardData,
     val userPersona: String? = null,
-    val activeLore: List<WorldData.LoreActivationResult> = emptyList(),
+    val activeLore: List<LoreActivationResult> = emptyList(),
     val worldState: CharacterPresence? = null,
     val recentLifeEvents: List<LifeEvent> = emptyList(),
     val memories: List<PromptMemory> = emptyList(),

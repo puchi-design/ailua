@@ -4,6 +4,7 @@ import com.example.data.model.CharacterCard
 import com.example.data.model.CharacterCardData
 import com.example.data.model.CharacterProfile
 import com.example.data.model.LoreActivationMode
+import com.example.data.model.LoreActivationResult
 import com.example.data.model.LoreEntry
 import com.example.data.model.TheaterChoice
 import com.example.data.model.TheaterDialogueNode
@@ -534,12 +535,6 @@ object WorldData {
         // Sort by effective priority descending
         return results.sortedByDescending { it.effectivePriority }
     }
-
-    data class LoreActivationResult(
-        val entry: LoreEntry,
-        val activationReasons: List<String>,
-        val effectivePriority: Int
-    )
 
     /**
      * Helper to map CharacterCard to CharacterProfile.

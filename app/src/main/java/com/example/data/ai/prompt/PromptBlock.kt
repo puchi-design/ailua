@@ -18,6 +18,12 @@ data class PromptBlock(
     val priority: Int,
     val required: Boolean,
     val category: PromptCategory,
+    /**
+     * True for section headers (`Relevant memories:`, `Recent world events:`).
+     * A header must never render headless: [PromptStack] drops it whenever the
+     * budget left zero entries alive in its category (P3C-2.1 §orphan header).
+     */
+    val sectionHeader: Boolean = false,
 ) {
     companion object {
         fun of(
@@ -27,7 +33,8 @@ data class PromptBlock(
             role: AiRole = AiRole.SYSTEM,
             priority: Int = category.defaultPriority,
             required: Boolean = category.requiredByDefault,
-        ): PromptBlock = PromptBlock(id, role, content, priority, required, category)
+            sectionHeader: Boolean = false,
+        ): PromptBlock = PromptBlock(id, role, content, priority, required, category, sectionHeader)
     }
 }
 
