@@ -38,6 +38,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,8 +56,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.mock.MockData
 import com.example.data.model.DiaryEntry
+import com.example.data.engine.WorldStateRepository
+import com.example.data.projection.projectDiary
 import com.example.ui.components.AiluaAvatar
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
@@ -70,11 +72,17 @@ import kotlinx.coroutines.launch
 fun DiaryScreen(
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
-    onBackToHome: () -> Unit = {}
+    onBackToHome: () -> Unit = {},
+    characterId: String = "mira",
+    characterName: String = "小弥"
 ) {
-    val entries = MockData.diaryEntries
-    var selectedEntryId by remember { mutableStateOf(entries.firstOrNull()?.id ?: "") }
-    val currentEntry = entries.find { it.id == selectedEntryId } ?: entries.first()
+    val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
+    val entries = remember(characterId, worldEvents) {
+        projectDiary(characterId = characterId, runtimeEvents = worldEvents)
+    }
+    var selectedEntryId by remember(characterId) { mutableStateOf(entries.firstOrNull()?.id ?: "") }
+    val currentEntry = entries.find { it.id == selectedEntryId } ?: entries.firstOrNull()
+    val displayAuthor = currentEntry?.authorName ?: characterName.ifBlank { "伴生" }
     var isLiked by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -127,7 +135,7 @@ fun DiaryScreen(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "${currentEntry.authorName}的手写生活随笔 · 心网沉淀",
+                            text = "${displayAuthor}的手写生活随笔 · 心网沉淀",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 10.5.sp,
                                 color = AiluaMistBlue
@@ -174,7 +182,13 @@ fun DiaryScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    LazyRow(
+                    if (entries.isEmpty()) {
+                        Text(
+                            text = "还没有日记 · 等待第一篇心声",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    } else LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -226,6 +240,57 @@ fun DiaryScreen(
 
                 // Main Diary Paper Card
                 item {
+                    val entry = currentEntry
+                    if (entry == null) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(
+                                    elevation = 4.dp,
+                                    shape = RoundedCornerShape(22.dp),
+                                    ambientColor = Color.Black.copy(alpha = 0.04f),
+                                    spotColor = Color.Black.copy(alpha = 0.08f)
+                                )
+                                .clip(RoundedCornerShape(22.dp))
+                                .background(
+                                    if (isDarkTheme) Color(0xFF1E1B29)
+                                    else Color(0xFFFFFDF9)
+                                )
+                                .border(
+                                    1.dp,
+                                    if (isDarkTheme) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                    else Color(0xFFEFE9DC),
+                                    RoundedCornerShape(22.dp)
+                                )
+                                .padding(28.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MenuBook,
+                                    contentDescription = null,
+                                    tint = AiluaMoonGold,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Text(
+                                    text = "还没有心声日记",
+                                    style = MaterialTheme.typography.titleSmall.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "${displayAuthor}的日记会在这里逐页展开",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    } else {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -257,14 +322,14 @@ fun DiaryScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     AiluaAvatar(
-                                        avatarId = currentEntry.characterId,
+                                        avatarId = entry.characterId,
                                         size = 36.dp,
                                         showHalo = false
                                     )
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Column {
                                         Text(
-                                            text = "${currentEntry.authorName} · 日记手记",
+                                            text = "${entry.authorName} · 日记手记",
                                             style = MaterialTheme.typography.labelMedium.copy(
                                                 fontWeight = FontWeight.SemiBold,
                                                 fontSize = 13.sp
@@ -272,7 +337,7 @@ fun DiaryScreen(
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
-                                            text = currentEntry.date,
+                                            text = entry.date,
                                             style = MaterialTheme.typography.labelSmall.copy(
                                                 fontSize = 10.5.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
@@ -282,29 +347,33 @@ fun DiaryScreen(
                                 }
 
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(AiluaMistBlue.copy(alpha = 0.12f))
-                                            .padding(horizontal = 7.dp, vertical = 3.dp)
-                                    ) {
-                                        Text(
-                                            text = currentEntry.weather,
-                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
+                                    if (entry.weather.isNotBlank()) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(AiluaMistBlue.copy(alpha = 0.12f))
+                                                .padding(horizontal = 7.dp, vertical = 3.dp)
+                                        ) {
+                                            Text(
+                                                text = entry.weather,
+                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
                                     }
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(AiluaMoonGold.copy(alpha = 0.12f))
-                                            .padding(horizontal = 7.dp, vertical = 3.dp)
-                                    ) {
-                                        Text(
-                                            text = currentEntry.mood,
-                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
+                                    if (entry.mood.isNotBlank()) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(AiluaMoonGold.copy(alpha = 0.12f))
+                                                .padding(horizontal = 7.dp, vertical = 3.dp)
+                                        ) {
+                                            Text(
+                                                text = entry.mood,
+                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -313,7 +382,7 @@ fun DiaryScreen(
 
                             // Diary Title
                             Text(
-                                text = "《${currentEntry.title}》",
+                                text = "《${entry.title}》",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 16.5.sp
@@ -325,7 +394,7 @@ fun DiaryScreen(
 
                             // Diary Content Body
                             Text(
-                                text = currentEntry.content,
+                                text = entry.content,
                                 style = MaterialTheme.typography.bodyMedium.copy(
                                     fontSize = 13.5.sp,
                                     lineHeight = 22.sp,
@@ -335,7 +404,7 @@ fun DiaryScreen(
                             )
 
                             // Associated Photo or Memory Note
-                            currentEntry.imageReference?.let { img ->
+                            entry.imageReference?.let { img ->
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Box(
                                     modifier = Modifier
@@ -401,7 +470,7 @@ fun DiaryScreen(
                                             isLiked = !isLiked
                                             coroutineScope.launch {
                                                 if (isLiked) {
-                                                    snackbarHostState.showSnackbar("已在小弥的心声日记留下一枚暖心印痕 ✨")
+                                                    snackbarHostState.showSnackbar("已在${characterName.ifBlank { "TA" }}的心声日记留下一枚暖心印痕 ✨")
                                                 }
                                             }
                                         }
@@ -426,6 +495,7 @@ fun DiaryScreen(
                                 }
                             }
                         }
+                    }
                     }
                 }
 

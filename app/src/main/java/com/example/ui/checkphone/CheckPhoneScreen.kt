@@ -38,6 +38,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,9 +55,10 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.mock.MockData
 import com.example.data.model.MusicTrack
 import com.example.data.model.PrivatePhoto
+import com.example.data.engine.WorldStateRepository
+import com.example.data.projection.projectCheckPhone
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
 import com.example.ui.theme.AiluaDustyRose
@@ -68,9 +70,14 @@ import com.example.ui.theme.AiluaMutedLavender
 fun CheckPhoneScreen(
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
-    onBackToHome: () -> Unit = {}
+    onBackToHome: () -> Unit = {},
+    characterId: String = "mira",
+    characterName: String = "小弥"
 ) {
-    val data = MockData.checkPhoneData
+    val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
+    val data = remember(characterId, worldEvents) {
+        projectCheckPhone(characterId = characterId, runtimeEvents = worldEvents)
+    }
     var isMusicPlaying by remember { mutableStateOf(true) }
 
     Box(
@@ -119,7 +126,7 @@ fun CheckPhoneScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "小弥在 AILUA 虚拟世界里的日常痕迹",
+                        text = "${characterName}在 AILUA 虚拟世界里的日常痕迹",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 10.5.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
@@ -164,6 +171,10 @@ fun CheckPhoneScreen(
                         tint = AiluaMistBlue
                     )
                     Spacer(modifier = Modifier.height(6.dp))
+                    val track = data.recentlyPlayed.firstOrNull()
+                    if (track == null) {
+                        CheckPhoneEmptyHint()
+                    } else {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -182,7 +193,6 @@ fun CheckPhoneScreen(
                             )
                             .padding(14.dp)
                     ) {
-                        val track = data.recentlyPlayed.first()
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
@@ -245,6 +255,7 @@ fun CheckPhoneScreen(
                             }
                         }
                     }
+                    }
                 }
 
                 // Section 2: Unsent Drafts
@@ -255,7 +266,9 @@ fun CheckPhoneScreen(
                         tint = AiluaDustyRose
                     )
                     Spacer(modifier = Modifier.height(6.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (data.unsentDrafts.isEmpty()) {
+                        CheckPhoneEmptyHint()
+                    } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         data.unsentDrafts.forEach { draft ->
                             Box(
                                 modifier = Modifier
@@ -291,7 +304,9 @@ fun CheckPhoneScreen(
                         tint = AiluaMutedLavender
                     )
                     Spacer(modifier = Modifier.height(6.dp))
-                    Box(
+                    if (data.searchHistory.isEmpty()) {
+                        CheckPhoneEmptyHint()
+                    } else Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(18.dp))
@@ -334,7 +349,9 @@ fun CheckPhoneScreen(
                         tint = AiluaMoonGold
                     )
                     Spacer(modifier = Modifier.height(6.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (data.notes.isEmpty()) {
+                        CheckPhoneEmptyHint()
+                    } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         data.notes.forEach { note ->
                             Box(
                                 modifier = Modifier
@@ -369,7 +386,9 @@ fun CheckPhoneScreen(
                         tint = AiluaMistBlue
                     )
                     Spacer(modifier = Modifier.height(6.dp))
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (data.privateGallery.isEmpty()) {
+                        CheckPhoneEmptyHint()
+                    } else LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         items(data.privateGallery) { photo ->
                             PrivatePhotoCard(photo = photo)
                         }
@@ -384,7 +403,9 @@ fun CheckPhoneScreen(
                         tint = AiluaMutedLavender
                     )
                     Spacer(modifier = Modifier.height(6.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (data.hiddenThoughts.isEmpty()) {
+                        CheckPhoneEmptyHint()
+                    } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         data.hiddenThoughts.forEach { thought ->
                             Box(
                                 modifier = Modifier
@@ -449,6 +470,16 @@ private fun CheckPhoneSectionHeader(
             color = MaterialTheme.colorScheme.onSurface
         )
     }
+}
+
+@Composable
+private fun CheckPhoneEmptyHint() {
+    Text(
+        text = "暂无相关痕迹 · 没有可展示的事实",
+        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+        modifier = Modifier.padding(vertical = 6.dp)
+    )
 }
 
 @Composable

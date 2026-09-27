@@ -30,11 +30,14 @@ object WorldStateRepository {
 
     private fun initialEvents(): List<LifeEvent> {
         val saved = AiluaLocalStore.savedWorldEvents.value
-        return if (saved.isNotEmpty()) {
+        val base = if (saved.isNotEmpty()) {
             (saved + MockData.unifiedLifeEvents).distinctBy { it.id }
         } else {
             MockData.unifiedLifeEvents
         }
+        // Stamp seed world facts with virtual world time so ledger queries sort them
+        // chronologically against runtime events (seed dates stay their original day).
+        return base.map { if (it.worldDateLabel.isBlank()) normalizeWorldTime(it) else it }
     }
 
     fun syncWithLocalStore() {

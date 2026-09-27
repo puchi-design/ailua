@@ -37,8 +37,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -57,6 +58,8 @@ import androidx.compose.ui.unit.sp
 import com.example.data.mock.MockData
 import com.example.data.model.MomentComment
 import com.example.data.model.MomentPost
+import com.example.data.engine.WorldStateRepository
+import com.example.data.projection.projectMoments
 import com.example.ui.components.AiluaAvatar
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
@@ -72,7 +75,12 @@ fun MomentsScreen(
     onBackToHome: () -> Unit = {},
     onOpenProfile: (String) -> Unit = {}
 ) {
-    val posts = remember { mutableStateListOf(*MockData.getMomentsFromLifeEvents().toTypedArray()) }
+    val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
+    val seedPosts = remember { MockData.getMomentsFromLifeEvents() }
+    val projectedPosts = remember(worldEvents) { projectMoments(seedPosts, worldEvents) }
+    // Like/comment stay a UI-local overlay: survive event refreshes, never persisted this round
+    val localEdits = remember { mutableStateMapOf<String, MomentPost>() }
+    val posts = projectedPosts.map { localEdits[it.id] ?: it }
     var selectedFilter by remember { mutableStateOf("全部") }
     val filterOptions = listOf("全部", "小弥", "悠奈", "诺亚")
     val filteredPosts = when (selectedFilter) {
@@ -184,18 +192,16 @@ fun MomentsScreen(
                         post = post,
                         onOpenProfile = onOpenProfile,
                         onToggleLike = {
-                            val index = posts.indexOf(post)
-                            if (index >= 0) {
-                                val current = posts[index]
+                            val current = posts.firstOrNull { it.id == post.id }
+                            if (current != null) {
                                 val newLiked = !current.isLiked
                                 val newCount = if (newLiked) current.likesCount + 1 else current.likesCount - 1
-                                posts[index] = current.copy(isLiked = newLiked, likesCount = newCount)
+                                localEdits[current.id] = current.copy(isLiked = newLiked, likesCount = newCount)
                             }
                         },
                         onAddComment = { newCommentText ->
-                            val index = posts.indexOf(post)
-                            if (index >= 0) {
-                                val current = posts[index]
+                            val current = posts.firstOrNull { it.id == post.id }
+                            if (current != null) {
                                 val newComment = MomentComment(
                                     id = "c_${System.currentTimeMillis()}",
                                     author = "你",
@@ -203,7 +209,7 @@ fun MomentsScreen(
                                     content = newCommentText,
                                     timestamp = "刚刚"
                                 )
-                                posts[index] = current.copy(comments = current.comments + newComment)
+                                localEdits[current.id] = current.copy(comments = current.comments + newComment)
                             }
                         }
                     )
@@ -284,20 +290,22 @@ private fun MomentCard(
                             ),
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = post.moodTag,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Medium
-                                ),
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
+                        if (post.moodTag.isNotBlank()) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = post.moodTag,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Medium
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
                         }
                     }
 
@@ -312,24 +320,26 @@ private fun MomentCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                             )
                         )
-                        Text(
-                            text = "·",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                        )
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = null,
-                            modifier = Modifier.size(11.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                        Text(
-                            text = post.locationContext,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.5.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        if (post.locationContext.isNotBlank()) {
+                            Text(
+                                text = "·",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                             )
-                        )
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = null,
+                                modifier = Modifier.size(11.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                            Text(
+                                text = post.locationContext,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                )
+                            )
+                        }
                     }
                 }
             }

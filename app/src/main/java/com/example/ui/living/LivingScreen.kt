@@ -61,6 +61,7 @@ import com.example.data.model.DayPhase
 import com.example.data.model.TimelineEvent
 import com.example.data.model.WeatherState
 import com.example.data.model.WorldClock
+import com.example.data.projection.projectLiving
 import com.example.ui.components.AiluaAvatar
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
@@ -94,21 +95,18 @@ fun LivingScreen(
     var showDevTimeSheet by remember { mutableStateOf(false) }
     val scene = worldClockOverride ?: worldClock
 
-    val timelineEvents = remember(character.id, worldEvents) {
-        val staticEvents = MockData.getTimelineForCharacter(character.id).ifEmpty { character.timeline }
-        val worldMapped = worldEvents.filter { it.characterId == character.id }.map { lifeEvent ->
-            TimelineEvent(
-                id = lifeEvent.id,
-                time = lifeEvent.time,
-                title = lifeEvent.title,
-                description = lifeEvent.description,
-                location = lifeEvent.location ?: character.location,
-                mood = character.mood,
-                relatedCharacterIds = lifeEvent.relatedCharacterIds
-            )
-        }
-        (staticEvents + worldMapped).distinctBy { it.time }
+    val seedTimeline = remember(character.id) {
+        MockData.getTimelineForCharacter(character.id).ifEmpty { character.timeline }
     }
+    val projection = remember(character.id, worldEvents) {
+        projectLiving(
+            character = character,
+            seedTimeline = seedTimeline,
+            runtimeEvents = worldEvents,
+            seedEventIds = MockData.unifiedLifeEvents.mapTo(HashSet()) { it.id }
+        )
+    }
+    val timelineEvents = projection.timeline
     val timelineGroups = remember(timelineEvents, scene.minutesOfDay) {
         groupLivingTimeline(timelineEvents, scene.minutesOfDay)
     }
@@ -193,7 +191,9 @@ fun LivingScreen(
                     character = character,
                     scene = scene,
                     isDarkTheme = isDarkTheme,
-                    onOpenProfile = onOpenProfile
+                    onOpenProfile = onOpenProfile,
+                    currentActivity = projection.currentActivity,
+                    currentLocation = projection.currentLocation
                 )
 
                 if (character.contextualQuote.isNotBlank()) {
@@ -337,7 +337,9 @@ private fun LivingSceneHero(
     character: CharacterProfile,
     scene: WorldClock,
     isDarkTheme: Boolean,
-    onOpenProfile: () -> Unit
+    onOpenProfile: () -> Unit,
+    currentActivity: String = character.currentActivity,
+    currentLocation: String = character.location
 ) {
     val palette = remember(scene.dayPhase, scene.weather, isDarkTheme) {
         wallpaperPalette(scene.dayPhase, scene.weather, isDarkTheme)
@@ -398,7 +400,7 @@ private fun LivingSceneHero(
                             tint = heroText.copy(alpha = 0.7f)
                         )
                         Text(
-                            text = character.location,
+                            text = currentLocation,
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp),
                             color = heroText.copy(alpha = 0.75f),
                             maxLines = 1,
@@ -465,7 +467,7 @@ private fun LivingSceneHero(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = character.currentActivity,
+                        text = currentActivity,
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold
