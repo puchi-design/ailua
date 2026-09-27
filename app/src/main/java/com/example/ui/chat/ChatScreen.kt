@@ -86,6 +86,7 @@ import com.example.data.model.MessageSender
 import com.example.data.model.MessageType
 import com.example.ui.components.AiluaAvatar
 import com.example.ui.components.AiConnectionSheet
+import com.example.ui.components.ProactiveSettingsSheet
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
 import com.example.ui.theme.AiluaDustyRose
@@ -124,6 +125,7 @@ fun ChatScreen(
     var showActionSheet by remember { mutableStateOf(false) }
     var isVoiceRecording by remember { mutableStateOf(false) }
     var showAiConnection by remember { mutableStateOf(false) }
+    var showProactive by remember { mutableStateOf(false) }
     val bookmarkedMsgIds = remember { mutableStateListOf<String>() }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -225,6 +227,13 @@ fun ChatScreen(
                     onClick = {
                         showMenu = false
                         showAiConnection = true
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("主动消息") },
+                    onClick = {
+                        showMenu = false
+                        showProactive = true
                     }
                 )
                 DropdownMenuItem(
@@ -442,6 +451,10 @@ fun ChatScreen(
 
         if (showAiConnection) {
             AiConnectionSheet(onDismiss = { showAiConnection = false })
+        }
+
+        if (showProactive) {
+            ProactiveSettingsSheet(onDismiss = { showProactive = false })
         }
     }
 }

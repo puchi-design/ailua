@@ -36,6 +36,7 @@ import com.example.data.ai.repository.ProviderGraph
 import com.example.data.memory.repository.MemoryGraph
 import com.example.data.context.CharacterContext
 import com.example.data.engine.CallStateEngine
+import com.example.data.engine.ProactiveGraph
 import com.example.data.engine.WorldHeartbeatEngine
 import com.example.data.engine.WorldStateRepository
 import com.example.data.local.AiluaLocalStore
@@ -80,6 +81,7 @@ class MainActivity : ComponentActivity() {
         AiluaLocalStore.init(applicationContext)
         ProviderGraph.init(applicationContext)
         MemoryGraph.init(applicationContext)
+        ProactiveGraph.init(applicationContext)
         WorldStateRepository.syncWithLocalStore()
         CallStateEngine.syncWithLocalStore()
 
@@ -91,6 +93,8 @@ class MainActivity : ComponentActivity() {
                 while (isActive) {
                     delay(60_000L)
                     WorldHeartbeatEngine.advanceTime(1)
+                    // P3D-2: same heartbeat drives the proactive-message rule check.
+                    ProactiveGraph.maybeFire()
                 }
             }
         }

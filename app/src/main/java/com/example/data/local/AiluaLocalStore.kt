@@ -6,6 +6,8 @@ import com.example.data.codec.CharacterCardJsonCodec
 import com.example.data.model.CallSession
 import com.example.data.model.CharacterCard
 import com.example.data.model.LifeEvent
+import com.example.data.model.ProactiveSettings
+import com.example.data.model.ProactiveState
 import com.example.data.model.TheaterBookmark
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,6 +45,14 @@ object AiluaLocalStore {
     const val KEY_WORLD_EVENTS = "world_events_json"
     const val KEY_BOOKMARKED_MSGS = "bookmarked_message_ids"
     const val KEY_HOME_APP_ORDER = "home_app_order"
+    const val KEY_PROACTIVE_ENABLED = "proactive_message_enabled"
+    const val KEY_PROACTIVE_INTERVAL_HOURS = "proactive_interval_hours"
+    const val KEY_PROACTIVE_QUIET_START = "proactive_quiet_start_minute"
+    const val KEY_PROACTIVE_QUIET_END = "proactive_quiet_end_minute"
+    const val KEY_PROACTIVE_DAILY_LIMIT = "proactive_daily_limit"
+    const val KEY_PROACTIVE_LAST_SUCCESS = "proactive_last_success_at"
+    const val KEY_PROACTIVE_SENT_DATE = "proactive_sent_date"
+    const val KEY_PROACTIVE_SENT_COUNT = "proactive_sent_count"
 
     private var sharedPrefs: SharedPreferences? = null
 
@@ -79,6 +89,9 @@ object AiluaLocalStore {
 
     private val _homeAppOrder = MutableStateFlow<List<String>>(emptyList())
     val homeAppOrder: StateFlow<List<String>> = _homeAppOrder.asStateFlow()
+
+    private val _proactiveSettings = MutableStateFlow(ProactiveSettings())
+    val proactiveSettings: StateFlow<ProactiveSettings> = _proactiveSettings.asStateFlow()
 
     fun init(context: Context) {
         if (sharedPrefs != null) return
@@ -140,6 +153,15 @@ object AiluaLocalStore {
             ?.map { it.trim() }
             ?.filter { it.isNotEmpty() }
             ?: emptyList()
+
+        // 9. Proactive message settings (P3D-2)
+        _proactiveSettings.value = ProactiveSettings(
+            enabled = prefs.getBoolean(KEY_PROACTIVE_ENABLED, false),
+            intervalHours = prefs.getInt(KEY_PROACTIVE_INTERVAL_HOURS, 6),
+            quietStartMinute = prefs.getInt(KEY_PROACTIVE_QUIET_START, 23 * 60),
+            quietEndMinute = prefs.getInt(KEY_PROACTIVE_QUIET_END, 8 * 60),
+            dailyLimit = prefs.getInt(KEY_PROACTIVE_DAILY_LIMIT, 3),
+        )
     }
 
     // === Custom Cards ===
@@ -288,5 +310,33 @@ object AiluaLocalStore {
     fun saveHomeAppOrder(ids: List<String>) {
         _homeAppOrder.value = ids
         sharedPrefs?.edit()?.putString(KEY_HOME_APP_ORDER, ids.joinToString(","))?.apply()
+    }
+
+    // === Proactive Message Settings (P3D-2) ===
+    fun getProactiveSettings(): ProactiveSettings = _proactiveSettings.value
+
+    fun saveProactiveSettings(settings: ProactiveSettings) {
+        _proactiveSettings.value = settings
+        sharedPrefs?.edit()
+            ?.putBoolean(KEY_PROACTIVE_ENABLED, settings.enabled)
+            ?.putInt(KEY_PROACTIVE_INTERVAL_HOURS, settings.intervalHours)
+            ?.putInt(KEY_PROACTIVE_QUIET_START, settings.quietStartMinute)
+            ?.putInt(KEY_PROACTIVE_QUIET_END, settings.quietEndMinute)
+            ?.putInt(KEY_PROACTIVE_DAILY_LIMIT, settings.dailyLimit)
+            ?.apply()
+    }
+
+    fun getProactiveState(): ProactiveState = ProactiveState(
+        lastSuccessAtEpochMs = sharedPrefs?.getLong(KEY_PROACTIVE_LAST_SUCCESS, 0L) ?: 0L,
+        sentDate = sharedPrefs?.getString(KEY_PROACTIVE_SENT_DATE, "") ?: "",
+        sentCount = sharedPrefs?.getInt(KEY_PROACTIVE_SENT_COUNT, 0) ?: 0,
+    )
+
+    fun saveProactiveState(state: ProactiveState) {
+        sharedPrefs?.edit()
+            ?.putLong(KEY_PROACTIVE_LAST_SUCCESS, state.lastSuccessAtEpochMs)
+            ?.putString(KEY_PROACTIVE_SENT_DATE, state.sentDate)
+            ?.putInt(KEY_PROACTIVE_SENT_COUNT, state.sentCount)
+            ?.apply()
     }
 }

@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.engine.ProactiveGraph
 import com.example.data.engine.WorldHeartbeatEngine
 import com.example.ui.theme.AiluaDustyRose
 import com.example.ui.theme.AiluaMistBlue
@@ -302,6 +303,15 @@ fun WorldTimeDevSheet(
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp
                 )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedButton(
+                onClick = { ProactiveGraph.forceFire() },
+                modifier = Modifier.fillMaxWidth().testTag("proactive_force_fire")
+            ) {
+                Text("主动消息 · 立即触发 (P3D-2 测试)", fontSize = 11.5.sp)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
