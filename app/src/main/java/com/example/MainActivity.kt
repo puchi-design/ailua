@@ -4,6 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
@@ -93,6 +96,12 @@ class MainActivity : ComponentActivity() {
         }
 
         enableEdgeToEdge()
+        // Virtual OS status bar replaces the system status bar; hide the native
+        // one so the two no longer overlap (swipe down reveals it transiently).
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.statusBars())
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
         setContent {
             CompositionLocalProvider(LocalOsChromeState provides rememberOsChromeState()) {
                 AiluaAppRoot()
