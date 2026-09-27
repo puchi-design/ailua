@@ -21,6 +21,7 @@ import com.example.data.chat.model.ChatTurnRole
 import com.example.data.chat.model.ResolvedChatTurn
 import com.example.data.chat.model.VariantStatus
 import com.example.data.chat.repository.ChatRepository
+import com.example.data.engine.UserActivityRecorder
 import com.example.data.memory.auto.AutoMemoryExtractor
 import com.example.data.memory.model.MemoryType
 import com.example.data.memory.repository.MemoryGraph
@@ -87,6 +88,9 @@ class ChatViewModel(
     private val sessionState = MutableStateFlow<String?>(null)
     private var generationJob: Job? = null
 
+    /** P3D-3: text of the in-flight user message, for the MESSAGE LifeEvent. */
+    private var lastUserText: String? = null
+
     init {
         viewModelScope.launch {
             sessionState.filterNotNull()
@@ -113,6 +117,7 @@ class ChatViewModel(
     fun send(userText: String) {
         if (userText.isBlank()) return
         if (generationJob?.isActive == true) return
+        lastUserText = userText
         generationJob = viewModelScope.launch {
             handleResult(runtime.send(characterId, userText))
         }
@@ -186,8 +191,29 @@ class ChatViewModel(
             is SendResult.Failed -> _uiState.update {
                 it.copy(errorMessage = friendlyError(result.error))
             }
-            SendResult.Completed -> launchAutoMemory()
+            SendResult.Completed -> {
+                recordChatActivity()
+                launchAutoMemory()
+            }
             SendResult.NothingToRegenerate -> Unit
+        }
+    }
+
+    /**
+     * P3D-3: one completed exchange becomes a MESSAGE fact in the ledger, so
+     * other apps/characters see that the user was chatting (never affects UI).
+     */
+    private fun recordChatActivity() {
+        val userText = lastUserText ?: return
+        lastUserText = null
+        try {
+            UserActivityRecorder.recordChatMessage(
+                characterId = characterId,
+                characterName = character.name,
+                userText = userText,
+            )
+        } catch (_: Exception) {
+            // Continuity facts must never break the chat experience.
         }
     }
 

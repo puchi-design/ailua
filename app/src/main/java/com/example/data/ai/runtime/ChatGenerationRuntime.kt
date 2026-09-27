@@ -80,6 +80,11 @@ class ChatGenerationRuntime(
     private val memoryRepository: MemoryRepository,
 ) {
 
+    companion object {
+        /** P3D-3: newest LifeEvent facts injected into one prompt. */
+        internal const val MAX_PROMPT_LIFE_EVENTS = 12
+    }
+
     private val _streaming = MutableStateFlow<StreamingState?>(null)
 
     /** Live streaming state for the active generation; `null` when idle. */
@@ -138,7 +143,9 @@ class ChatGenerationRuntime(
     ): SendResult {
         val recentUserText = history.lastOrNull { it.role == ChatTurnRole.USER }
             ?.activeVariant?.content ?: ""
-        val events = promptContext.lifeEvents(characterId)
+        // P3D-3: the ledger now also carries user app actions, so the prompt
+        // keeps only the most recent facts instead of growing unbounded.
+        val events = promptContext.lifeEvents(characterId).takeLast(MAX_PROMPT_LIFE_EVENTS)
         val presence = promptContext.presence(characterId)
         val (date, time) = promptContext.temporal()
 

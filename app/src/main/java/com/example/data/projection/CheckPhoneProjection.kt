@@ -6,6 +6,7 @@ import com.example.data.model.LifeEvent
 import com.example.data.model.LifeEventType
 import com.example.data.model.MusicTrack
 import com.example.data.model.PrivatePhoto
+import com.example.data.model.isUserActivity
 import com.example.data.model.sortedChronologically
 
 /**
@@ -44,7 +45,7 @@ fun projectCheckPhone(
         ?: if (characterId == "mira") MockData.checkPhoneData else EMPTY_CHECK_PHONE_DATA
 
     val runtime = runtimeEvents
-        .filter { it.characterId == characterId && it.id !in seedEventIds }
+        .filter { it.characterId == characterId && !it.isUserActivity() && it.id !in seedEventIds }
         .sortedChronologically()
         .reversed()
     if (runtime.isEmpty()) return seed

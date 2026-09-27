@@ -1,5 +1,6 @@
 package com.example.data.repository
 
+import com.example.data.engine.UserActivityRecorder
 import com.example.data.model.GalleryAsset
 import com.example.data.model.GalleryAssetType
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -99,5 +100,8 @@ object GalleryRepository {
             album = "我的导入"
         )
         _assets.value = listOf(newAsset) + _assets.value
+
+        // P3D-3: 收藏照片 becomes a LifeEvent fact the companion can know about.
+        UserActivityRecorder.recordPhotoImport(title = title)
     }
 }

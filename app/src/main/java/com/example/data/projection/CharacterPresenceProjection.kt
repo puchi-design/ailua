@@ -2,6 +2,7 @@ package com.example.data.projection
 
 import com.example.data.model.CharacterProfile
 import com.example.data.model.LifeEvent
+import com.example.data.model.isUserActivity
 import com.example.data.model.sortedChronologically
 
 /**
@@ -25,7 +26,7 @@ fun projectPresence(
     seedEventIds: Set<String> = emptySet()
 ): CharacterPresence {
     val latest = events
-        .filter { it.characterId == character.id && it.id !in seedEventIds }
+        .filter { it.characterId == character.id && !it.isUserActivity() && it.id !in seedEventIds }
         .sortedChronologically()
         .lastOrNull()
     return CharacterPresence(

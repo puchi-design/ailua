@@ -3,6 +3,7 @@ package com.example.data.projection
 import com.example.data.model.CharacterProfile
 import com.example.data.model.LifeEvent
 import com.example.data.model.TimelineEvent
+import com.example.data.model.isUserActivity
 import com.example.data.model.sortedChronologically
 
 /**
@@ -32,7 +33,7 @@ fun projectLiving(
     runtimeEvents: List<LifeEvent>,
     seedEventIds: Set<String> = emptySet()
 ): LivingProjection {
-    val ownEvents = runtimeEvents.filter { it.characterId == character.id }
+    val ownEvents = runtimeEvents.filter { it.characterId == character.id && !it.isUserActivity() }
     val seedIds = seedTimeline.mapTo(HashSet()) { it.id } + seedEventIds
 
     val runtimeMapped = ownEvents.map { lifeEvent ->

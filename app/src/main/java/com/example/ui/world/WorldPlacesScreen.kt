@@ -52,6 +52,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.engine.UserActivityRecorder
 import com.example.data.engine.WorldHeartbeatEngine
 import com.example.data.mock.WorldData
 import com.example.data.model.VirtualPlace
@@ -439,6 +440,11 @@ fun WorldPlacesScreen(
                                     val targetChar = selectedPlace.currentCharacterIds.firstOrNull()
                                         ?: selectedPlace.residentCharacterIds.firstOrNull()
                                         ?: "mira"
+                                    // P3D-3: visiting a place is a LOCATION_CHANGE fact.
+                                    UserActivityRecorder.recordPlaceVisit(
+                                        characterId = targetChar,
+                                        placeName = selectedPlace.name,
+                                    )
                                     onVisitPlaceChat(targetChar)
                                 },
                                 modifier = Modifier.fillMaxWidth(),

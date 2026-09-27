@@ -3,6 +3,7 @@ package com.example.data.projection
 import com.example.data.model.LifeEvent
 import com.example.data.model.LifeEventType
 import com.example.data.model.MomentPost
+import com.example.data.model.isUserActivity
 import com.example.data.model.sortedChronologically
 import com.example.data.registry.CharacterRegistry
 
@@ -26,7 +27,7 @@ fun projectMoments(
 ): List<MomentPost> {
     val seedPostIds = seedPosts.mapTo(HashSet()) { it.id }
     val runtimePosts = runtimeEvents
-        .filter { (it.type == LifeEventType.MOMENT || it.type == LifeEventType.PHOTO) && it.id !in seedEventIds }
+        .filter { (it.type == LifeEventType.MOMENT || it.type == LifeEventType.PHOTO) && !it.isUserActivity() && it.id !in seedEventIds }
         .sortedChronologically()
         .reversed()
         .map { ev ->
