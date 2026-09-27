@@ -38,6 +38,7 @@ import com.example.data.model.CallAction
 import com.example.data.model.CallState
 import com.example.data.registry.CharacterRegistry
 import com.example.navigation.AiluaDestinations
+import com.example.navigation.AppRouter
 import com.example.ui.apps.AppLibraryScreen
 import com.example.ui.call.CallHistoryScreen
 import com.example.ui.call.CallScreen
@@ -182,26 +183,7 @@ fun AiluaAppRoot() {
                         onNavigateToCallHistory = { navController.navigate(AiluaDestinations.CALL_HISTORY) },
                         onNavigateToGallery = { navController.navigate(AiluaDestinations.GALLERY) },
                         onAppClick = { appId ->
-                            when (appId) {
-                                "messages", "chat" -> navController.navigate(AiluaDestinations.MESSAGES)
-                                "group_chat" -> navController.navigate(AiluaDestinations.GROUP_CHAT)
-                                "contacts" -> navController.navigate(AiluaDestinations.CONTACTS)
-                                "relations" -> navController.navigate(AiluaDestinations.RELATIONS)
-                                "check_phone" -> navController.navigate(AiluaDestinations.CHECK_PHONE)
-                                "diary" -> navController.navigate(AiluaDestinations.DIARY)
-                                "moments" -> navController.navigate(AiluaDestinations.MOMENTS)
-                                "living" -> navController.navigate(AiluaDestinations.LIVING)
-                                "memories" -> navController.navigate(AiluaDestinations.MEMORIES)
-                                "apps" -> navController.navigate(AiluaDestinations.APPS)
-                                "creator" -> navController.navigate(AiluaDestinations.CHARACTER_CREATOR)
-                                "world_book" -> navController.navigate(AiluaDestinations.WORLD_BOOK)
-                                "world_map" -> navController.navigate(AiluaDestinations.WORLD_MAP)
-                                "theater" -> navController.navigate(AiluaDestinations.THEATER)
-                                "mailbox" -> navController.navigate(AiluaDestinations.MAILBOX)
-                                "call_history" -> navController.navigate(AiluaDestinations.CALL_HISTORY)
-                                "gallery" -> navController.navigate(AiluaDestinations.GALLERY)
-                                else -> navController.navigate(AiluaDestinations.APPS)
-                            }
+                            navController.navigate(AppRouter.resolve(appId))
                         }
                     )
                 }
