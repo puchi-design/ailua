@@ -29,6 +29,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,8 +39,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.mock.MockData
 import com.example.data.model.MemorySnippet
+import com.example.data.registry.CharacterRegistry
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
 import com.example.ui.theme.AiluaMistBlue
@@ -50,9 +51,10 @@ import com.example.ui.theme.AiluaMutedLavender
 fun MemoriesScreen(
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
-    onBackToHome: () -> Unit = {}
+    onBackToHome: () -> Unit = {},
+    characterId: String = "mira"
 ) {
-    val memories = MockData.sampleCharacter.memories
+    val memories = remember(characterId) { CharacterRegistry.getCharacter(characterId).memories }
 
     Box(
         modifier = Modifier

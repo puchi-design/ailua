@@ -29,11 +29,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.data.context.CharacterContext
 import com.example.data.engine.CallStateEngine
 import com.example.data.engine.WorldHeartbeatEngine
 import com.example.data.engine.WorldStateRepository
 import com.example.data.local.AiluaLocalStore
-import com.example.data.mock.MockData
 import com.example.data.model.CallAction
 import com.example.data.model.CallState
 import com.example.data.registry.CharacterRegistry
@@ -107,6 +107,13 @@ fun AiluaAppRoot() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    // Active companion (CharacterContext bootstrap default: Mira) — profiles always
+    // resolve through CharacterRegistry, never a hardcoded sample profile
+    val selectedCharacterId by CharacterContext.selectedId.collectAsStateWithLifecycle()
+    val selectedCharacter = remember(selectedCharacterId) {
+        CharacterRegistry.getCharacter(selectedCharacterId)
+    }
+
     // Reactively navigate to IncomingCallScreen exactly once when INCOMING state detected
     LaunchedEffect(currentCall?.id, currentCall?.state, currentRoute) {
         val call = currentCall
@@ -155,11 +162,11 @@ fun AiluaAppRoot() {
                 // Screen 1: Virtual OS Home Desktop
                 composable(AiluaDestinations.HOME) {
                     VirtualHomeScreen(
-                        character = MockData.sampleCharacter,
+                        character = selectedCharacter,
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onNavigateToMessages = { navController.navigate(AiluaDestinations.MESSAGES) },
-                        onNavigateToChat = { navController.navigate(AiluaDestinations.chatRoute("mira")) },
+                        onNavigateToChat = { navController.navigate(AiluaDestinations.chatRoute(selectedCharacterId)) },
                         onNavigateToGroupChat = { navController.navigate(AiluaDestinations.GROUP_CHAT) },
                         onNavigateToContacts = { navController.navigate(AiluaDestinations.CONTACTS) },
                         onNavigateToRelations = { navController.navigate(AiluaDestinations.RELATIONS) },
@@ -169,9 +176,9 @@ fun AiluaAppRoot() {
                         onNavigateToLiving = { navController.navigate(AiluaDestinations.LIVING) },
                         onNavigateToMemories = { navController.navigate(AiluaDestinations.MEMORIES) },
                         onNavigateToApps = { navController.navigate(AiluaDestinations.APPS) },
-                        onOpenProfile = { navController.navigate(AiluaDestinations.profileRoute("mira")) },
+                        onOpenProfile = { navController.navigate(AiluaDestinations.profileRoute(selectedCharacterId)) },
                         onNavigateToMailbox = { navController.navigate(AiluaDestinations.MAILBOX) },
-                        onNavigateToCall = { navController.navigate(AiluaDestinations.callRoute("mira")) },
+                        onNavigateToCall = { navController.navigate(AiluaDestinations.callRoute(selectedCharacterId)) },
                         onNavigateToCallHistory = { navController.navigate(AiluaDestinations.CALL_HISTORY) },
                         onNavigateToGallery = { navController.navigate(AiluaDestinations.GALLERY) },
                         onAppClick = { appId ->
@@ -272,7 +279,9 @@ fun AiluaAppRoot() {
                     CheckPhoneScreen(
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
-                        onBackToHome = { navController.popBackStack() }
+                        onBackToHome = { navController.popBackStack() },
+                        characterId = selectedCharacterId,
+                        characterName = selectedCharacter.name
                     )
                 }
 
@@ -281,7 +290,9 @@ fun AiluaAppRoot() {
                     DiaryScreen(
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
-                        onBackToHome = { navController.popBackStack() }
+                        onBackToHome = { navController.popBackStack() },
+                        characterId = selectedCharacterId,
+                        characterName = selectedCharacter.name
                     )
                 }
 
@@ -309,14 +320,14 @@ fun AiluaAppRoot() {
                 // Screen 10: Living World Timeline Screen
                 composable(AiluaDestinations.LIVING) {
                     LivingScreen(
-                        character = MockData.sampleCharacter,
+                        character = selectedCharacter,
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBackToHome = { navController.popBackStack() },
-                        onNavigateToChat = { navController.navigate(AiluaDestinations.chatRoute("mira")) },
-                        onNavigateToCall = { navController.navigate(AiluaDestinations.callRoute("mira")) },
+                        onNavigateToChat = { navController.navigate(AiluaDestinations.chatRoute(selectedCharacter.id)) },
+                        onNavigateToCall = { navController.navigate(AiluaDestinations.callRoute(selectedCharacter.id)) },
                         onNavigateToMailbox = { navController.navigate(AiluaDestinations.MAILBOX) },
-                        onOpenProfile = { navController.navigate(AiluaDestinations.profileRoute("mira")) }
+                        onOpenProfile = { navController.navigate(AiluaDestinations.profileRoute(selectedCharacter.id)) }
                     )
                 }
 
@@ -339,7 +350,7 @@ fun AiluaAppRoot() {
                         onNavigateToWorldMap = { navController.navigate(AiluaDestinations.WORLD_MAP) },
                         onNavigateToTheater = { navController.navigate(AiluaDestinations.THEATER) },
                         onNavigateToMailbox = { navController.navigate(AiluaDestinations.MAILBOX) },
-                        onNavigateToCall = { navController.navigate(AiluaDestinations.callRoute("mira")) },
+                        onNavigateToCall = { navController.navigate(AiluaDestinations.callRoute(selectedCharacterId)) },
                         onNavigateToGallery = { navController.navigate(AiluaDestinations.GALLERY) }
                     )
                 }
@@ -353,7 +364,7 @@ fun AiluaAppRoot() {
                     })
                 ) { backStackEntry ->
                     val charId = backStackEntry.arguments?.getString("characterId") ?: "mira"
-                    val character = MockData.allCharacters[charId] ?: MockData.sampleCharacter
+                    val character = CharacterRegistry.getCharacter(charId)
                     CharacterProfileScreen(
                         character = character,
                         isDarkTheme = isDarkTheme,
@@ -377,7 +388,8 @@ fun AiluaAppRoot() {
                     MemoriesScreen(
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
-                        onBackToHome = { navController.popBackStack() }
+                        onBackToHome = { navController.popBackStack() },
+                        characterId = selectedCharacterId
                     )
                 }
 
@@ -476,7 +488,7 @@ fun AiluaAppRoot() {
                     val session = currentCall
                     IncomingCallScreen(
                         onAnswer = {
-                            val targetId = session?.characterId ?: "mira"
+                            val targetId = session?.characterId ?: CharacterContext.currentId()
                             CallStateEngine.handleAction(CallAction.ANSWER)
                             navController.navigate(AiluaDestinations.callRoute(targetId)) {
                                 popUpTo(AiluaDestinations.INCOMING_CALL) { inclusive = true }
