@@ -1,0 +1,33 @@
+CREATE TABLE chat_turn (
+    id TEXT NOT NULL PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    active_variant_id TEXT,
+    created_at_epoch_ms INTEGER NOT NULL,
+    FOREIGN KEY(session_id) REFERENCES chat_session(id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX chat_turn_session_position ON chat_turn(session_id, position);
+
+insertTurn:
+INSERT INTO chat_turn(id, session_id, role, position, active_variant_id, created_at_epoch_ms)
+VALUES (?, ?, ?, ?, ?, ?);
+
+selectMaxPosition:
+SELECT COALESCE(MAX(position), -1) FROM chat_turn WHERE session_id = ?;
+
+selectTurnsBySession:
+SELECT * FROM chat_turn WHERE session_id = ? ORDER BY position ASC;
+
+selectTurnById:
+SELECT * FROM chat_turn WHERE id = ?;
+
+updateActiveVariant:
+UPDATE chat_turn SET active_variant_id = ? WHERE id = ?;
+
+deleteTurnsBySession:
+DELETE FROM chat_turn WHERE session_id = ?;
+
+countTurns:
+SELECT COUNT(*) FROM chat_turn;

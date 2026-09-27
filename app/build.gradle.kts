@@ -7,6 +7,19 @@ plugins {
   alias(libs.plugins.google.devtools.ksp)
   alias(libs.plugins.secrets)
   alias(libs.plugins.google.services)
+  alias(libs.plugins.sqldelight)
+}
+
+// AGP 9 built-in Kotlin is disabled via gradle.properties (android.builtInKotlin=false) so the
+// classic kotlin-android plugin can serve SQLDelight's source-set wiring without a Kotlin upgrade.
+// Applied without a version request: the KGP implementation jar is already on the shared classpath.
+apply(plugin = "org.jetbrains.kotlin.android")
+
+// Align Kotlin with the project's Java 17 target (built-in Kotlin did this implicitly).
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+  compilerOptions {
+    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+  }
 }
 
 android {
@@ -72,6 +85,16 @@ secrets {
 
 googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
 
+// Chat persistence: SQLDelight common schema + generated queries.
+// Android-only driver wiring this pass; the schema itself stays platform-neutral for the later KMP move.
+sqldelight {
+  databases {
+    create("ChatDatabase") {
+      packageName.set("com.example.data.chat.local")
+    }
+  }
+}
+
 // Some unused dependencies are commented out below instead of being removed.
 // This makes it easy to add them back in the future if needed.
 dependencies {
@@ -119,12 +142,16 @@ dependencies {
   // implementation(libs.play.services.location)
   implementation(libs.reorderable)
   implementation(libs.retrofit)
+  implementation(libs.sqldelight.runtime)
+  implementation(libs.sqldelight.coroutines.extensions)
+  implementation(libs.sqldelight.android.driver)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
   testImplementation(libs.robolectric)
+  testImplementation(libs.sqldelight.sqlite.driver)
   androidTestImplementation(platform(libs.androidx.compose.bom))
   androidTestImplementation(libs.androidx.compose.ui.test.junit4)
   androidTestImplementation(libs.androidx.espresso.core)

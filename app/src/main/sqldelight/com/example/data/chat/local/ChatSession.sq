@@ -1,0 +1,31 @@
+CREATE TABLE chat_session (
+    id TEXT NOT NULL PRIMARY KEY,
+    character_id TEXT NOT NULL,
+    created_at_epoch_ms INTEGER NOT NULL,
+    updated_at_epoch_ms INTEGER NOT NULL
+);
+
+CREATE INDEX chat_session_character_updated
+ON chat_session(character_id, updated_at_epoch_ms DESC);
+
+insertSession:
+INSERT INTO chat_session(id, character_id, created_at_epoch_ms, updated_at_epoch_ms)
+VALUES (?, ?, ?, ?);
+
+selectSessionById:
+SELECT * FROM chat_session WHERE id = ?;
+
+selectCanonicalSessionByCharacter:
+SELECT * FROM chat_session
+WHERE character_id = ?
+ORDER BY created_at_epoch_ms ASC, id ASC
+LIMIT 1;
+
+touchSession:
+UPDATE chat_session SET updated_at_epoch_ms = ? WHERE id = ?;
+
+deleteSessionById:
+DELETE FROM chat_session WHERE id = ?;
+
+countSessions:
+SELECT COUNT(*) FROM chat_session;

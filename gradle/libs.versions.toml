@@ -42,6 +42,7 @@ credentials = "1.5.0"
 googleid = "1.1.1"
 kotlinxSerializationJson = "1.7.3"
 reorderable = "3.1.0"
+sqldelight = "2.1.0"
 
 
 [libraries]
@@ -98,6 +99,10 @@ androidx-credentials-play-services = { group = "androidx.credentials", name = "c
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderable" }
+sqldelight-runtime = { group = "app.cash.sqldelight", name = "runtime", version.ref = "sqldelight" }
+sqldelight-coroutines-extensions = { group = "app.cash.sqldelight", name = "coroutines-extensions", version.ref = "sqldelight" }
+sqldelight-android-driver = { group = "app.cash.sqldelight", name = "android-driver", version.ref = "sqldelight" }
+sqldelight-sqlite-driver = { group = "app.cash.sqldelight", name = "sqlite-driver", version.ref = "sqldelight" }
 
 
 [plugins]
@@ -107,3 +112,4 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "googleDevtoolsKsp" }
 secrets = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "secretsGradlePlugin" }
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
