@@ -634,32 +634,45 @@ private fun ChatMessageItem(
         }
 
         MessageSender.USER -> {
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+                horizontalAlignment = Alignment.End
             ) {
-                Box(
-                    modifier = Modifier
-                        .clip(
-                            RoundedCornerShape(
-                                topStart = 18.dp,
-                                topEnd = 4.dp,
-                                bottomStart = 18.dp,
-                                bottomEnd = 18.dp
+                Row {
+                    Box(
+                        modifier = Modifier
+                            .clip(
+                                RoundedCornerShape(
+                                    topStart = 18.dp,
+                                    topEnd = 4.dp,
+                                    bottomStart = 18.dp,
+                                    bottomEnd = 18.dp
+                                )
                             )
+                            .background(AiluaMistBlue)
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                    ) {
+                        Text(
+                            text = message.text,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 14.5.sp,
+                                lineHeight = 20.sp
+                            ),
+                            color = Color.White
                         )
-                        .background(AiluaMistBlue)
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                ) {
-                    Text(
-                        text = message.text,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 14.5.sp,
-                            lineHeight = 20.sp
-                        ),
-                        color = Color.White
-                    )
+                    }
                 }
+
+                // Save affordance (same as character messages) — P3C-5 entry.
+                Icon(
+                    imageVector = Icons.Default.BookmarkBorder,
+                    contentDescription = "存入记忆",
+                    modifier = Modifier
+                        .padding(top = 3.dp)
+                        .size(13.dp)
+                        .clickable { onSaveMemory() },
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
             }
         }
 
