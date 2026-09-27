@@ -1,0 +1,24 @@
+CREATE TABLE memory_entry (
+    id TEXT NOT NULL PRIMARY KEY,
+    character_id TEXT NOT NULL,
+    type TEXT NOT NULL,
+    content TEXT NOT NULL,
+    importance REAL NOT NULL,
+    source_app_id TEXT NOT NULL,
+    source_ref_id TEXT,
+    created_at_epoch_ms INTEGER NOT NULL,
+    updated_at_epoch_ms INTEGER NOT NULL
+);
+
+CREATE INDEX memory_entry_character
+ON memory_entry(character_id);
+
+CREATE INDEX memory_entry_character_type
+ON memory_entry(character_id, type);
+
+CREATE INDEX memory_entry_character_updated
+ON memory_entry(character_id, updated_at_epoch_ms DESC);
+
+CREATE UNIQUE INDEX memory_entry_character_source
+ON memory_entry(character_id, source_ref_id)
+WHERE source_ref_id IS NOT NULL;

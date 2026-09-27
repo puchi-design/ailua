@@ -2,7 +2,6 @@ package com.example.ui.memories
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,15 +20,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,13 +37,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.model.MemorySnippet
-import com.example.data.registry.CharacterRegistry
+import com.example.data.memory.model.MemoryEntry
+import com.example.data.memory.model.MemoryType
+import com.example.data.memory.repository.MemoryGraph
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
-import com.example.ui.theme.AiluaMistBlue
 import com.example.ui.theme.AiluaMoonGold
-import com.example.ui.theme.AiluaMutedLavender
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun MemoriesScreen(
@@ -54,7 +54,9 @@ fun MemoriesScreen(
     onBackToHome: () -> Unit = {},
     characterId: String = "mira"
 ) {
-    val memories = remember(characterId) { CharacterRegistry.getCharacter(characterId).memories }
+    val memories by MemoryGraph.repository
+        .observeMemories(characterId)
+        .collectAsState(initial = emptyList())
 
     Box(
         modifier = Modifier
@@ -111,7 +113,7 @@ fun MemoriesScreen(
                 }
             }
 
-            // Memories List
+            // Memories List (DB-backed, P3C-5 §2)
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
@@ -152,7 +154,10 @@ fun MemoriesScreen(
                 }
 
                 items(memories, key = { it.id }) { memory ->
-                    MemoryItemCard(memory = memory)
+                    MemoryItemCard(
+                        memory = memory,
+                        onDelete = { MemoryGraph.repository.deleteMemory(memory.id) },
+                    )
                 }
 
                 item { Spacer(modifier = Modifier.height(14.dp)) }
@@ -169,7 +174,7 @@ fun MemoriesScreen(
 }
 
 @Composable
-private fun MemoryItemCard(memory: MemorySnippet) {
+private fun MemoryItemCard(memory: MemoryEntry, onDelete: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -206,7 +211,7 @@ private fun MemoryItemCard(memory: MemorySnippet) {
                             .background(AiluaMoonGold)
                     )
                     Text(
-                        text = memory.title,
+                        text = if (memory.type == MemoryType.CORE) "核心记忆" else "长期记忆",
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 14.sp
@@ -222,7 +227,7 @@ private fun MemoryItemCard(memory: MemorySnippet) {
                         .padding(horizontal = 7.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        text = memory.tag,
+                        text = if (memory.sourceAppId == "chat") "聊天" else memory.sourceAppId,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -234,7 +239,7 @@ private fun MemoryItemCard(memory: MemorySnippet) {
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "“${memory.snippet}”",
+                text = "“${memory.content}”",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = 13.5.sp,
                     lineHeight = 19.sp
@@ -250,25 +255,28 @@ private fun MemoryItemCard(memory: MemorySnippet) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "记录于 ${memory.date}",
+                    text = "记录于 ${formatMemoryTime(memory.createdAtEpochMs)}",
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 10.5.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
                 )
 
-                // Resonance stars
-                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    repeat(memory.resonanceLevel) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = null,
-                            tint = AiluaMoonGold,
-                            modifier = Modifier.size(12.dp)
-                        )
-                    }
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.testTag("memory_delete_${memory.id}")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "删除记忆",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
         }
     }
 }
+
+private fun formatMemoryTime(epochMs: Long): String =
+    SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(epochMs))

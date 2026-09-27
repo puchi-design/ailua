@@ -272,8 +272,9 @@ fun ChatScreen(
                             }
                         },
                         onSaveMemory = {
+                            viewModel.saveMemory(message)
                             coroutineScope.launch {
-                                snackbarHostState.showSnackbar("已保存到「记忆晶核」")
+                                snackbarHostState.showSnackbar("已保存到记忆")
                             }
                         },
                         onRegenerate = { viewModel.regenerate() },

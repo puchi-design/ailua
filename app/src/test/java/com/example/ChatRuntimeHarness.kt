@@ -5,6 +5,7 @@ import com.example.data.ai.runtime.ChatGenerationRuntime
 import com.example.data.ai.runtime.ChatPromptContext
 import com.example.data.ai.runtime.ProviderResolver
 import com.example.data.ai.runtime.ResolvedProvider
+import com.example.data.chat.local.SqlDelightMemoryRepository
 import com.example.data.model.CharacterCardData
 import com.example.data.model.LifeEvent
 import com.example.data.model.LifeEventType
@@ -99,7 +100,13 @@ internal class ChatRuntimeFixture {
     val chat = ChatTestHarness.inMemory()
     val promptContext = FakeChatPromptContext()
     val resolver = FakeProviderResolver(null)
-    val runtime = ChatGenerationRuntime(chat.repository, resolver, promptContext)
+    val memoryRepository = SqlDelightMemoryRepository(chat.database, chat.idGenerator, chat.clock)
+    val runtime = ChatGenerationRuntime(
+        repository = chat.repository,
+        providerResolver = resolver,
+        promptContext = promptContext,
+        memoryRepository = memoryRepository,
+    )
 
     val repository get() = chat.repository
 

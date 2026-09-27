@@ -12,6 +12,7 @@ import com.example.data.chat.model.ChatTurnRole
 import com.example.data.chat.model.ResolvedChatTurn
 import com.example.data.chat.model.VariantStatus
 import com.example.data.chat.repository.ChatRepository
+import com.example.data.memory.repository.MemoryRepository
 import com.example.data.model.CharacterCardData
 import com.example.data.projection.CharacterPresence
 import kotlinx.coroutines.CancellationException
@@ -76,6 +77,7 @@ class ChatGenerationRuntime(
     private val repository: ChatRepository,
     private val providerResolver: ProviderResolver,
     private val promptContext: ChatPromptContext,
+    private val memoryRepository: MemoryRepository,
 ) {
 
     private val _streaming = MutableStateFlow<StreamingState?>(null)
@@ -150,7 +152,13 @@ class ChatGenerationRuntime(
             ),
             worldState = presence,
             recentLifeEvents = events,
-            memories = emptyList<PromptMemory>(),
+            memories = memoryRepository.getMemoriesForPrompt(characterId).map { memory ->
+                PromptMemory(
+                    id = memory.id,
+                    content = memory.content,
+                    characterIds = listOf(memory.characterId),
+                )
+            },
             history = history.toPromptHistory(),
             currentDate = date,
             currentTime = time,

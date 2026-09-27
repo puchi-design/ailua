@@ -21,6 +21,9 @@ import com.example.data.chat.model.ChatTurnRole
 import com.example.data.chat.model.ResolvedChatTurn
 import com.example.data.chat.model.VariantStatus
 import com.example.data.chat.repository.ChatRepository
+import com.example.data.memory.model.MemoryType
+import com.example.data.memory.repository.MemoryGraph
+import com.example.data.memory.repository.MemoryRepository
 import com.example.data.model.ChatMessage
 import com.example.data.model.CharacterProfile
 import com.example.data.model.MessageSender
@@ -71,6 +74,7 @@ class ChatViewModel(
     private val character: CharacterProfile,
     private val repository: ChatRepository,
     private val runtime: ChatGenerationRuntime,
+    private val memoryRepository: MemoryRepository,
     private val driver: SqlDriver,
 ) : ViewModel() {
 
@@ -121,6 +125,18 @@ class ChatViewModel(
     /** Cancel mechanism (§12): cancels the single generation Job. */
     fun cancelGeneration() {
         generationJob?.cancel()
+    }
+
+    /** P3C-5 chat save entry: persists [message] as a long-term memory. */
+    fun saveMemory(message: ChatMessage) {
+        memoryRepository.saveMemory(
+            characterId = characterId,
+            content = message.text,
+            sourceAppId = "chat",
+            sourceRefId = message.id,
+            type = MemoryType.LONG_TERM,
+            importance = 0.7,
+        )
     }
 
     fun switchVariant(turnId: String, direction: Int) {
@@ -240,16 +256,19 @@ class ChatViewModel(
                         idGenerator = UuidIdGenerator(),
                         clock = SystemEpochClock(),
                     )
+                    val memoryRepository = MemoryGraph.repository
                     val runtime = ChatGenerationRuntime(
                         repository = repository,
                         providerResolver = ActiveProfileProviderResolver(ProviderGraph.repository),
                         promptContext = WorldChatPromptContext,
+                        memoryRepository = memoryRepository,
                     )
                     ChatViewModel(
                         characterId = character.id,
                         character = character,
                         repository = repository,
                         runtime = runtime,
+                        memoryRepository = memoryRepository,
                         driver = driver,
                     )
                 }
