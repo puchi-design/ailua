@@ -28,7 +28,13 @@ data class ChatMessage(
     val imageDescription: String = "",
     val reactions: List<String> = emptyList(),
     val isSavedToMemory: Boolean = false,
-    val memoryTag: String = ""
+    val memoryTag: String = "",
+    /** 0-based index of the active variant (P3C-4 §11). */
+    val variantIndex: Int = 0,
+    /** Total variants of this turn for the ‹ n / m › picker (P3C-4 §11). */
+    val variantCount: Int = 1,
+    /** "FAILED" / "CANCELLED" marker for generation status, null when fine. */
+    val statusLabel: String? = null
 )
 
 data class MomentComment(

@@ -33,12 +33,11 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
@@ -47,6 +46,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -71,18 +71,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.mock.MockData
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.ChatMessage
 import com.example.data.model.CharacterProfile
 import com.example.data.model.MessageSender
 import com.example.data.model.MessageType
 import com.example.ui.components.AiluaAvatar
+import com.example.ui.components.AiConnectionSheet
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
 import com.example.ui.theme.AiluaDustyRose
@@ -91,31 +94,52 @@ import com.example.ui.theme.AiluaMoonGold
 import com.example.ui.theme.AiluaMutedLavender
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * ChatScreen — pure rendering + actions over [ChatViewModel] (P3C-4 §2).
+ *
+ * All fake chat paths are gone: no MockData seed, no canned auto-replies, no
+ * hardcoded regenerate, no fake alternateTexts variants. Every send/quick
+ * prompt/special action flows through the real runtime → provider → DB.
+ */
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
-    character: CharacterProfile = MockData.sampleCharacter,
+    character: CharacterProfile,
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
     onBackToHome: () -> Unit = {},
     onOpenProfile: () -> Unit = {}
 ) {
-    val messages = remember(character.id) {
-        mutableStateListOf(*MockData.getChatMessagesForCharacter(character.id).toTypedArray())
-    }
+    val appContext = LocalContext.current.applicationContext
+    val viewModel: ChatViewModel = viewModel(
+        key = character.id,
+        factory = ChatViewModel.factory(appContext, character),
+    )
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val messages = uiState.messages
+    val streamingText = uiState.streamingText
+
     var inputText by remember { mutableStateOf("") }
     var showMenu by remember { mutableStateOf(false) }
     var showActionSheet by remember { mutableStateOf(false) }
     var isVoiceRecording by remember { mutableStateOf(false) }
+    var showAiConnection by remember { mutableStateOf(false) }
     val bookmarkedMsgIds = remember { mutableStateListOf<String>() }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    val contentCount = messages.size + if (streamingText != null) 1 else 0
+    val scrollTargetIndex = contentCount
+
     val showJumpToBottom by remember {
         derivedStateOf {
-            listState.firstVisibleItemIndex < (messages.size - 2).coerceAtLeast(0)
+            listState.firstVisibleItemIndex < (uiState.messages.size - 2).coerceAtLeast(0)
         }
+    }
+
+    val lastAssistantId = remember(messages) {
+        messages.lastOrNull { it.sender == MessageSender.CHARACTER }?.id
     }
 
     val quickPrompts = when (character.id.lowercase()) {
@@ -142,8 +166,24 @@ fun ChatScreen(
         )
     }
 
-    LaunchedEffect(messages.size) {
-        listState.animateScrollToItem(messages.size - 1)
+    LaunchedEffect(messages.size, streamingText) {
+        if (scrollTargetIndex > 0) {
+            listState.animateScrollToItem(scrollTargetIndex)
+        }
+    }
+
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.dismissError()
+        }
+    }
+
+    LaunchedEffect(uiState.requestProviderConfig) {
+        if (uiState.requestProviderConfig) {
+            showAiConnection = true
+            viewModel.dismissProviderRequest()
+        }
     }
 
     Box(
@@ -181,6 +221,13 @@ fun ChatScreen(
                     }
                 )
                 DropdownMenuItem(
+                    text = { Text("AI 连接") },
+                    onClick = {
+                        showMenu = false
+                        showAiConnection = true
+                    }
+                )
+                DropdownMenuItem(
                     text = { Text("存入羁绊记忆") },
                     onClick = {
                         showMenu = false
@@ -190,24 +237,15 @@ fun ChatScreen(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("分支对话探讨") },
+                    text = { Text("清空对话记录") },
                     onClick = {
                         showMenu = false
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar("已开启轻量平行对话分支")
-                        }
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("清空虚拟通话记录") },
-                    onClick = {
-                        showMenu = false
-                        messages.clear()
+                        viewModel.clearSession()
                     }
                 )
             }
 
-            // Message Stream
+            // Message Stream (DB-backed)
             LazyColumn(
                 state = listState,
                 modifier = Modifier
@@ -238,43 +276,25 @@ fun ChatScreen(
                                 snackbarHostState.showSnackbar("已保存到「记忆晶核」")
                             }
                         },
-                        onRegenerate = {
-                            coroutineScope.launch {
-                                val (regenText, reactions) = when (character.id.lowercase()) {
-                                    "yuna" -> Pair(
-                                        "（悠奈眨了眨眼睛，笑容灿烂）有你在身边，感觉每天都有数不完的新奇冒险！",
-                                        listOf("🍮", "✨")
-                                    )
-                                    "noa" -> Pair(
-                                        "（诺亚微微颔首，目光温和）无需过多言语，片刻的宁静，足抵万千喧嚣。",
-                                        listOf("📖", "🌙")
-                                    )
-                                    else -> Pair(
-                                        "（${character.name} 微微侧过头，眼眸里映着温柔的灯光）其实，能像现在这样安安静静地和你待着，我就已经很满足了。",
-                                        listOf("✨", "🌸")
-                                    )
-                                }
-                                messages.add(
-                                    ChatMessage(
-                                        id = "regen_${System.currentTimeMillis()}",
-                                        sender = MessageSender.CHARACTER,
-                                        senderCharacterId = character.avatarId,
-                                        senderName = character.name,
-                                        type = MessageType.TEXT,
-                                        text = regenText,
-                                        timestamp = "刚才",
-                                        reactions = reactions
-                                    )
-                                )
-                            }
-                        }
+                        onRegenerate = { viewModel.regenerate() },
+                        canRegenerate = !uiState.isGenerating && message.id == lastAssistantId,
+                        onSwitchVariant = { direction -> viewModel.switchVariant(message.id, direction) }
                     )
+                }
+
+                if (streamingText != null) {
+                    item(key = "streaming-reply") {
+                        StreamingReplyBubble(
+                            character = character,
+                            text = streamingText,
+                        )
+                    }
                 }
 
                 item { Spacer(modifier = Modifier.height(6.dp)) }
             }
 
-            // Quick Prompt Chips
+            // Quick Prompt Chips → real runtime
             FlowRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -292,21 +312,7 @@ fun ChatScreen(
                                 MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                                 RoundedCornerShape(12.dp)
                             )
-                            .clickable {
-                                messages.add(
-                                    ChatMessage(
-                                        id = "u_${System.currentTimeMillis()}",
-                                        sender = MessageSender.USER,
-                                        type = MessageType.TEXT,
-                                        text = prompt,
-                                        timestamp = "刚才"
-                                    )
-                                )
-                                // Trigger character reply
-                                coroutineScope.launch {
-                                    handleCharacterAutoReply(prompt, messages, character)
-                                }
-                            }
+                            .clickable { viewModel.send(prompt) }
                             .padding(horizontal = 10.dp, vertical = 5.dp)
                     ) {
                         Text(
@@ -324,49 +330,29 @@ fun ChatScreen(
                     onCancel = { isVoiceRecording = false },
                     onSendVoice = {
                         isVoiceRecording = false
-                        messages.add(
-                            ChatMessage(
-                                id = "v_u_${System.currentTimeMillis()}",
-                                sender = MessageSender.USER,
-                                type = MessageType.TEXT,
-                                text = "［语音轻语 6秒］今晚能一起听着雨声多聊一会儿吗？",
-                                timestamp = "刚才"
-                            )
-                        )
-                        coroutineScope.launch {
-                            handleCharacterAutoReply("语音轻语", messages, character)
-                        }
+                        viewModel.send("［语音轻语 6秒］今晚能一起听着雨声多聊一会儿吗？")
                     }
                 )
             } else {
                 ChatInputBar(
                     inputText = inputText,
                     characterName = character.name,
+                    isGenerating = uiState.isGenerating,
                     onInputTextChange = { inputText = it },
                     onSend = {
-                        if (inputText.isNotBlank()) {
+                        if (inputText.isNotBlank() && !uiState.isGenerating) {
                             val text = inputText.trim()
-                            messages.add(
-                                ChatMessage(
-                                    id = "u_${System.currentTimeMillis()}",
-                                    sender = MessageSender.USER,
-                                    type = MessageType.TEXT,
-                                    text = text,
-                                    timestamp = "刚才"
-                                )
-                            )
                             inputText = ""
-                            coroutineScope.launch {
-                                handleCharacterAutoReply(text, messages, character)
-                            }
+                            viewModel.send(text)
                         }
                     },
+                    onStop = { viewModel.cancelGeneration() },
                     onAttachClick = { showActionSheet = !showActionSheet },
                     onMicClick = { isVoiceRecording = true }
                 )
             }
 
-            // Additional Action Sheet
+            // Additional Action Sheet — every action produces a REAL user turn
             AnimatedVisibility(visible = showActionSheet) {
                 Row(
                     modifier = Modifier
@@ -377,73 +363,19 @@ fun ChatScreen(
                 ) {
                     ActionSheetItem("传递暖意", "❤️") {
                         showActionSheet = false
-                        messages.add(
-                            ChatMessage(
-                                id = "act_${System.currentTimeMillis()}",
-                                sender = MessageSender.USER,
-                                type = MessageType.ACTION_NARRATIVE,
-                                text = "伸出手轻轻碰了碰 ${character.name} 放在桌上的杯沿，对 TA 温和地笑了笑。",
-                                timestamp = "刚才"
-                            )
+                        viewModel.send(
+                            "伸出手轻轻碰了碰 ${character.name} 放在桌上的杯沿，对 TA 温和地笑了笑。"
                         )
-                        coroutineScope.launch {
-                            val (replyText, reactions) = when (character.id.lowercase()) {
-                                "yuna" -> Pair(
-                                    "指尖触碰的瞬间，悠奈像受惊的小鹿般笑出声来，顺手把刚烤好的松饼推到你面前～",
-                                    listOf("🍮", "🌸")
-                                )
-                                "noa" -> Pair(
-                                    "指尖微触，诺亚放下手中的诗卷，眼中掠过一丝温意，轻轻将温热的茶杯推近了些许。",
-                                    listOf("📖", "🌙")
-                                )
-                                else -> Pair(
-                                    "指尖感受到杯子的温热，${character.name} 微微睁大眼睛，随即莞尔一笑，将羊毛毯又往你身旁拉近了一些。",
-                                    listOf("🌸", "🍵")
-                                )
-                            }
-                            messages.add(
-                                ChatMessage(
-                                    id = "resp_${System.currentTimeMillis()}",
-                                    sender = MessageSender.CHARACTER,
-                                    senderCharacterId = character.avatarId,
-                                    senderName = character.name,
-                                    type = MessageType.ACTION_NARRATIVE,
-                                    text = replyText,
-                                    timestamp = "刚才",
-                                    reactions = reactions
-                                )
-                            )
-                        }
                     }
                     ActionSheetItem("分享照片", "📷") {
                         showActionSheet = false
-                        messages.add(
-                            ChatMessage(
-                                id = "act_${System.currentTimeMillis()}",
-                                sender = MessageSender.USER,
-                                type = MessageType.TEXT,
-                                text = "［发送了一张深夜街角的照片］你看，今晚的月光落在湿漉漉的石板路上很美。",
-                                timestamp = "刚才"
-                            )
+                        viewModel.send(
+                            "［发送了一张深夜街角的照片］你看，今晚的月光落在湿漉漉的石板路上很美。"
                         )
-                        coroutineScope.launch {
-                            handleCharacterAutoReply("照片", messages, character)
-                        }
                     }
                     ActionSheetItem("语音轻语", "🎙️") {
                         showActionSheet = false
-                        messages.add(
-                            ChatMessage(
-                                id = "v_${System.currentTimeMillis()}",
-                                sender = MessageSender.CHARACTER,
-                                senderCharacterId = character.avatarId,
-                                senderName = character.name,
-                                type = MessageType.VOICE,
-                                text = "［语音 8秒］",
-                                timestamp = "刚才",
-                                voiceDurationSeconds = 8
-                            )
-                        )
+                        viewModel.send("［语音轻语 8秒］窗外的雨声很好听，想和你一起听一会儿。")
                     }
                     ActionSheetItem("凝华记忆", "💎") {
                         showActionSheet = false
@@ -477,7 +409,9 @@ fun ChatScreen(
                     .shadow(3.dp, RoundedCornerShape(20.dp))
                     .clickable {
                         coroutineScope.launch {
-                            listState.animateScrollToItem(messages.size - 1)
+                            if (scrollTargetIndex > 0) {
+                                listState.animateScrollToItem(scrollTargetIndex)
+                            }
                         }
                     }
                     .padding(horizontal = 14.dp, vertical = 6.dp)
@@ -504,6 +438,10 @@ fun ChatScreen(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 60.dp)
         )
+
+        if (showAiConnection) {
+            AiConnectionSheet(onDismiss = { showAiConnection = false })
+        }
     }
 }
 
@@ -606,6 +544,60 @@ private fun ChatHeader(
     }
 }
 
+/** Live partial reply while the provider streams (P3C-4 §8). */
+@Composable
+private fun StreamingReplyBubble(
+    character: CharacterProfile,
+    text: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        AiluaAvatar(
+            avatarId = character.avatarId,
+            size = 34.dp,
+            showHalo = false
+        )
+        Box(
+            modifier = Modifier
+                .clip(
+                    RoundedCornerShape(
+                        topStart = 4.dp,
+                        topEnd = 18.dp,
+                        bottomStart = 18.dp,
+                        bottomEnd = 18.dp
+                    )
+                )
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+                .border(
+                    0.8.dp,
+                    AiluaMistBlue.copy(alpha = 0.5f),
+                    RoundedCornerShape(
+                        topStart = 4.dp,
+                        topEnd = 18.dp,
+                        bottomStart = 18.dp,
+                        bottomEnd = 18.dp
+                    )
+                )
+                .padding(horizontal = 14.dp, vertical = 10.dp)
+        ) {
+            Text(
+                text = text.ifEmpty { "正在输入…" },
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 14.5.sp,
+                    lineHeight = 20.sp,
+                    fontStyle = if (text.isEmpty()) FontStyle.Italic else FontStyle.Normal
+                ),
+                color = MaterialTheme.colorScheme.onSurface.copy(
+                    alpha = if (text.isEmpty()) 0.6f else 1f
+                )
+            )
+        }
+    }
+}
+
 @Composable
 private fun ChatMessageItem(
     message: ChatMessage,
@@ -613,20 +605,10 @@ private fun ChatMessageItem(
     isBookmarked: Boolean = false,
     onToggleBookmark: () -> Unit = {},
     onSaveMemory: () -> Unit,
-    onRegenerate: () -> Unit
+    onRegenerate: () -> Unit,
+    canRegenerate: Boolean = false,
+    onSwitchVariant: (Int) -> Unit = {}
 ) {
-    var alternateIndex by remember(message.id) { mutableStateOf(0) }
-    val alternateTexts = remember(message.id, message.text) {
-        listOf(
-            message.text,
-            when (character.id.lowercase()) {
-                "yuna" -> "（悠奈晃了晃手中的甜品包装袋，眼睛笑得眯起来）哼哼，无论什么时候，只要你需要，我都在你一抬眼就能看到的地方！"
-                "noa" -> "（诺亚翻过手中泛黄的旧书页，轻声应答）夜雨是天地间最好的伴奏，很高兴能与你共享这份安谧。"
-                else -> "（小弥把温热的茶杯轻轻推到你手边，睫毛轻颤）其实……今天在窗边看雨的时候，心里也一直在悄悄想着你。"
-            }
-        )
-    }
-
     when (message.sender) {
         MessageSender.SYSTEM -> {
             Box(
@@ -695,6 +677,7 @@ private fun ChatMessageItem(
                 Column(modifier = Modifier.weight(1f, fill = false)) {
                     when (message.type) {
                         MessageType.TEXT -> {
+                            val failed = message.statusLabel != null
                             Box(
                                 modifier = Modifier
                                     .clip(
@@ -708,7 +691,8 @@ private fun ChatMessageItem(
                                     .background(MaterialTheme.colorScheme.surface)
                                     .border(
                                         0.8.dp,
-                                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                                        if (failed) MaterialTheme.colorScheme.error.copy(alpha = 0.55f)
+                                        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
                                         RoundedCornerShape(
                                             topStart = 4.dp,
                                             topEnd = 18.dp,
@@ -718,13 +702,32 @@ private fun ChatMessageItem(
                                     )
                                     .padding(horizontal = 14.dp, vertical = 10.dp)
                             ) {
+                                val displayText = message.text.ifEmpty {
+                                    when (message.statusLabel) {
+                                        "FAILED" -> "生成失败"
+                                        "CANCELLED" -> "已取消"
+                                        else -> ""
+                                    }
+                                }
                                 Text(
-                                    text = if (message.sender == MessageSender.CHARACTER) alternateTexts[alternateIndex % alternateTexts.size] else message.text,
+                                    text = displayText,
                                     style = MaterialTheme.typography.bodyMedium.copy(
                                         fontSize = 14.5.sp,
                                         lineHeight = 20.sp
                                     ),
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = if (message.text.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant
+                                    else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            if (failed) {
+                                Text(
+                                    text = when (message.statusLabel) {
+                                        "FAILED" -> "生成失败 · 可点按重新生成"
+                                        else -> "已取消"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
+                                    modifier = Modifier.padding(top = 3.dp)
                                 )
                             }
                         }
@@ -865,8 +868,11 @@ private fun ChatMessageItem(
                             }
                         }
 
-                        // SillyTavern-style Swipe Alternate picker pill
-                        if (message.sender == MessageSender.CHARACTER && message.type == MessageType.TEXT) {
+                        // Real variant picker pill (DB-backed, P3C-4 §11)
+                        if (message.sender == MessageSender.CHARACTER &&
+                            message.type == MessageType.TEXT &&
+                            message.variantCount > 1
+                        ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
@@ -879,13 +885,11 @@ private fun ChatMessageItem(
                                     contentDescription = "上一回复分支",
                                     modifier = Modifier
                                         .size(13.dp)
-                                        .clickable {
-                                            alternateIndex = (alternateIndex - 1 + alternateTexts.size) % alternateTexts.size
-                                        },
+                                        .clickable { onSwitchVariant(-1) },
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = "${(alternateIndex % alternateTexts.size) + 1}/${alternateTexts.size}",
+                                    text = "${message.variantIndex + 1}/${message.variantCount}",
                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -894,9 +898,7 @@ private fun ChatMessageItem(
                                     contentDescription = "下一回复分支",
                                     modifier = Modifier
                                         .size(13.dp)
-                                        .clickable {
-                                            alternateIndex = (alternateIndex + 1) % alternateTexts.size
-                                        },
+                                        .clickable { onSwitchVariant(1) },
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -921,14 +923,16 @@ private fun ChatMessageItem(
                                 .clickable { onSaveMemory() },
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                         )
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "换一种回应",
-                            modifier = Modifier
-                                .size(13.dp)
-                                .clickable { onRegenerate() },
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        )
+                        if (canRegenerate) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "换一种回应",
+                                modifier = Modifier
+                                    .size(13.dp)
+                                    .clickable { onRegenerate() },
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        }
                     }
                 }
             }
@@ -940,8 +944,10 @@ private fun ChatMessageItem(
 private fun ChatInputBar(
     inputText: String,
     characterName: String,
+    isGenerating: Boolean = false,
     onInputTextChange: (String) -> Unit,
     onSend: () -> Unit,
+    onStop: () -> Unit = {},
     onAttachClick: () -> Unit,
     onMicClick: () -> Unit
 ) {
@@ -987,7 +993,7 @@ private fun ChatInputBar(
                 .testTag("chat_text_input"),
             placeholder = {
                 Text(
-                    text = "对 $characterName 说点什么…",
+                    text = if (isGenerating) "正在生成回复…" else "对 $characterName 说点什么…",
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.5.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )
@@ -1003,18 +1009,28 @@ private fun ChatInputBar(
         )
 
         IconButton(
-            onClick = onSend,
+            onClick = { if (isGenerating) onStop() else onSend() },
             modifier = Modifier
                 .size(38.dp)
                 .clip(CircleShape)
-                .background(if (inputText.isNotBlank()) AiluaMistBlue else MaterialTheme.colorScheme.surfaceVariant)
+                .background(
+                    when {
+                        isGenerating -> AiluaDustyRose
+                        inputText.isNotBlank() -> AiluaMistBlue
+                        else -> MaterialTheme.colorScheme.surfaceVariant
+                    }
+                )
                 .testTag("chat_send_btn")
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.Send,
-                contentDescription = "发送",
+                imageVector = if (isGenerating) Icons.Default.Close else Icons.AutoMirrored.Filled.Send,
+                contentDescription = if (isGenerating) "停止生成" else "发送",
                 modifier = Modifier.size(16.dp),
-                tint = if (inputText.isNotBlank()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                tint = when {
+                    isGenerating -> Color.White
+                    inputText.isNotBlank() -> Color.White
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                }
             )
         }
     }
@@ -1108,53 +1124,4 @@ private fun ActionSheetItem(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
-}
-
-private fun handleCharacterAutoReply(
-    userText: String,
-    messages: MutableList<ChatMessage>,
-    character: CharacterProfile
-) {
-    val replyText = when (character.id.lowercase()) {
-        "yuna" -> when {
-            userText.contains("累") -> "（拉住你的手晃了晃）累了就快停下来！我把焦糖布丁热一热分你一半，吃甜的心情立刻就会好起来哦！"
-            userText.contains("做什么") -> "我在整理今天扫街拍的雨天猫猫抓拍！你看，这只猫居然在屋檐下甩水，超级可爱～"
-            userText.contains("布丁") -> "是全家便利店最后一盒限定款！奶香超浓郁，明天我专门去给你多买两个！"
-            userText.contains("照片") -> "哇！这张照片的光影抓得太有感觉了！下次一定要带我去这里打卡！"
-            userText.contains("探店") -> "我知道三家超级棒的日落甜品店，这周末就出发！"
-            else -> "嘿嘿，听你说话好开心！我们明天再一起去木兰茶馆好不好？"
-        }
-        "noa" -> when {
-            userText.contains("累") -> "人的思绪如琴弦，紧绷太久便失了音准。坐下来，听一曲白噪音，把心事暂且搁置吧。"
-            userText.contains("做什么") -> "正在用雪松油擦拭老旧黑胶唱机的木壳。雨水天气容易受潮，这些老物件需要格外呵护。"
-            userText.contains("书") || userText.contains("故事") -> "月光书阁藏着一本1930年的星河十四行诗集，扉页写着：『微光纵然微弱，亦足照亮一页长夜。』"
-            userText.contains("照片") -> "石板路上倒映的冷色月光，确实有一种古典画作的沉静质感。"
-            userText.contains("唱片") -> "现在转盘上放的是1978年的爵士萨克斯独奏，音质温润醇厚。"
-            else -> "静听长夜细雨，此中自有从容处。我在月光书阁，随时欢迎你的到来。"
-        }
-        else -> when {
-            userText.contains("累") -> "（伸出手轻轻摸了摸你的发梢）今天真的辛苦啦。别想工作的事情了，闭上眼睛，我在这里陪着你，听一会儿雨声吧。"
-            userText.contains("做什么") -> "我刚才在看窗户上滑下来的雨珠，猜哪一颗能最先滑到底部呢～要不要一起猜一局？"
-            userText.contains("故事") -> "从前有一座静悄悄的钟表镇，夜晚下雨的时候，时间的齿轮会放慢两倍，只留给彼此心有灵犀的人慢慢相处…"
-            userText.contains("红茶") -> "温温热热的，放了半勺薄荷蜂蜜。留的那杯温度刚好，喝一口整个人都会暖和起来的。"
-            userText.contains("照片") -> "真美…仿佛我也和你并肩站在那条湿漉漉的街道上，吹着同一缕夜风。"
-            else -> "嗯，我在听。无论你想说什么，${character.name}都一直在这里陪着你。"
-        }
-    }
-
-    val senderName = character.name
-    val charAvatarId = character.avatarId
-
-    messages.add(
-        ChatMessage(
-            id = "c_${System.currentTimeMillis()}",
-            sender = MessageSender.CHARACTER,
-            senderCharacterId = charAvatarId,
-            senderName = senderName,
-            type = MessageType.TEXT,
-            text = replyText,
-            timestamp = "刚才",
-            reactions = if (character.id == "yuna") listOf("🍮", "✨") else if (character.id == "noa") listOf("📖", "🌙") else listOf("🌙", "🍵")
-        )
-    )
 }
