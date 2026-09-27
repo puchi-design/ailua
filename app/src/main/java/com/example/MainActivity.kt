@@ -29,6 +29,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.data.ai.repository.ProviderGraph
 import com.example.data.context.CharacterContext
 import com.example.data.engine.CallStateEngine
 import com.example.data.engine.WorldHeartbeatEngine
@@ -73,6 +74,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AiluaLocalStore.init(applicationContext)
+        ProviderGraph.init(applicationContext)
         WorldStateRepository.syncWithLocalStore()
         CallStateEngine.syncWithLocalStore()
 
