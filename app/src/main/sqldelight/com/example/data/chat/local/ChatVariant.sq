@@ -33,3 +33,20 @@ DELETE FROM chat_variant WHERE turn_id IN (SELECT id FROM chat_turn WHERE sessio
 
 countVariants:
 SELECT COUNT(*) FROM chat_variant;
+
+updateVariant:
+UPDATE chat_variant
+SET content = ?, status = ?, error_type = ?, error_message = ?, updated_at_epoch_ms = ?
+WHERE id = ?;
+
+recoverStreamingVariants:
+UPDATE chat_variant
+SET status = 'CANCELLED', error_type = 'INTERRUPTED', updated_at_epoch_ms = ?
+WHERE status = 'STREAMING'
+  AND turn_id IN (SELECT id FROM chat_turn WHERE session_id = ?);
+
+selectStreamingCountBySession:
+SELECT COUNT(*)
+FROM chat_variant
+WHERE status = 'STREAMING'
+  AND turn_id IN (SELECT id FROM chat_turn WHERE session_id = ?);

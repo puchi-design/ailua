@@ -31,3 +31,28 @@ DELETE FROM chat_turn WHERE session_id = ?;
 
 countTurns:
 SELECT COUNT(*) FROM chat_turn;
+
+selectResolvedTurns:
+SELECT
+    t.id AS turn_id,
+    t.session_id AS turn_session_id,
+    t.role AS turn_role,
+    t.position AS turn_position,
+    t.active_variant_id AS turn_active_variant_id,
+    t.created_at_epoch_ms AS turn_created_at_epoch_ms,
+    v.id AS variant_id,
+    v.turn_id AS variant_turn_id,
+    v.variant_index AS variant_variant_index,
+    v.content AS variant_content,
+    v.status AS variant_status,
+    v.provider_profile_id AS variant_provider_profile_id,
+    v.model AS variant_model,
+    v.error_type AS variant_error_type,
+    v.error_message AS variant_error_message,
+    v.created_at_epoch_ms AS variant_created_at_epoch_ms,
+    v.updated_at_epoch_ms AS variant_updated_at_epoch_ms,
+    (SELECT COUNT(*) FROM chat_variant c WHERE c.turn_id = t.id) AS variant_count
+FROM chat_turn t
+LEFT JOIN chat_variant v ON v.id = t.active_variant_id
+WHERE t.session_id = ?
+ORDER BY t.position ASC;

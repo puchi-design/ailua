@@ -3,6 +3,7 @@ package com.example.data.chat.repository
 import com.example.data.chat.model.ChatSession
 import com.example.data.chat.model.ChatTurn
 import com.example.data.chat.model.ChatVariant
+import com.example.data.chat.model.ResolvedChatTurn
 import com.example.data.chat.model.VariantStatus
 import kotlinx.coroutines.flow.Flow
 
@@ -82,4 +83,42 @@ interface ChatRepository {
      * cascade with zero orphan rows (P3C-3 §12).
      */
     fun clearSession(sessionId: String)
+
+    /**
+     * One-shot read of turns JOINed with their active variant (P3C-4 §7),
+     * ordered by stable `position`. Never fans out into per-turn queries.
+     */
+    fun getResolvedTurns(sessionId: String): List<ResolvedChatTurn>
+
+    /**
+     * Same as [getResolvedTurns] but reactive: re-emits on every turn/variant
+     * write under the session (P3C-4 §7).
+     */
+    fun observeResolvedTurns(sessionId: String): Flow<List<ResolvedChatTurn>>
+
+    /** All variants of [turnId] ordered by stable `variantIndex` (variant picker). */
+    fun getVariants(turnId: String): List<ChatVariant>
+
+    /**
+     * Single-row content/status update used by streaming persistence
+     * (P3C-4 §8): the provider writes each variant exactly once on terminal
+     * (COMPLETE / FAILED / CANCELLED with the accumulated partial text).
+     * Touches the owning session alongside the variant row.
+     */
+    fun updateVariant(
+        variantId: String,
+        content: String,
+        status: VariantStatus,
+        errorType: String? = null,
+        errorMessage: String? = null,
+    )
+
+    /**
+     * Stale-streaming recovery (P3C-4 §9): marks every STREAMING variant of
+     * [sessionId] as [VariantStatus.CANCELLED] with `errorType = "INTERRUPTED"`
+     * so an app killed mid-generation never leaves a permanent "typing" row.
+     *
+     * @return how many variants were recovered.
+     */
+    fun recoverInterruptedVariants(sessionId: String): Int
 }

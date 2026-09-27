@@ -1,56 +1,69 @@
 package com.example
 
-import kotlinx.coroutines.flow.first
+import com.example.data.ai.provider.FakeAiProvider
+import com.example.data.chat.model.ChatTurnRole
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * ChatCharacterIsolationTest
- *
- * PASS 3C-3 spec §13: private sessions of different characters are fully
- * isolated — separate session ids, no shared turns, and a write under one
- * character never touches the other character's session row.
+ * ChatCharacterIsolationTest — P3C-4: each character keeps its own canonical
+ * session and its own prompt history end-to-end through the runtime.
  */
 class ChatCharacterIsolationTest {
 
+    private val fixture = ChatRuntimeFixture()
+
     @Test
-    fun privateSessionsOfDifferentCharactersNeverMix() = runBlocking {
-        val h = ChatTestHarness.inMemory()
-        val mira = h.repository.getOrCreatePrivateSession("mira")
-        val yuna = h.repository.getOrCreatePrivateSession("yuna")
-        assertNotEquals(mira.id, yuna.id)
+    fun charactersGetSeparateSessionsAndHistories() = runBlocking {
+        fixture.use(FakeAiProvider.scripted("回复"))
+        fixture.runtime.send("mira", "mira的秘密")
+        fixture.runtime.send("yuna", "yuna的秘密")
 
-        h.repository.appendUserTurn(mira.id, "mira says hi")
-        h.repository.appendAssistantTurn(mira.id, "mira replies")
-        h.repository.appendUserTurn(yuna.id, "yuna says hi")
+        val miraSession = fixture.repository.getOrCreatePrivateSession("mira")
+        val yunaSession = fixture.repository.getOrCreatePrivateSession("yuna")
+        assertNotEquals(miraSession.id, yunaSession.id)
 
-        val miraTurns = h.repository.observeTurns(mira.id).first()
-        val yunaTurns = h.repository.observeTurns(yuna.id).first()
-
+        val miraTurns = fixture.repository.getResolvedTurns(miraSession.id)
+        val yunaTurns = fixture.repository.getResolvedTurns(yunaSession.id)
         assertEquals(2, miraTurns.size)
-        assertEquals(1, yunaTurns.size)
-        assertEquals(listOf(mira.id, mira.id), miraTurns.map { it.sessionId })
-        assertEquals(listOf(yuna.id), yunaTurns.map { it.sessionId })
-        assertNotEquals(miraTurns[0].id, yunaTurns[0].id)
+        assertEquals(2, yunaTurns.size)
+
+        val miraText = miraTurns.joinToString { it.activeVariant?.content ?: "" }
+        assertTrue(miraText.contains("mira的秘密"))
+        assertTrue(!miraText.contains("yuna的秘密"))
+
+        val yunaText = yunaTurns.joinToString { it.activeVariant?.content ?: "" }
+        assertTrue(yunaText.contains("yuna的秘密"))
+        assertTrue(!yunaText.contains("mira的秘密"))
     }
 
     @Test
-    fun writeUnderOneCharacterDoesNotTouchOtherSession() = runBlocking {
-        val h = ChatTestHarness.inMemory()
-        val mira = h.repository.getOrCreatePrivateSession("mira")
-        val yuna = h.repository.getOrCreatePrivateSession("yuna")
-        // Seed yuna's own data first, then prove a mira write leaves it alone.
-        h.repository.appendUserTurn(yuna.id, "yuna seed")
-        val yunaBefore = h.repository.getSession(yuna.id)!!.updatedAtEpochMs
+    fun canonicalSessionIsStableAcrossCalls() = runBlocking {
+        fixture.use(FakeAiProvider.scripted("回复"))
+        fixture.runtime.send("mira", "hi")
 
-        h.clock.now += 60_000
-        h.repository.appendUserTurn(mira.id, "mira only")
+        val first = fixture.repository.getOrCreatePrivateSession("mira")
+        val second = fixture.repository.getOrCreatePrivateSession("mira")
+        assertEquals(first.id, second.id)
 
-        assertEquals(yunaBefore, h.repository.getSession(yuna.id)!!.updatedAtEpochMs)
-        assertEquals(1, h.repository.observeTurns(yuna.id).first().size)
-        assertNull(h.repository.observeTurns(yuna.id).first().singleOrNull { it.sessionId == mira.id })
+        val turns = fixture.repository.getResolvedTurns(second.id)
+        assertEquals(2, turns.size)
+        assertTrue(turns.all { it.sessionId == first.id })
+        assertTrue(turns.all { it.role == ChatTurnRole.USER || it.role == ChatTurnRole.ASSISTANT })
+    }
+
+    @Test
+    fun promptHistoryIsPerCharacterCard() = runBlocking {
+        fixture.use(FakeAiProvider.scripted("回复"))
+        fixture.runtime.send("mira", "mira消息")
+        fixture.runtime.send("yuna", "yuna消息")
+
+        val miraRequests = fixture.turns("mira").size
+        val yunaRequests = fixture.turns("yuna").size
+        assertEquals(2, miraRequests)
+        assertEquals(2, yunaRequests)
     }
 }

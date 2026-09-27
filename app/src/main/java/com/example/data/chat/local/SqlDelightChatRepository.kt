@@ -7,6 +7,7 @@ import com.example.data.chat.model.ChatSession
 import com.example.data.chat.model.ChatTurn
 import com.example.data.chat.model.ChatTurnRole
 import com.example.data.chat.model.ChatVariant
+import com.example.data.chat.model.ResolvedChatTurn
 import com.example.data.chat.model.VariantStatus
 import com.example.data.chat.repository.ChatRepository
 import com.example.data.chat.repository.EpochClock
@@ -220,6 +221,85 @@ class SqlDelightChatRepository(
             database.chatSessionQueries.deleteSessionById(id = sessionId)
         }
     }
+
+    override fun getResolvedTurns(sessionId: String): List<ResolvedChatTurn> =
+        database.chatTurnQueries.selectResolvedTurns(sessionId).executeAsList().map { it.toDomain() }
+
+    override fun observeResolvedTurns(sessionId: String): Flow<List<ResolvedChatTurn>> =
+        database.chatTurnQueries.selectResolvedTurns(sessionId)
+            .asFlow()
+            .mapToList(Dispatchers.Default)
+            .map { rows -> rows.map { it.toDomain() } }
+
+    override fun getVariants(turnId: String): List<ChatVariant> =
+        database.chatVariantQueries.selectVariantsByTurn(turnId).executeAsList().map { it.toDomain() }
+
+    override fun updateVariant(
+        variantId: String,
+        content: String,
+        status: VariantStatus,
+        errorType: String?,
+        errorMessage: String?,
+    ) {
+        database.transaction {
+            val variant = database.chatVariantQueries.selectVariantById(variantId).executeAsOneOrNull()
+                ?: throw IllegalArgumentException("Unknown variant: $variantId")
+            database.chatVariantQueries.updateVariant(
+                content = content,
+                status = status.name,
+                error_type = errorType,
+                error_message = errorMessage,
+                updated_at_epoch_ms = clock.nowEpochMs(),
+                id = variantId,
+            )
+            val turn = database.chatTurnQueries.selectTurnById(variant.turn_id).executeAsOneOrNull()
+            if (turn != null) {
+                database.chatSessionQueries.touchSession(
+                    updated_at_epoch_ms = clock.nowEpochMs(),
+                    id = turn.session_id,
+                )
+            }
+        }
+    }
+
+    override fun recoverInterruptedVariants(sessionId: String): Int =
+        database.transactionWithResult {
+            val stale = database.chatVariantQueries
+                .selectStreamingCountBySession(session_id = sessionId)
+                .executeAsOne()
+            if (stale > 0) {
+                database.chatVariantQueries.recoverStreamingVariants(
+                    updated_at_epoch_ms = clock.nowEpochMs(),
+                    session_id = sessionId,
+                )
+            }
+            stale.toInt()
+        }
+
+    private fun SelectResolvedTurns.toDomain() = ResolvedChatTurn(
+        id = turn_id,
+        sessionId = turn_session_id,
+        role = ChatTurnRole.valueOf(turn_role),
+        position = turn_position.toInt(),
+        activeVariantId = turn_active_variant_id,
+        createdAtEpochMs = turn_created_at_epoch_ms,
+        activeVariant = variant_id?.let { id ->
+            ChatVariant(
+                id = id,
+                turnId = variant_turn_id!!,
+                variantIndex = variant_variant_index!!.toInt(),
+                content = variant_content!!,
+                status = VariantStatus.valueOf(variant_status!!),
+                providerProfileId = variant_provider_profile_id,
+                model = variant_model,
+                errorType = variant_error_type,
+                errorMessage = variant_error_message,
+                createdAtEpochMs = variant_created_at_epoch_ms!!,
+                updatedAtEpochMs = variant_updated_at_epoch_ms!!,
+            )
+        },
+        variantCount = variant_count.toInt(),
+    )
 
     private fun Chat_session.toDomain() = ChatSession(
         id = id,
