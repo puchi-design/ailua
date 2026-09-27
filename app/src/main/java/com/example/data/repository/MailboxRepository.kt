@@ -107,7 +107,9 @@ object MailboxRepository {
                         type = LifeEventType.THOUGHT,
                         title = "${letter.senderName}寄达了新信笺",
                         description = "《${letter.subject}》已轻轻投递至心网信箱，等待你开启品读。",
-                        location = if (letter.characterId == "mira") "青石街23号" else if (letter.characterId == "yuna") "街角全家便利店" else "月光书阁"
+                        location = if (letter.characterId == "mira") "青石街23号" else if (letter.characterId == "yuna") "街角全家便利店" else "月光书阁",
+                        sourceAppId = "mailbox",
+                        sourceRefId = letter.id
                     )
                 )
 

@@ -124,7 +124,9 @@ object CallStateEngine {
                         type = LifeEventType.THOUGHT,
                         title = "与${finished.callerName}的温存夜话",
                         description = "在秋雨夜与${finished.callerName}通了电话（时长 ${finished.durationSeconds} 秒），心契共鸣度提升。",
-                        location = "青石街23号"
+                        location = "青石街23号",
+                        sourceAppId = "call",
+                        sourceRefId = finished.id
                     )
                 )
             }

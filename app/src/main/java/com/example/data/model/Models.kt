@@ -122,7 +122,13 @@ data class LifeEvent(
     val location: String? = null,
     val visibility: String = "PUBLIC",
     val relatedCharacterIds: List<String> = emptyList(),
-    val imageReference: String? = null
+    val imageReference: String? = null,
+    val schemaVersion: Int = 1,
+    val worldDateLabel: String = "",
+    val worldMinutesOfDay: Int = -1,
+    val sourceAppId: String = "world",
+    val sourceRefId: String? = null,
+    val metadata: Map<String, String> = emptyMap()
 )
 
 // === Multi-Character & Contacts Models ===

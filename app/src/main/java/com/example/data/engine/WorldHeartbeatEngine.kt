@@ -30,6 +30,7 @@ data class ScheduledWorldAction(
     val payloadId: String,
     val title: String,
     val description: String,
+    val lifeEventType: LifeEventType = LifeEventType.THOUGHT,
     var fired: Boolean = false
 )
 
@@ -91,7 +92,8 @@ object WorldHeartbeatEngine {
             characterId = "mira",
             payloadId = "event_tea_1",
             title = "小弥在飘窗前泡了一壶红茶",
-            description = "傍晚的雨声中，小弥把刚煮好的大吉岭红茶倒进骨瓷杯，静静看着窗外雾气。"
+            description = "傍晚的雨声中，小弥把刚煮好的大吉岭红茶倒进骨瓷杯，静静看着窗外雾气。",
+            lifeEventType = LifeEventType.MEAL
         ),
         ScheduledWorldAction(
             id = "sched_mira_window_2145",
@@ -101,7 +103,8 @@ object WorldHeartbeatEngine {
             characterId = "mira",
             payloadId = "event_window_rain",
             title = "小弥在书桌前整理秋雨随笔",
-            description = "桌角暖灯微亮，小弥在日记本写下：‘今日青石街雨水清澈，想念随心网悄悄漫延’。"
+            description = "桌角暖灯微亮，小弥在日记本写下：‘今日青石街雨水清澈，想念随心网悄悄漫延’。",
+            lifeEventType = LifeEventType.DIARY
         ),
         ScheduledWorldAction(
             id = "sched_yuna_letter_2230",
@@ -266,17 +269,26 @@ object WorldHeartbeatEngine {
         _scheduledActions.value = updated
     }
 
-    private fun executeAction(action: ScheduledWorldAction) {
+    /**
+     * Data-driven mapping from a scheduled action to the LifeEvent type it must record.
+     * The semantic type is declared on the action itself ([ScheduledWorldAction.lifeEventType]);
+     * MOMENT and LOCATION_CHANGE schedules are forced to their own types so a
+     * "发动态" schedule can never degrade into THOUGHT.
+     */
+    internal fun lifeEventTypeFor(action: ScheduledWorldAction): LifeEventType = when (action.type) {
+        ScheduledActionType.MOMENT -> LifeEventType.MOMENT
+        ScheduledActionType.LOCATION_CHANGE -> LifeEventType.LOCATION_CHANGE
+        else -> action.lifeEventType
+    }
+
+    internal fun executeAction(action: ScheduledWorldAction) {
         when (action.type) {
             ScheduledActionType.LIFE_EVENT, ScheduledActionType.MOMENT -> {
                 WorldStateRepository.appendLifeEvent(
-                    LifeEvent(
-                        id = "pulse_sched_${action.id}",
-                        characterId = action.characterId,
-                        time = action.triggerTimeString,
-                        type = LifeEventType.THOUGHT,
-                        title = action.title,
-                        description = action.description,
+                    scheduledLifeEvent(
+                        action = action,
+                        eventId = "pulse_sched_${action.id}",
+                        type = lifeEventTypeFor(action),
                         location = if (action.characterId == "yuna") "街角全家便利店" else if (action.characterId == "noa") "月光书阁" else "青石街23号"
                     )
                 )
@@ -295,19 +307,37 @@ object WorldHeartbeatEngine {
             }
             ScheduledActionType.LOCATION_CHANGE -> {
                 WorldStateRepository.appendLifeEvent(
-                    LifeEvent(
-                        id = "pulse_loc_${action.id}",
-                        characterId = action.characterId,
-                        time = action.triggerTimeString,
+                    scheduledLifeEvent(
+                        action = action,
+                        eventId = "pulse_loc_${action.id}",
                         type = LifeEventType.LOCATION_CHANGE,
-                        title = action.title,
-                        description = action.description,
                         location = "青石街23号 · 卧房"
                     )
                 )
             }
             ScheduledActionType.GALLERY_ASSET -> {}
         }
+    }
+
+    private fun scheduledLifeEvent(
+        action: ScheduledWorldAction,
+        eventId: String,
+        type: LifeEventType,
+        location: String
+    ): LifeEvent {
+        return LifeEvent(
+            id = eventId,
+            characterId = action.characterId,
+            time = action.triggerTimeString,
+            type = type,
+            title = action.title,
+            description = action.description,
+            location = location,
+            worldDateLabel = _worldClock.value.dateLabel,
+            worldMinutesOfDay = action.triggerTimeMinutes,
+            sourceAppId = "heartbeat",
+            sourceRefId = action.id
+        )
     }
 
     fun cycleTimePhase() {
@@ -327,7 +357,11 @@ object WorldHeartbeatEngine {
                 "noa" -> "诺亚在书阁整理笔记时，摘录了一句适合今晚心绪的诗句发到了你的便签。"
                 else -> "小弥伸手轻触飘窗风铃，为你把保温垫上的红茶温度调整到最佳。"
             },
-            location = character.location
+            location = character.location,
+            worldDateLabel = _worldClock.value.dateLabel,
+            worldMinutesOfDay = _worldClock.value.minutesOfDay,
+            sourceAppId = "heartbeat",
+            sourceRefId = "proactive_takeover"
         )
         WorldStateRepository.appendLifeEvent(newEvent)
         _heartbeatState.value = _heartbeatState.value.copy(
