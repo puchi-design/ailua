@@ -1,0 +1,15 @@
+-- P3D-1 auto memory: per character+session extraction cursor.
+-- cursor_key = "<characterId>:<sessionId>"; last_position is the highest
+-- chat_turn.position already processed by AutoMemoryExtractor.
+CREATE TABLE memory_extract_cursor (
+    cursor_key TEXT NOT NULL PRIMARY KEY,
+    last_position INTEGER NOT NULL,
+    updated_at_epoch_ms INTEGER NOT NULL
+);
+
+upsertMemoryExtractCursor:
+INSERT OR REPLACE INTO memory_extract_cursor(cursor_key, last_position, updated_at_epoch_ms)
+VALUES (?, ?, ?);
+
+selectMemoryExtractCursor:
+SELECT * FROM memory_extract_cursor WHERE cursor_key = ?;

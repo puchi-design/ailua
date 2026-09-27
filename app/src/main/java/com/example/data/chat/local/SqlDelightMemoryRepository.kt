@@ -59,6 +59,10 @@ class SqlDelightMemoryRepository(
         database.memoryEntryQueries.deleteMemoryById(id = id)
     }
 
+    override fun getMemories(characterId: String): List<MemoryEntry> =
+        database.memoryEntryQueries.selectMemoriesByCharacter(characterId)
+            .executeAsList().map { it.toDomain() }
+
     override fun getMemoriesForPrompt(characterId: String, limit: Int): List<MemoryEntry> =
         database.memoryEntryQueries.selectMemoriesForPrompt(
             character_id = characterId,

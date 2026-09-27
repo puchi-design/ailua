@@ -41,6 +41,13 @@ interface MemoryRepository {
     fun deleteMemory(id: String)
 
     /**
+     * All of the character's memories, newest first — used by auto-memory
+     * content dedupe (P3D-1), which must see the FULL list, not just the
+     * prompt's [limit]-row cap.
+     */
+    fun getMemories(characterId: String): List<MemoryEntry>
+
+    /**
      * Recall for prompt injection (P3C-5 §3): CORE → importance → updatedAt,
      * at most [limit] entries. No embedding, no scoring.
      */

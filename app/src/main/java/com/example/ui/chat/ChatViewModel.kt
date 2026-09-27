@@ -21,6 +21,7 @@ import com.example.data.chat.model.ChatTurnRole
 import com.example.data.chat.model.ResolvedChatTurn
 import com.example.data.chat.model.VariantStatus
 import com.example.data.chat.repository.ChatRepository
+import com.example.data.memory.auto.AutoMemoryExtractor
 import com.example.data.memory.model.MemoryType
 import com.example.data.memory.repository.MemoryGraph
 import com.example.data.memory.repository.MemoryRepository
@@ -29,6 +30,7 @@ import com.example.data.model.CharacterProfile
 import com.example.data.model.MessageSender
 import com.example.data.model.MessageType
 import app.cash.sqldelight.db.SqlDriver
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,6 +77,7 @@ class ChatViewModel(
     private val repository: ChatRepository,
     private val runtime: ChatGenerationRuntime,
     private val memoryRepository: MemoryRepository,
+    private val autoMemoryExtractor: AutoMemoryExtractor,
     private val driver: SqlDriver,
 ) : ViewModel() {
 
@@ -183,7 +186,26 @@ class ChatViewModel(
             is SendResult.Failed -> _uiState.update {
                 it.copy(errorMessage = friendlyError(result.error))
             }
-            SendResult.Completed, SendResult.NothingToRegenerate -> Unit
+            SendResult.Completed -> launchAutoMemory()
+            SendResult.NothingToRegenerate -> Unit
+        }
+    }
+
+    /**
+     * P3D-1 hook: auto-memory extraction after one real completed reply.
+     * Sibling job on viewModelScope — it survives generation-job cancellation,
+     * and any failure is swallowed so the chat experience never changes.
+     */
+    private fun launchAutoMemory() {
+        val sessionId = sessionState.value
+        viewModelScope.launch {
+            try {
+                autoMemoryExtractor.run(characterId, sessionId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // Auto-memory must never affect the chat experience.
+            }
         }
     }
 
@@ -251,17 +273,28 @@ class ChatViewModel(
             viewModelFactory {
                 initializer {
                     val driver = ChatDriverFactory(context.applicationContext).createDriver()
+                    val database = ChatDatabase(driver)
+                    val clock = SystemEpochClock()
                     val repository = SqlDelightChatRepository(
-                        database = ChatDatabase(driver),
+                        database = database,
                         idGenerator = UuidIdGenerator(),
-                        clock = SystemEpochClock(),
+                        clock = clock,
                     )
+                    val providerResolver = ActiveProfileProviderResolver(ProviderGraph.repository)
                     val memoryRepository = MemoryGraph.repository
                     val runtime = ChatGenerationRuntime(
                         repository = repository,
-                        providerResolver = ActiveProfileProviderResolver(ProviderGraph.repository),
+                        providerResolver = providerResolver,
                         promptContext = WorldChatPromptContext,
                         memoryRepository = memoryRepository,
+                    )
+                    val autoMemoryExtractor = AutoMemoryExtractor(
+                        chatRepository = repository,
+                        memoryRepository = memoryRepository,
+                        cursorQueries = database.memoryExtractCursorQueries,
+                        providerResolver = providerResolver,
+                        clock = clock,
+                        characterName = character.name,
                     )
                     ChatViewModel(
                         characterId = character.id,
@@ -269,6 +302,7 @@ class ChatViewModel(
                         repository = repository,
                         runtime = runtime,
                         memoryRepository = memoryRepository,
+                        autoMemoryExtractor = autoMemoryExtractor,
                         driver = driver,
                     )
                 }

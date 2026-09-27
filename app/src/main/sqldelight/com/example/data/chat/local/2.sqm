@@ -1,0 +1,6 @@
+-- P3D-1: auto-memory extraction cursor (schema 2 -> 3).
+CREATE TABLE memory_extract_cursor (
+    cursor_key TEXT NOT NULL PRIMARY KEY,
+    last_position INTEGER NOT NULL,
+    updated_at_epoch_ms INTEGER NOT NULL
+);
