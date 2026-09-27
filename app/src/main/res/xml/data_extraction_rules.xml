@@ -1,19 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
+   Backup / transfer rules for devices running Android 12+
+   (referenced by android:dataExtractionRules in AndroidManifest.xml).
+
+   HARD RULE (spec §11 #6): the AI API secret store must never leave the device.
+   shared_prefs/ailua_ai_secrets.xml is excluded from BOTH channels:
+   - <cloud-backup>: Google Drive Auto Backup
+   - <device-transfer>: device-to-device (D2D) transfer
+   Android 11 and lower is covered by backup_rules.xml.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <exclude domain="sharedpref" path="ailua_ai_secrets.xml"/>
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <exclude domain="sharedpref" path="ailua_ai_secrets.xml"/>
     </device-transfer>
-    -->
 </data-extraction-rules>
