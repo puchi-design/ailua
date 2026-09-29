@@ -30,12 +30,14 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -44,9 +46,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.mock.MockData
+import com.example.data.chat.local.ChatDatabase
+import com.example.data.chat.local.ChatDriverFactory
+import com.example.data.chat.local.SqlDelightChatRepository
+import com.example.data.chat.local.platform.SystemEpochClock
+import com.example.data.chat.local.platform.UuidIdGenerator
+import com.example.data.chat.model.VariantStatus
+import com.example.data.engine.WorldStateRepository
+import com.example.data.registry.CharacterRegistry
+import com.example.data.projection.projectPresence
 import com.example.data.model.Conversation
 import com.example.data.model.ConversationType
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import com.example.ui.components.AiluaAvatar
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
@@ -65,7 +81,34 @@ fun ConversationListScreen(
     onSelectCharacterChat: (String) -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    val conversations = MockData.conversationsList
+    val context = LocalContext.current
+    val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
+    val conversations by produceState<List<Conversation>>(initialValue = emptyList(), worldEvents) {
+        value = withContext(Dispatchers.IO) {
+            val driver = ChatDriverFactory(context.applicationContext).createDriver()
+            try {
+                val repository = SqlDelightChatRepository(ChatDatabase(driver), UuidIdGenerator(), SystemEpochClock())
+                CharacterRegistry.getAllCharacters().map { character ->
+                    val session = repository.getOrCreatePrivateSession(character.id)
+                    val latest = repository.getResolvedTurns(session.id).lastOrNull {
+                        val variant = it.activeVariant
+                        variant?.status == VariantStatus.COMPLETE && !variant.content.isNullOrBlank()
+                    }
+                    val presence = projectPresence(character, worldEvents)
+                    Conversation(
+                        id = "conv_${character.id}", type = ConversationType.PRIVATE,
+                        title = character.name, characterId = character.id,
+                        latestMessage = latest?.activeVariant?.content?.replace('\n', ' ')?.take(100)
+                            ?: "尚无对话 · ${presence.currentActivity}",
+                        latestTime = latest?.let { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(it.createdAtEpochMs)) }.orEmpty(),
+                        isPinned = character.id == "mira", avatarId = character.id,
+                        characterStatus = presence.currentActivity,
+                    )
+                } + Conversation(id = "conv_group", type = ConversationType.GROUP, title = "雨夜茶会",
+                    latestMessage = "群聊入口", latestTime = "")
+            } finally { driver.close() }
+        }
+    }
 
     val filteredConversations = conversations.filter {
         searchQuery.isBlank() || it.title.contains(searchQuery, ignoreCase = true) || it.latestMessage.contains(searchQuery, ignoreCase = true)
@@ -122,7 +165,7 @@ fun ConversationListScreen(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "心网独立生命体连通中 (3位在线)",
+                            text = "角色在自己的世界里继续生活",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 10.5.sp,
                                 color = Color(0xFF6EC6A1)
@@ -328,7 +371,7 @@ private fun ConversationItemCard(
                 size = 46.dp,
                 avatarId = conversation.avatarId ?: "mira",
                 showHalo = isPinned,
-                showLivingStatus = conversation.type != ConversationType.GROUP
+                showLivingStatus = false
             )
 
             // Conversation text details

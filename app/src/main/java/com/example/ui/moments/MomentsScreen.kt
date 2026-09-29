@@ -19,11 +19,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -36,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
@@ -493,16 +492,11 @@ private fun MomentCard(
             // Inline Comment Input Bar
             if (showCommentInput) {
                 Spacer(modifier = Modifier.height(10.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
                         value = commentText,
                         onValueChange = { commentText = it },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(44.dp),
+                        modifier = Modifier.fillMaxWidth().height(44.dp),
                         placeholder = {
                             Text(
                                 text = "写下对 ${post.authorName} 的回应…",
@@ -519,8 +513,7 @@ private fun MomentCard(
                         ),
                         singleLine = true
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    IconButton(
+                    TextButton(
                         onClick = {
                             if (commentText.isNotBlank()) {
                                 onAddComment(commentText.trim())
@@ -528,17 +521,9 @@ private fun MomentCard(
                                 showCommentInput = false
                             }
                         },
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(AiluaMistBlue)
+                        modifier = Modifier.testTag("moment_send_comment")
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "发送评论",
-                            tint = Color.White,
-                            modifier = Modifier.size(15.dp)
-                        )
+                        Text("发送评论")
                     }
                 }
             }

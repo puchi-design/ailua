@@ -59,6 +59,9 @@ import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.data.model.GalleryAsset
 import com.example.data.repository.GalleryRepository
+import com.example.data.engine.WorldStateRepository
+import com.example.data.projection.projectGalleryAssets
+import com.example.data.registry.CharacterRegistry
 import com.example.ui.components.AiluaAvatar
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
@@ -72,7 +75,12 @@ fun GalleryScreen(
     onToggleTheme: () -> Unit = {},
     onBack: () -> Unit = {}
 ) {
-    val assets by GalleryRepository.assets.collectAsStateWithLifecycle()
+    val seedAssets by GalleryRepository.assets.collectAsStateWithLifecycle()
+    val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
+    val assets = remember(seedAssets, worldEvents) {
+        projectGalleryAssets(seedAssets, worldEvents, CharacterRegistry.getAllCharacters().associate { it.id to it.name })
+    }
+    val albums = remember(assets) { (GalleryRepository.albums + assets.map { it.album }).distinct() }
     var selectedAlbum by remember { mutableStateOf("全部") }
     var viewingAsset by remember { mutableStateOf<GalleryAsset?>(null) }
 
@@ -172,7 +180,7 @@ fun GalleryScreen(
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(GalleryRepository.albums) { album ->
+                items(albums) { album ->
                     val isSelected = selectedAlbum == album
                     val count = if (album == "全部") assets.size else assets.count { it.album == album }
 

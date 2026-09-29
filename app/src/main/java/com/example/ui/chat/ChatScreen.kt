@@ -84,6 +84,8 @@ import com.example.data.model.ChatMessage
 import com.example.data.model.CharacterProfile
 import com.example.data.model.MessageSender
 import com.example.data.model.MessageType
+import com.example.data.engine.WorldStateRepository
+import com.example.data.projection.projectPresence
 import com.example.ui.components.AiluaAvatar
 import com.example.ui.components.AiConnectionSheet
 import com.example.ui.components.ProactiveSettingsSheet
@@ -118,6 +120,8 @@ fun ChatScreen(
     )
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val messages = uiState.messages
+    val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
+    val currentActivity = projectPresence(character, worldEvents).currentActivity
     val streamingText = uiState.streamingText
 
     var inputText by remember { mutableStateOf("") }
@@ -205,6 +209,7 @@ fun ChatScreen(
             // Chat Header
             ChatHeader(
                 character = character,
+                currentActivity = currentActivity,
                 onBack = onBackToHome,
                 onOpenProfile = onOpenProfile,
                 onOpenMenu = { showMenu = true }
@@ -462,6 +467,7 @@ fun ChatScreen(
 @Composable
 private fun ChatHeader(
     character: CharacterProfile,
+    currentActivity: String,
     onBack: () -> Unit,
     onOpenProfile: () -> Unit,
     onOpenMenu: () -> Unit
@@ -537,7 +543,7 @@ private fun ChatHeader(
 
                 // Live status
                 Text(
-                    text = character.currentActivity,
+                    text = currentActivity,
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)

@@ -1,6 +1,7 @@
 package com.example.ui.reality
 
 import android.content.Intent
+import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.Arrangement
@@ -39,9 +40,11 @@ fun RealityBridgeScreen(onBack: () -> Unit, isDarkTheme: Boolean = false, onTogg
     val scope = rememberCoroutineScope()
     val settings by RealityRepository.settings.collectAsState()
     val snapshot by RealityRepository.snapshot.collectAsState()
-    val healthLauncher = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) {
-        scope.launch { RealityRepository.refresh(force = true) }
-    }
+    val healthLauncher = if (Build.VERSION.SDK_INT >= 26) {
+        rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) {
+            scope.launch { RealityRepository.refresh(force = true) }
+        }
+    } else null
     LaunchedEffect(settings) { RealityRepository.refresh(force = true) }
 
     Column(Modifier.fillMaxSize()) {
@@ -56,6 +59,7 @@ fun RealityBridgeScreen(onBack: () -> Unit, isDarkTheme: Boolean = false, onTogg
             SettingRow("允许读取使用时长", settings.usageEnabled) { RealityRepository.setSettings(settings.copy(usageEnabled = it)) }
             Text("使用统计权限：${if (snapshot?.usagePermissionGranted == true) "已授权" else "需要在系统设置中授权"}")
             Text("今日使用时间：${snapshot?.todayScreenTimeMinutes?.let { "$it 分钟" } ?: "未知"}")
+            Text("最近应用类别：${snapshot?.recentAppCategory ?: "未知"}")
             if (snapshot?.usagePermissionGranted != true) {
                 Button(onClick = { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }) { Text("打开使用统计设置") }
             }
@@ -68,7 +72,7 @@ fun RealityBridgeScreen(onBack: () -> Unit, isDarkTheme: Boolean = false, onTogg
             Text("最近睡眠：${snapshot?.lastSleepMinutes?.let { "$it 分钟" } ?: "未知"}")
             if (healthStatus == HealthConnectClient.SDK_AVAILABLE && settings.healthEnabled &&
                 (snapshot?.healthStepsGranted != true || snapshot?.healthSleepGranted != true)) {
-                Button(onClick = { healthLauncher.launch(setOf(RealityRepository.stepsPermission, RealityRepository.sleepPermission)) }) {
+                Button(onClick = { healthLauncher?.launch(setOf(RealityRepository.stepsPermission, RealityRepository.sleepPermission)) }) {
                     Text("连接 Health Connect")
                 }
             }

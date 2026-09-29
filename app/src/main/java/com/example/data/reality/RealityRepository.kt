@@ -38,6 +38,10 @@ object RealityRepository {
     val settings = _settings.asStateFlow()
     private val _snapshot = MutableStateFlow<RealitySnapshot?>(null)
     val snapshot = _snapshot.asStateFlow()
+    private var usageFetchedAt = 0L
+    private var healthFetchedAt = 0L
+    private var cachedUsage: Pair<Int, String?>? = null
+    private var cachedHealth = HealthRead()
 
     fun init(appContext: Context) {
         context = appContext.applicationContext
@@ -58,6 +62,8 @@ object RealityRepository {
             .apply()
         _settings.value = value
         _snapshot.value = null
+        usageFetchedAt = 0L
+        healthFetchedAt = 0L
     }
 
     fun usageGranted(): Boolean {
@@ -93,8 +99,20 @@ object RealityRepository {
             val status = battery?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
             val charging = if (status >= 0) status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL else null
             val interactive = runCatching { (ctx.getSystemService(Context.POWER_SERVICE) as PowerManager).isInteractive }.getOrNull()
-            val usage = if (settingsValue.usageEnabled && usageGranted) readUsage(ctx, now) else null
-            val health = if (settingsValue.healthEnabled && healthAvailable) readHealth(ctx) else HealthRead()
+            val usage = if (settingsValue.usageEnabled && usageGranted) {
+                if (force || now - usageFetchedAt >= 15 * 60_000L) {
+                    cachedUsage = readUsage(ctx, now)
+                    usageFetchedAt = now
+                }
+                cachedUsage
+            } else null
+            val health = if (settingsValue.healthEnabled && healthAvailable) {
+                if (force || now - healthFetchedAt >= 45 * 60_000L) {
+                    cachedHealth = readHealth(ctx)
+                    healthFetchedAt = now
+                }
+                cachedHealth
+            } else HealthRead()
             RealitySnapshot(
                 capturedAt = now, batteryPercent = percent, charging = charging,
                 screenInteractive = interactive, todayScreenTimeMinutes = usage?.first,

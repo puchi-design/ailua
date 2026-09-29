@@ -64,6 +64,7 @@ import com.example.data.registry.CharacterRegistry
 import com.example.data.context.CharacterContext
 import com.example.data.projection.projectPresence
 import com.example.data.model.isUserActivity
+import com.example.data.model.sortedChronologically
 import com.example.data.engine.WorldStateRepository
 import com.example.data.local.AiluaLocalStore
 import com.example.data.mock.MockData
@@ -533,6 +534,10 @@ internal fun LivingPresenceStrip(
     onOpenLiving: () -> Unit,
     onOpenProfile: () -> Unit
 ) {
+    val events by WorldStateRepository.events.collectAsStateWithLifecycle()
+    val presence = projectPresence(character, events)
+    val latest = events.filter { it.characterId == character.id && !it.isUserActivity() }
+        .sortedChronologically().lastOrNull()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -605,7 +610,7 @@ internal fun LivingPresenceStrip(
                             .background(Color(0xFF6EC6A1))
                     )
                     Text(
-                        text = character.currentActivity,
+                        text = presence.currentActivity,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 10.5.sp,
                             fontWeight = FontWeight.Medium
@@ -614,7 +619,7 @@ internal fun LivingPresenceStrip(
                     )
                 }
                 Text(
-                    text = character.location,
+                    text = presence.currentLocation,
                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
                     maxLines = 1,
@@ -626,7 +631,7 @@ internal fun LivingPresenceStrip(
             Spacer(modifier = Modifier.height(5.dp))
 
             Text(
-                text = "“${character.contextualQuote}”",
+                text = "“${latest?.description ?: character.contextualQuote}”",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = 12.5.sp,
                     lineHeight = 17.sp

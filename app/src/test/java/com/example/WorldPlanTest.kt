@@ -15,6 +15,7 @@ import com.example.data.model.WorldClock
 import com.example.data.model.WorldPlan
 import com.example.data.projection.projectCheckPhone
 import com.example.data.projection.projectDiary
+import com.example.data.projection.projectGalleryAssets
 import com.example.data.projection.projectMoments
 import com.example.data.projection.projectPresence
 import com.example.data.registry.CharacterRegistry
@@ -72,6 +73,8 @@ class WorldPlanTest {
         assertTrue(phone.searchHistory.contains("栗子布丁做法"))
         assertTrue(phone.notes.contains("买牛奶"))
         assertEquals("小弥做甜点", projectPresence(CharacterRegistry.getCharacter("mira"), listOf(event)).currentActivity)
+        val photo = event.copy(id = "p4a_photo", type = LifeEventType.PHOTO)
+        assertTrue(projectGalleryAssets(emptyList(), listOf(photo)).any { it.lifeEventId == photo.id })
     }
 
     @Test fun fallbackIsValidAndFullExistingPlanIsKept() {
