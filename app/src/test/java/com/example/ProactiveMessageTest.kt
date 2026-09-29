@@ -111,6 +111,7 @@ class ProactiveMessageTest {
                 savedStates++
             },
             timeZone = TimeZone.getTimeZone("UTC"),
+            recentWorldEvents = { emptyList() },
         )
 
         fun use(provider: AiProvider) {

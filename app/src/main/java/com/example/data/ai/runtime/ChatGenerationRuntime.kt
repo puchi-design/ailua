@@ -15,6 +15,8 @@ import com.example.data.chat.repository.ChatRepository
 import com.example.data.memory.repository.MemoryRepository
 import com.example.data.model.CharacterCardData
 import com.example.data.projection.CharacterPresence
+import com.example.data.reality.RealityContextPolicy
+import com.example.data.reality.RealityRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -170,6 +172,7 @@ class ChatGenerationRuntime(
             currentDate = date,
             currentTime = time,
             userName = promptContext.userName(),
+            realityContext = RealityContextPolicy.context(RealityRepository.refresh(), RealityRepository.settings.value),
         )
         val assembly = PromptAssembler.assemble(input)
         val request = AiChatRequest(

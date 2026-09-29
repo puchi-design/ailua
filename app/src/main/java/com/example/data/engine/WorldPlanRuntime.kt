@@ -5,6 +5,8 @@ import com.example.data.ai.repository.ProviderGraph
 import com.example.data.ai.runtime.ActiveProfileProviderResolver
 import com.example.data.local.AiluaLocalStore
 import com.example.data.memory.repository.MemoryGraph
+import com.example.data.reality.RealityContextPolicy
+import com.example.data.reality.RealityRepository
 import com.example.data.chat.local.ChatDatabase
 import com.example.data.chat.local.ChatDriverFactory
 import com.example.data.chat.local.SqlDelightChatRepository
@@ -32,7 +34,9 @@ object WorldPlanRuntime {
             ChatDatabase(ChatDriverFactory(context.applicationContext).createDriver()),
             UuidIdGenerator(), SystemEpochClock()
         )
-        planner = WorldActionPlanner(resolver, MemoryGraph.repository, chat)
+        planner = WorldActionPlanner(resolver, MemoryGraph.repository, chat) {
+            RealityContextPolicy.context(RealityRepository.refresh(), RealityRepository.settings.value)
+        }
     }
 
     suspend fun maybePlan(force: Boolean = false): Boolean = withContext(Dispatchers.IO) {

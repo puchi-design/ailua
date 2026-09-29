@@ -10,6 +10,8 @@ import com.example.data.chat.local.platform.SystemEpochClock
 import com.example.data.chat.local.platform.UuidIdGenerator
 import com.example.data.local.AiluaLocalStore
 import com.example.data.memory.repository.MemoryGraph
+import com.example.data.reality.RealityContextPolicy
+import com.example.data.reality.RealityRepository
 
 /**
  * ProactiveGraph — process-wide holder for the single [ProactiveMessageEngine]
@@ -43,6 +45,7 @@ object ProactiveGraph {
                         loadSettings = { AiluaLocalStore.getProactiveSettings() },
                         loadState = { AiluaLocalStore.getProactiveState() },
                         saveState = { state -> AiluaLocalStore.saveProactiveState(state) },
+                        realityContext = { RealityContextPolicy.context(RealityRepository.refresh(), RealityRepository.settings.value) },
                     )
                 }
             }

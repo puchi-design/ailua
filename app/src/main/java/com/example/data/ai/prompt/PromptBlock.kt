@@ -62,8 +62,9 @@ enum class PromptCategory(
     LORE(5, 300, false),
     MEMORY(6, 500, false),
     LIFE_EVENTS(7, 400, false),
-    HISTORY(8, 200, false),
-    POST_HISTORY(9, 900, true),
+    REALITY(8, 150, false),
+    HISTORY(9, 200, false),
+    POST_HISTORY(10, 900, true),
 }
 
 /**

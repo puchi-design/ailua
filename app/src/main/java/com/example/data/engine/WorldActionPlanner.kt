@@ -24,6 +24,7 @@ class WorldActionPlanner(
     private val providerResolver: ProviderResolver,
     private val memoryRepository: MemoryRepository? = null,
     private val chatRepository: ChatRepository? = null,
+    private val realityContext: suspend () -> String? = { null },
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -66,7 +67,7 @@ class WorldActionPlanner(
             appendLine("已有未来计划：${existing.take(8).joinToString { "${it.triggerWorldDate} ${it.triggerMinutes} ${it.title}" }}")
             appendLine("今天已发生类型：${events.filter { it.worldDateLabel == clock.dateLabel }.groupingBy { it.type }.eachCount()}")
             appendLine("今天主动联系用户次数：${events.count { it.worldDateLabel == clock.dateLabel && it.type.name == "MESSAGE" && it.sourceAppId == "heartbeat" }}")
-        }.take(6000)
+        }.take(5700) + realityContext()?.take(300).orEmpty()
         val request = AiChatRequest(
             model = resolved.model,
             messages = listOf(

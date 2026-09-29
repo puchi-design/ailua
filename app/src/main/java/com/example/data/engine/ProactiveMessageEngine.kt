@@ -91,6 +91,8 @@ class ProactiveMessageEngine(
     private val loadState: () -> ProactiveState,
     private val saveState: (ProactiveState) -> Unit,
     private val timeZone: TimeZone = TimeZone.getDefault(),
+    private val realityContext: suspend () -> String? = { null },
+    private val recentWorldEvents: () -> List<LifeEvent> = { WorldStateRepository.latestEvents(20) },
 ) {
 
     private val inFlight = AtomicBoolean(false)
@@ -132,13 +134,16 @@ class ProactiveMessageEngine(
         val state = loadState()
 
         if (!force && !ProactiveRules.shouldFire(settings, state, now, minuteOfDay, today)) return false
+        if (!force && UserContactCooldown.recentlyContacted(WorldHeartbeatEngine.worldClock.value, recentWorldEvents())) return false
+        val reality = realityContext()
+        if (!force && reality?.contains("电量较低") == true) return false
         val resolved = providerResolver.resolve() ?: return false
 
         val characterId = WorldHeartbeatEngine.heartbeatState.value.activeCharacterId
         val character = CharacterRegistry.getCharacter(characterId)
         val session = chatRepository.getOrCreatePrivateSession(characterId)
 
-        val content = completeOnce(resolved, buildPrompt(character, characterId))?.trim()
+        val content = completeOnce(resolved, buildPrompt(character, characterId, reality))?.trim()
         if (content.isNullOrEmpty()) return false
 
         withContext(NonCancellable) {
@@ -169,7 +174,7 @@ class ProactiveMessageEngine(
         return true
     }
 
-    private fun buildPrompt(character: CharacterProfile, characterId: String): List<AiMessage> {
+    private fun buildPrompt(character: CharacterProfile, characterId: String, reality: String?): List<AiMessage> {
         val clockValue = WorldHeartbeatEngine.worldClock.value
         val phase = WorldHeartbeatEngine.heartbeatState.value.currentPhase.label
         val weather = when (clockValue.weather) {
@@ -204,6 +209,7 @@ class ProactiveMessageEngine(
             } else {
                 add("【最近对话】还没有对话，随意开启话题。")
             }
+            if (reality != null) add(reality.take(300))
         }.joinToString("\n")
 
         return listOf(AiMessage(AiRole.SYSTEM, system), AiMessage(AiRole.USER, context))

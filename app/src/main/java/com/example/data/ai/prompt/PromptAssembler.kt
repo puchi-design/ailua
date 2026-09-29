@@ -174,6 +174,10 @@ object PromptAssembler {
             }
         }
 
+        input.realityContext?.trim()?.takeIf { it.isNotEmpty() }?.let { content ->
+            stack.add(PromptBlock.of(PromptCategory.REALITY, "reality_context", content.take(400)))
+        }
+
         input.history.forEachIndexed { index, message ->
             stack.add(
                 PromptBlock.of(

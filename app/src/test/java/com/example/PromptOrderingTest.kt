@@ -92,6 +92,7 @@ class PromptOrderingTest {
                 "LORE",
                 "MEMORY",
                 "LIFE_EVENTS",
+                "REALITY",
                 "HISTORY",
                 "POST_HISTORY",
             ),

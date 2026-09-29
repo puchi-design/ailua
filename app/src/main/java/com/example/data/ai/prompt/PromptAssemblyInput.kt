@@ -31,6 +31,7 @@ data class PromptAssemblyInput(
     val currentDate: String = "",
     val currentTime: String = "",
     val userName: String = "",
+    val realityContext: String? = null,
 )
 
 /**
