@@ -32,12 +32,13 @@ object RelationshipStateRepository {
         ))
     }
 
-    fun recordMomentComment(characterId: String, commentId: String, content: String, date: String, time: String) {
+    fun recordMomentComment(characterId: String, postId: String, commentId: String, content: String, date: String, time: String) {
         com.example.data.engine.WorldStateRepository.appendLifeEvent(LifeEvent(
             id = "relationship_comment_$commentId", characterId = characterId,
             time = time, type = LifeEventType.SOCIAL, title = "你评论了动态", description = content.take(160),
-            worldDateLabel = date, relatedCharacterIds = listOf("user"), sourceAppId = "moments",
-            metadata = mapOf("actor" to LIFE_EVENT_ACTOR_USER),
+            worldDateLabel = date, worldMinutesOfDay = com.example.data.engine.WorldHeartbeatEngine.worldClock.value.minutesOfDay,
+            relatedCharacterIds = listOf("user"), sourceAppId = "moments", sourceRefId = postId,
+            metadata = mapOf("actor" to LIFE_EVENT_ACTOR_USER, "moment_post_id" to postId),
         ))
     }
 

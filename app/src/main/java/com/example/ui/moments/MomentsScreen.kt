@@ -80,9 +80,15 @@ fun MomentsScreen(
     val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
     val seedPosts = remember { MockData.getMomentsFromLifeEvents() }
     val projectedPosts = remember(worldEvents) { projectMoments(seedPosts, worldEvents) }
-    // Like/comment stay a UI-local overlay: survive event refreshes, never persisted this round
+    // Likes are presentation state; comments are sourced from the persisted LifeEvent ledger.
     val localEdits = remember { mutableStateMapOf<String, MomentPost>() }
-    val posts = projectedPosts.map { localEdits[it.id] ?: it }
+    val posts = projectedPosts.map { post ->
+        val edited = localEdits[post.id]
+        val comments = worldEvents.filter { it.sourceAppId == "moments" && it.sourceRefId == post.id && it.title == "你评论了动态" }
+            .map { MomentComment(id = it.id, author = "你", isUser = true, content = it.description, timestamp = it.time) }
+        post.copy(isLiked = edited?.isLiked ?: post.isLiked, likesCount = edited?.likesCount ?: post.likesCount,
+            comments = post.comments + comments)
+    }
     var selectedFilter by remember { mutableStateOf("全部") }
     val filterOptions = listOf("全部", "小弥", "悠奈", "诺亚")
     val filteredPosts = when (selectedFilter) {
@@ -211,9 +217,8 @@ fun MomentsScreen(
                                     content = newCommentText,
                                     timestamp = "刚刚"
                                 )
-                                localEdits[current.id] = current.copy(comments = current.comments + newComment)
                                 val worldClock = WorldHeartbeatEngine.worldClock.value
-                                RelationshipStateRepository.recordMomentComment(current.authorId, newComment.id, newCommentText, worldClock.dateLabel, worldClock.timeFormatted)
+                                RelationshipStateRepository.recordMomentComment(current.authorId, current.id, newComment.id, newCommentText, worldClock.dateLabel, worldClock.timeFormatted)
                             }
                         }
                     )

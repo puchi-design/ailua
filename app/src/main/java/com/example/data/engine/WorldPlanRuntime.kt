@@ -56,7 +56,7 @@ object WorldPlanRuntime {
                 catch (e: kotlinx.coroutines.CancellationException) { throw e }
                 catch (_: Exception) { null }
             } else null
-            val plan = proposed ?: if (future.size < 2) fallback(clock) else null
+            val plan = proposed ?: if (future.size < 2) fallback(clock, future, WorldStateRepository.events.value) else null
             val installed = plan != null && try { engine.installPlan(plan) }
                 catch (e: kotlinx.coroutines.CancellationException) { throw e }
                 catch (_: Exception) { false }
@@ -70,26 +70,37 @@ object WorldPlanRuntime {
 
     fun needsPlan(clock: WorldClock, future: List<PlannedWorldAction>): Boolean = future.size < 2
 
-    internal fun fallback(clock: WorldClock): WorldPlan {
-        val ideas = listOf(
-            Triple("mira", LifeEventType.THOUGHT, "小弥整理桌上的手记"),
-            Triple("yuna", LifeEventType.MEAL, "悠奈准备一份简餐"),
-            Triple("noa", LifeEventType.PHOTO, "诺亚拍下书阁窗边的光影"),
-            Triple("mira", LifeEventType.DIARY, "小弥写下今天的日记"),
-        )
-        val actions = ideas.mapIndexed { index, (character, kind, title) ->
-            val advanced = WorldTimeAdvancer.advance(clock.minutesOfDay, clock.dateLabel, (index + 1) * 75)
-            PlannedWorldAction(
-                id = "fallback_${clock.dateLabel}_${clock.minutesOfDay}_$index",
-                characterId = character, triggerWorldDate = advanced.newDateLabel,
-                triggerMinutes = advanced.newMinutes, lifeEventType = kind,
-                title = title, description = title, location = when (character) {
-                    "yuna" -> "街角全家便利店"
-                    "noa" -> "月光书阁"
-                    else -> "青石街23号"
-                },
-            )
+    internal fun fallback(clock: WorldClock): WorldPlan = fallback(clock, emptyList(), emptyList())!!
+
+    internal fun fallback(clock: WorldClock, existing: List<PlannedWorldAction>, events: List<com.example.data.model.LifeEvent>): WorldPlan? {
+        val characters = com.example.data.registry.CharacterRegistry.getAllCharacters().take(3)
+        if (characters.isEmpty()) return null
+        val kinds = listOf(LifeEventType.THOUGHT, LifeEventType.MEAL, LifeEventType.PHOTO,
+            LifeEventType.TRAVEL, LifeEventType.SOCIAL, LifeEventType.MEMORY, LifeEventType.SLEEP)
+        for (shift in listOf(75, 105, 135, 165)) for (rotation in kinds.indices) {
+            val actions = (0..2).map { index ->
+                val character = characters[index % characters.size]
+                val kind = kinds[(rotation + index) % kinds.size]
+                val advanced = WorldTimeAdvancer.advance(clock.minutesOfDay, clock.dateLabel, shift + index * 75)
+                val title = when (kind) {
+                    LifeEventType.THOUGHT -> "${character.name}整理手记"
+                    LifeEventType.MEAL -> "${character.name}准备简餐"
+                    LifeEventType.PHOTO -> "${character.name}拍下窗边光影"
+                    LifeEventType.TRAVEL -> "${character.name}在街上散步"
+                    LifeEventType.SOCIAL -> "${character.name}与朋友聊近况"
+                    LifeEventType.MEMORY -> "${character.name}回想一段往事"
+                    else -> "${character.name}休息片刻"
+                }
+                PlannedWorldAction(
+                    id = "fallback_${clock.dateLabel}_${clock.minutesOfDay}_${shift}_${rotation}_$index",
+                    characterId = character.id, triggerWorldDate = advanced.newDateLabel,
+                    triggerMinutes = advanced.newMinutes, lifeEventType = kind,
+                    title = title, description = title, location = character.location,
+                )
+            }
+            val candidate = WorldPlan(clock.dateLabel, clock.minutesOfDay, actions)
+            if (WorldPlanValidator.validate(candidate, clock, existing, events)) return candidate
         }
-        return WorldPlan(clock.dateLabel, clock.minutesOfDay, actions)
+        return null
     }
 }

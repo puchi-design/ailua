@@ -33,7 +33,10 @@ object WorldPlanValidator {
                     (action.type == ScheduledActionType.INCOMING_CALL && action.lifeEventType != LifeEventType.MESSAGE) ||
                     (action.type == ScheduledActionType.GALLERY_ASSET || action.type == ScheduledActionType.LETTER_DELIVERY) ||
                     (action.type == ScheduledActionType.MOMENT && action.lifeEventType != LifeEventType.MOMENT) ||
-                    (action.type == ScheduledActionType.LOCATION_CHANGE && action.lifeEventType != LifeEventType.LOCATION_CHANGE)
+                    (action.type == ScheduledActionType.LOCATION_CHANGE && action.lifeEventType != LifeEventType.LOCATION_CHANGE) ||
+                    (action.triggerMinutes in 0..359 && action.type == ScheduledActionType.INCOMING_CALL) ||
+                    (action.triggerMinutes in 0..299 && action.title.contains("午餐")) ||
+                    (action.triggerMinutes in 120..299 && (action.title.contains("商场") || action.title.contains("购物")))
             }) return false
         if (candidateTypes.any { (date, counts) -> counts.any { (type, count) -> count + (if (date == clock.dateLabel) currentDayTypes[type] ?: 0 else 0) > 4 } }) return false
         val perCharacter = (existing + plan.actions).groupBy { it.triggerWorldDate to it.characterId }
@@ -51,6 +54,19 @@ object WorldPlanValidator {
                     gap < 20 || (gap < 90 && first.lifeEventType == second.lifeEventType && first.lifeEventType in setOf(LifeEventType.MOMENT, LifeEventType.DIARY, LifeEventType.MESSAGE))
                 }
             }) return false
+        val allContacts = (existing + plan.actions).filter {
+            it.type == ScheduledActionType.INCOMING_CALL || it.type == ScheduledActionType.LETTER_DELIVERY ||
+                it.lifeEventType == LifeEventType.MESSAGE || "user" in it.relatedCharacterIds
+        }.sortedBy { (dayOffset(clock.dateLabel, it.triggerWorldDate) ?: 0) * 1440 + it.triggerMinutes }
+        if (allContacts.zipWithNext().any { (first, second) ->
+                (dayOffset(clock.dateLabel, second.triggerWorldDate) ?: 0) * 1440 + second.triggerMinutes -
+                    (dayOffset(clock.dateLabel, first.triggerWorldDate) ?: 0) * 1440 - first.triggerMinutes < 90
+            }) return false
+        val lastContact = events.filter(UserContactCooldown::isContact).filter { it.worldMinutesOfDay in 0..1439 }
+        if (plan.actions.any { action -> action in allContacts && lastContact.any { event ->
+                    val offset = dayOffset(event.worldDateLabel, action.triggerWorldDate) ?: return@any false
+                    offset * 1440 + action.triggerMinutes - event.worldMinutesOfDay in 0..89
+                } }) return false
         val signatures = (existing + plan.actions).map { "${it.characterId}|${it.triggerWorldDate}|${it.triggerMinutes}|${it.lifeEventType}|${it.title.trim()}" }
         return signatures.size == signatures.toSet().size
     }

@@ -5,6 +5,7 @@ import com.example.data.engine.ScheduledActionType
 import com.example.data.engine.WorldActionPlanner
 import com.example.data.engine.WorldPlanValidator
 import com.example.data.engine.WorldPlanRuntime
+import com.example.data.engine.UserContactCooldown
 import com.example.data.engine.WorldTimeAdvancer
 import com.example.data.model.DayPhase
 import com.example.data.model.LifeEventType
@@ -105,5 +106,36 @@ class WorldPlanTest {
         val planner = WorldActionPlanner(ProviderResolver { ResolvedProvider("test", "model", provider) })
         assertNull(planner.generate(clock, emptyList(), emptyList()))
         assertEquals(1, requests.size)
+    }
+
+    @Test fun socialAndDiaryDailyLimitsAndRhythmGuards() {
+        assertFalse(WorldPlanValidator.validate(plan(
+            action("m1", 1310, type = LifeEventType.MOMENT),
+            action("m2", 1350, type = LifeEventType.MOMENT),
+            action("m3", 1390, type = LifeEventType.MOMENT),
+        ), clock, emptyList(), emptyList()))
+        assertFalse(WorldPlanValidator.validate(plan(action("a", 1310), action("b", 1320), action("c", 1390)), clock, emptyList(), emptyList()))
+        val tomorrow = WorldTimeAdvancer.advanceDateLabel(clock.dateLabel, 1)
+        val call = action("call", 180, tomorrow, LifeEventType.MESSAGE).copy(type = ScheduledActionType.INCOMING_CALL)
+        assertFalse(WorldPlanValidator.validate(plan(action("a", 1310), action("b", 1390), call), clock, emptyList(), emptyList()))
+    }
+
+    @Test fun recentPlannedContactBlocksProactiveFollowUp() {
+        val current = WorldClock(clock.dateLabel, 1350, DayPhase.NIGHT, WeatherState.RAIN)
+        val contact = com.example.data.model.LifeEvent("recent_call", "mira", "22:00", LifeEventType.MESSAGE,
+            "来电", "聊过天", worldDateLabel = clock.dateLabel, worldMinutesOfDay = 1320, sourceAppId = "heartbeat")
+        assertTrue(UserContactCooldown.recentlyContacted(current, listOf(contact)))
+        assertFalse(UserContactCooldown.recentlyContacted(current.copy(minutesOfDay = 1411), listOf(contact)))
+    }
+
+    @Test fun fallbackSearchesAroundDailyLimits() {
+        val saturated = (1..4).map { number ->
+            com.example.data.model.LifeEvent("thought_$number", "mira", "21:00", LifeEventType.THOUGHT,
+                "旧想法", "旧想法", worldDateLabel = clock.dateLabel, worldMinutesOfDay = 1260,
+                sourceAppId = "heartbeat")
+        }
+        val fallback = WorldPlanRuntime.fallback(clock, emptyList(), saturated)
+        assertNotNull(fallback)
+        assertTrue(WorldPlanValidator.validate(fallback!!, clock, emptyList(), saturated))
     }
 }

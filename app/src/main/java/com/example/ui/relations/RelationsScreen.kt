@@ -73,7 +73,7 @@ fun RelationsScreen(
                 com.example.data.relationship.model.RelationshipStage.STRAINED -> "紧张"
             },
             closeness = state.affinity,
-            recentInteraction = state.recentInteraction?.let { "$it · ${state.lastMeaningfulInteractionAt ?: state.updatedAt} · 信任 ${state.trust}" } ?: "尚无共同互动",
+            recentInteraction = state.recentInteraction?.let { "$it · ${state.lastMeaningfulInteractionAt ?: state.updatedAt}" } ?: "尚无共同互动",
             sharedMemory = state.sharedMemory ?: "尚无共同记忆（共 ${state.sharedMemoryCount} 条）",
         )
     }
@@ -151,7 +151,7 @@ fun RelationsScreen(
                             .padding(14.dp)
                     ) {
                         Text(
-                            text = "💡 AILUA 伴生体拥有独立社交网络。小弥、悠奈与诺亚在日常中相互知晓、交流并分享共同的生活记忆。",
+                            text = "💡 这里展示角色与用户、角色与角色之间真实发生的互动和共同记忆。",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontSize = 12.sp,
                                 lineHeight = 17.sp

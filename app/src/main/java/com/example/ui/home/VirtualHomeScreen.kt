@@ -60,6 +60,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.engine.WorldHeartbeatEngine
+import com.example.data.registry.CharacterRegistry
+import com.example.data.context.CharacterContext
+import com.example.data.projection.projectPresence
+import com.example.data.model.isUserActivity
 import com.example.data.engine.WorldStateRepository
 import com.example.data.local.AiluaLocalStore
 import com.example.data.mock.MockData
@@ -834,7 +838,11 @@ private fun PageLifeBento(
 ) {
     val scrollState = rememberScrollState()
     val allLifeEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
-    val pulseEvents = allLifeEvents.take(4)
+    val worldClock by WorldHeartbeatEngine.worldClock.collectAsStateWithLifecycle()
+    val selectedCharacterId by CharacterContext.selectedId.collectAsStateWithLifecycle()
+    val selectedCharacter = CharacterRegistry.getCharacter(selectedCharacterId)
+    val presence = projectPresence(selectedCharacter, allLifeEvents)
+    val pulseEvents = allLifeEvents.filter { !it.isUserActivity() }.take(4)
 
     Column(
         modifier = Modifier
@@ -882,7 +890,7 @@ private fun PageLifeBento(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "3位角色在线",
+                        text = "${worldClock.timeFormatted} · 心网在继续",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Medium,
@@ -944,12 +952,19 @@ private fun PageLifeBento(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
+                Text(
+                    text = "${selectedCharacter.name} · ${presence.currentLocation}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = presence.currentActivity,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
                 pulseEvents.forEachIndexed { index, event ->
-                    val charName = when (event.characterId) {
-                        "yuna" -> "悠奈"
-                        "noa" -> "诺亚"
-                        else -> "小弥"
-                    }
+                    val charName = CharacterRegistry.getCharacter(event.characterId).name
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
