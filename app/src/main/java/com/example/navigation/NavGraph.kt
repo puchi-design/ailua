@@ -24,6 +24,7 @@ object AiluaDestinations {
     const val INCOMING_CALL = "incoming_call"
     const val CALL_HISTORY = "call_history"
     const val GALLERY = "gallery"
+    const val REALITY = "reality"
 
     fun chatRoute(characterId: String = "mira"): String = "chat/$characterId"
     fun profileRoute(characterId: String = "mira"): String = "profile/$characterId"

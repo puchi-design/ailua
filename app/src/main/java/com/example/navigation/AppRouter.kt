@@ -44,7 +44,8 @@ object AppRouter {
         // mapping only applies to Home grid / widget dispatch
         "call" to AiluaDestinations.CALL_HISTORY,
         "companion_call" to AiluaDestinations.CALL_HISTORY,
-        "gallery" to AiluaDestinations.GALLERY
+        "gallery" to AiluaDestinations.GALLERY,
+        "reality" to AiluaDestinations.REALITY
     )
 
     fun destinationOrNull(appId: String): String? = destinationByAppId[appId]

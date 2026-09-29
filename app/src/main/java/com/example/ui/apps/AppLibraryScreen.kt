@@ -74,7 +74,8 @@ fun AppLibraryScreen(
     onNavigateToTheater: () -> Unit = {},
     onNavigateToMailbox: () -> Unit = {},
     onNavigateToCall: () -> Unit = {},
-    onNavigateToGallery: () -> Unit = {}
+    onNavigateToGallery: () -> Unit = {},
+    onNavigateToReality: () -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf(initialSearchQuery) }
     var selectedCategory by remember { mutableStateOf(APP_LIBRARY_ALL) }
@@ -198,6 +199,9 @@ fun AppLibraryScreen(
         }
 
         Spacer(modifier = Modifier.height(10.dp))
+        TextButton(onClick = onNavigateToReality, modifier = Modifier.padding(horizontal = 16.dp).testTag("reality_bridge_entry")) {
+            Text("◉ 现实感知 · Reality Bridge")
+        }
 
         if (filteredApps.isEmpty()) {
             AppLibraryEmptyState(

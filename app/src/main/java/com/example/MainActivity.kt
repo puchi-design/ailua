@@ -45,6 +45,7 @@ import com.example.data.model.CallAction
 import com.example.data.model.CallState
 import com.example.data.registry.CharacterRegistry
 import com.example.data.relationship.repository.RelationshipStateRepository
+import com.example.data.reality.RealityRepository
 import com.example.navigation.AiluaDestinations
 import com.example.navigation.AppRouter
 import com.example.ui.apps.AppLibraryScreen
@@ -70,6 +71,7 @@ import com.example.ui.memories.MemoriesScreen
 import com.example.ui.motion.AppMotion
 import com.example.ui.moments.MomentsScreen
 import com.example.ui.relations.RelationsScreen
+import com.example.ui.reality.RealityBridgeScreen
 import com.example.ui.theater.TheaterScreen
 import com.example.ui.theme.AiluaTheme
 import com.example.ui.world.WorldPlacesScreen
@@ -81,6 +83,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AiluaLocalStore.init(applicationContext)
+        RealityRepository.init(applicationContext)
         RelationshipStateRepository.restore()
         ProviderGraph.init(applicationContext)
         MemoryGraph.init(applicationContext)
@@ -357,8 +360,12 @@ fun AiluaAppRoot() {
                         onNavigateToTheater = { navController.navigate(AiluaDestinations.THEATER) },
                         onNavigateToMailbox = { navController.navigate(AiluaDestinations.MAILBOX) },
                         onNavigateToCall = { navController.navigate(AiluaDestinations.callRoute(selectedCharacterId)) },
-                        onNavigateToGallery = { navController.navigate(AiluaDestinations.GALLERY) }
+                        onNavigateToGallery = { navController.navigate(AiluaDestinations.GALLERY) },
+                        onNavigateToReality = { navController.navigate(AiluaDestinations.REALITY) }
                     )
+                }
+                composable(AiluaDestinations.REALITY) {
+                    RealityBridgeScreen(onBack = { navController.popBackStack() }, isDarkTheme = isDarkTheme, onToggleTheme = { isDarkTheme = !isDarkTheme })
                 }
 
                 // Screen 12: Character Profile
