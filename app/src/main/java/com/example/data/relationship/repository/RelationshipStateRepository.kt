@@ -19,6 +19,7 @@ object RelationshipStateRepository {
     fun restore() { _states.value = AiluaLocalStore.savedRelationships.value }
 
     fun rebuild(events: List<LifeEvent>) {
+        if (_states.value.isNotEmpty()) return
         events.sortedChronologically().forEach(::observe)
     }
 

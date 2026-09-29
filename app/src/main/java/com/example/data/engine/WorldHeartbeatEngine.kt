@@ -311,7 +311,7 @@ object WorldHeartbeatEngine {
         }
         if (!WorldPlanValidator.validate(plan, clock, existing, WorldStateRepository.events.value)) return false
         val merged = WorldPlan(plan.createdWorldDate, plan.createdMinutes, existing + plan.actions)
-        AiluaLocalStore.saveWorldPlan(merged)
+        if (!AiluaLocalStore.saveWorldPlan(merged)) return false
         _scheduledActions.value = merged.actions.map { it.toScheduledAction() }
         return true
     }

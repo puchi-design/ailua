@@ -35,7 +35,7 @@ object RelationshipReducer {
             sharedMemoryCount = state.sharedMemoryCount + if (delta.sharedMemory) 1 else 0,
             stage = stage, updatedAt = dateTime, recentInteraction = event.title,
             sharedMemory = if (delta.sharedMemory) event.description.take(160) else state.sharedMemory,
-            processedEventIds = state.processedEventIds + event.id,
+            processedEventIds = (state.processedEventIds + event.id).toList().takeLast(256).toSet(),
         )
     }
 }

@@ -28,4 +28,14 @@ class RelationshipReducerTest {
         assertEquals(1, user.interactionCount)
         assertEquals(1, other.interactionCount)
     }
+
+    @Test fun processedIdsRemainBoundedAndRecentIdsStillDedupe() {
+        val result = (1..300).fold(RelationshipState("mira", "user")) { state, number ->
+            RelationshipReducer.apply(state, event("event_$number"))
+        }
+        assertEquals(256, result.processedEventIds.size)
+        assertFalse("event_1" in result.processedEventIds)
+        assertTrue("event_300" in result.processedEventIds)
+        assertEquals(result, RelationshipReducer.apply(result, event("event_300")))
+    }
 }

@@ -5,52 +5,68 @@ import com.example.data.ai.repository.ProviderGraph
 import com.example.data.ai.runtime.ActiveProfileProviderResolver
 import com.example.data.local.AiluaLocalStore
 import com.example.data.memory.repository.MemoryGraph
+import com.example.data.chat.local.ChatDatabase
+import com.example.data.chat.local.ChatDriverFactory
+import com.example.data.chat.local.SqlDelightChatRepository
+import com.example.data.chat.local.platform.SystemEpochClock
+import com.example.data.chat.local.platform.UuidIdGenerator
 import com.example.data.model.LifeEventType
 import com.example.data.model.PlannedWorldAction
 import com.example.data.model.WorldClock
 import com.example.data.model.WorldPlan
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicBoolean
 
 object WorldPlanRuntime {
     private var planner: WorldActionPlanner? = null
     private var hasProvider: () -> Boolean = { false }
-    private var generating = false
+    private val generating = AtomicBoolean(false)
     private var lastFailedAt: Pair<String, Int>? = null
 
     fun init(context: Context) {
         if (planner != null) return
         val resolver = ActiveProfileProviderResolver(ProviderGraph.repository)
         hasProvider = { resolver.resolve() != null }
-        planner = WorldActionPlanner(resolver, MemoryGraph.repository)
+        val chat = SqlDelightChatRepository(
+            ChatDatabase(ChatDriverFactory(context.applicationContext).createDriver()),
+            UuidIdGenerator(), SystemEpochClock()
+        )
+        planner = WorldActionPlanner(resolver, MemoryGraph.repository, chat)
     }
 
     suspend fun maybePlan(force: Boolean = false): Boolean = withContext(Dispatchers.IO) {
-        val engine = WorldHeartbeatEngine
-        val clock = engine.worldClock.value
-        val future = engine.futureActions().filter {
-            val offset = WorldPlanValidator.dayOffset(clock.dateLabel, it.triggerWorldDate)
-            offset != null && offset * 1440 + it.triggerMinutes > clock.minutesOfDay
-        }
-        val planDate = AiluaLocalStore.savedWorldPlan.value?.createdWorldDate
-        if (!force && !needsPlan(clock, future, planDate)) return@withContext true
-        if (!force && lastFailedAt?.first == clock.dateLabel && clock.minutesOfDay - (lastFailedAt?.second ?: 0) in 0..29) return@withContext false
-        if (generating) return@withContext false
-        generating = true
+        if (!generating.compareAndSet(false, true)) return@withContext false
         try {
+            val engine = WorldHeartbeatEngine
+            val clock = engine.worldClock.value
+            val future = engine.futureActions().filter {
+                val offset = WorldPlanValidator.dayOffset(clock.dateLabel, it.triggerWorldDate)
+                offset != null && offset * 1440 + it.triggerMinutes > clock.minutesOfDay
+            }
+            if (!force && !needsPlan(clock, future)) return@withContext true
+            if (!force && lastFailedAt?.first == clock.dateLabel && clock.minutesOfDay - (lastFailedAt?.second ?: 0) in 0..29) return@withContext false
             val activePlanner = planner ?: return@withContext false
-            val plan = if (hasProvider()) activePlanner.generate(clock, WorldStateRepository.latestEvents(12), future)
-                else if (future.size < 2) fallback(clock) else null
-            val installed = plan != null && engine.installPlan(plan)
+            val proposed = if (hasProvider()) {
+                try { activePlanner.generate(clock, WorldStateRepository.latestEvents(12), future) }
+                catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                catch (_: Exception) { null }
+            } else null
+            val plan = proposed ?: if (future.size < 2) fallback(clock) else null
+            val installed = plan != null && try { engine.installPlan(plan) }
+                catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                catch (_: Exception) { false }
             if (installed) lastFailedAt = null else lastFailedAt = clock.dateLabel to clock.minutesOfDay
             installed
-        } finally { generating = false }
+        } finally { generating.set(false) }
     }
 
     fun needsPlan(clock: WorldClock, future: List<PlannedWorldAction>, lastPlanDate: String?): Boolean =
-        future.size < 2 || lastPlanDate != clock.dateLabel
+        needsPlan(clock, future)
 
-    private fun fallback(clock: WorldClock): WorldPlan {
+    fun needsPlan(clock: WorldClock, future: List<PlannedWorldAction>): Boolean = future.size < 2
+
+    internal fun fallback(clock: WorldClock): WorldPlan {
         val ideas = listOf(
             Triple("mira", LifeEventType.THOUGHT, "小弥整理桌上的手记"),
             Triple("yuna", LifeEventType.MEAL, "悠奈准备一份简餐"),

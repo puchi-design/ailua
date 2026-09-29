@@ -4,6 +4,7 @@ import com.example.data.ai.runtime.ProviderResolver
 import com.example.data.engine.ScheduledActionType
 import com.example.data.engine.WorldActionPlanner
 import com.example.data.engine.WorldPlanValidator
+import com.example.data.engine.WorldPlanRuntime
 import com.example.data.engine.WorldTimeAdvancer
 import com.example.data.model.DayPhase
 import com.example.data.model.LifeEventType
@@ -18,6 +19,13 @@ import com.example.data.projection.projectPresence
 import com.example.data.registry.CharacterRegistry
 import org.junit.Assert.*
 import org.junit.Test
+import com.example.data.ai.model.AiChatRequest
+import com.example.data.ai.model.AiProviderError
+import com.example.data.ai.model.AiStreamEvent
+import com.example.data.ai.provider.AiProvider
+import com.example.data.ai.runtime.ResolvedProvider
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.runBlocking
 
 class WorldPlanTest {
     private val clock = WorldClock("9月25日", 21 * 60 + 30, DayPhase.EVENING, WeatherState.RAIN)
@@ -63,5 +71,39 @@ class WorldPlanTest {
         assertTrue(phone.searchHistory.contains("栗子布丁做法"))
         assertTrue(phone.notes.contains("买牛奶"))
         assertEquals("小弥做甜点", projectPresence(CharacterRegistry.getCharacter("mira"), listOf(event)).currentActivity)
+    }
+
+    @Test fun fallbackIsValidAndFullExistingPlanIsKept() {
+        val fallback = WorldPlanRuntime.fallback(clock)
+        assertTrue(WorldPlanValidator.validate(fallback, clock, emptyList(), emptyList()))
+        assertFalse(WorldPlanRuntime.needsPlan(clock, fallback.actions.take(2), "9月24日"))
+        assertTrue(WorldPlanRuntime.needsPlan(clock, fallback.actions.take(1), clock.dateLabel))
+    }
+
+    @Test fun unsupportedStructuredResponseRetriesOnlyOnceAsPlainJson() = runBlocking {
+        val requests = mutableListOf<AiChatRequest>()
+        val provider = object : AiProvider {
+            override fun streamChat(request: AiChatRequest) = flow {
+                requests += request
+                if (request.jsonResponse) emit(AiStreamEvent.Failed(AiProviderError.Http(400, "unsupported response_format")))
+                else emit(AiStreamEvent.Completed("{\"actions\":[]}"))
+            }
+        }
+        val planner = WorldActionPlanner(ProviderResolver { ResolvedProvider("test", "model", provider) })
+        assertNull(planner.generate(clock, emptyList(), emptyList()))
+        assertEquals(listOf(true, false), requests.map { it.jsonResponse })
+    }
+
+    @Test fun serverFailureDoesNotRetryProvider() = runBlocking {
+        val requests = mutableListOf<AiChatRequest>()
+        val provider = object : AiProvider {
+            override fun streamChat(request: AiChatRequest) = flow {
+                requests += request
+                emit(AiStreamEvent.Failed(AiProviderError.Http(503, "unavailable")))
+            }
+        }
+        val planner = WorldActionPlanner(ProviderResolver { ResolvedProvider("test", "model", provider) })
+        assertNull(planner.generate(clock, emptyList(), emptyList()))
+        assertEquals(1, requests.size)
     }
 }

@@ -4,7 +4,10 @@ import com.example.data.ai.model.AiChatRequest
 import com.example.data.ai.model.AiMessage
 import com.example.data.ai.model.AiRole
 import com.example.data.ai.model.AiStreamEvent
+import com.example.data.ai.model.AiProviderError
 import com.example.data.ai.runtime.ProviderResolver
+import com.example.data.chat.model.VariantStatus
+import com.example.data.chat.repository.ChatRepository
 import com.example.data.memory.repository.MemoryRepository
 import com.example.data.model.LifeEvent
 import com.example.data.model.PlannedWorldAction
@@ -20,6 +23,7 @@ import kotlinx.serialization.json.jsonObject
 class WorldActionPlanner(
     private val providerResolver: ProviderResolver,
     private val memoryRepository: MemoryRepository? = null,
+    private val chatRepository: ChatRepository? = null,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -44,6 +48,14 @@ class WorldActionPlanner(
                 appendLine("${character.id} ${character.name}；${character.bio.take(160)}；当前位置 ${presence.currentLocation}；当前活动 ${presence.currentActivity}")
                 val memories = memoryRepository?.getMemoriesForPrompt(character.id, 4).orEmpty()
                 memories.forEach { appendLine("记忆：${it.content.take(120)}") }
+                val turns = runCatching {
+                    chatRepository?.getOrCreatePrivateSession(character.id)?.let { session ->
+                        chatRepository.getResolvedTurns(session.id).takeLast(6)
+                    }.orEmpty()
+                }.getOrDefault(emptyList())
+                turns.filter { it.activeVariant?.status == VariantStatus.COMPLETE }.takeLast(4).forEach { turn ->
+                    appendLine("聊天 ${turn.role}: ${turn.activeVariant?.content.orEmpty().replace('\n', ' ').take(100)}")
+                }
                 RelationshipStateRepository.states.value.filter { it.fromCharacterId == character.id || it.toCharacterId == character.id }
                     .take(4).forEach { appendLine("关系：${it.fromCharacterId}-${it.toCharacterId} ${it.stage} 亲近${it.affinity} 信任${it.trust} 最近${it.recentInteraction.orEmpty().take(60)}") }
             }
@@ -66,9 +78,25 @@ class WorldActionPlanner(
             maxTokens = 2000,
             jsonResponse = true,
         )
-        val completion = try { resolved.provider.streamChat(request).firstOrNull { it is AiStreamEvent.Completed || it is AiStreamEvent.Failed || it is AiStreamEvent.Cancelled } } catch (_: Exception) { null }
+        var completion = complete(resolved, request)
+        if (completion is AiStreamEvent.Failed && responseFormatUnsupported(completion.error)) {
+            completion = complete(resolved, request.copy(jsonResponse = false))
+        }
         val actions = (completion as? AiStreamEvent.Completed)?.text?.let(::parse) ?: return null
         val plan = WorldPlan(clock.dateLabel, clock.minutesOfDay, actions)
         return if (WorldPlanValidator.validate(plan, clock, existing, events, characters.map { it.id }.toSet())) plan else null
+    }
+
+    private suspend fun complete(resolved: com.example.data.ai.runtime.ResolvedProvider, request: AiChatRequest): AiStreamEvent? =
+        try { resolved.provider.streamChat(request).firstOrNull { it is AiStreamEvent.Completed || it is AiStreamEvent.Failed || it is AiStreamEvent.Cancelled } }
+        catch (e: kotlinx.coroutines.CancellationException) { throw e }
+        catch (_: Exception) { null }
+
+    private fun responseFormatUnsupported(error: AiProviderError): Boolean {
+        val http = error as? AiProviderError.Http ?: return false
+        if (http.code !in setOf(400, 422)) return false
+        val message = http.message.orEmpty().lowercase()
+        return listOf("response_format", "json_object", "unsupported", "not supported", "unknown field", "invalid parameter")
+            .any { it in message }
     }
 }

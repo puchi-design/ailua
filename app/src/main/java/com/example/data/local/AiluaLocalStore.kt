@@ -265,10 +265,12 @@ object AiluaLocalStore {
         }
     }
 
-    fun saveWorldPlan(plan: WorldPlan) {
+    fun saveWorldPlan(plan: WorldPlan): Boolean {
         val encoded = json.encodeToString(WorldPlan.serializer(), plan)
-        sharedPrefs?.edit()?.putString(KEY_WORLD_PLAN, encoded)?.apply()
+        val prefs = sharedPrefs
+        if (prefs != null && !prefs.edit().putString(KEY_WORLD_PLAN, encoded).commit()) return false
         _savedWorldPlan.value = plan
+        return true
     }
 
     fun saveRelationships(states: List<RelationshipState>) {

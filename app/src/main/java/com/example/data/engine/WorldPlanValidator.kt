@@ -36,6 +36,21 @@ object WorldPlanValidator {
                     (action.type == ScheduledActionType.LOCATION_CHANGE && action.lifeEventType != LifeEventType.LOCATION_CHANGE)
             }) return false
         if (candidateTypes.any { (date, counts) -> counts.any { (type, count) -> count + (if (date == clock.dateLabel) currentDayTypes[type] ?: 0 else 0) > 4 } }) return false
+        val perCharacter = (existing + plan.actions).groupBy { it.triggerWorldDate to it.characterId }
+        if (perCharacter.any { (key, actions) ->
+                val fired = events.filter { it.worldDateLabel == key.first && it.characterId == key.second && it.sourceAppId == "heartbeat" }
+                fired.count { it.type == LifeEventType.DIARY } + actions.count { it.lifeEventType == LifeEventType.DIARY } > 2 ||
+                    fired.count { it.type == LifeEventType.MOMENT } + actions.count { it.lifeEventType == LifeEventType.MOMENT } > 2
+            }) return false
+        val byCharacter = (existing + plan.actions).groupBy { it.characterId }
+        if (byCharacter.values.any { actions ->
+                val sorted = actions.sortedBy { (dayOffset(clock.dateLabel, it.triggerWorldDate) ?: 0) * 1440 + it.triggerMinutes }
+                sorted.zipWithNext().any { (first, second) ->
+                    val gap = (dayOffset(clock.dateLabel, second.triggerWorldDate) ?: 0) * 1440 + second.triggerMinutes -
+                        (dayOffset(clock.dateLabel, first.triggerWorldDate) ?: 0) * 1440 - first.triggerMinutes
+                    gap < 20 || (gap < 90 && first.lifeEventType == second.lifeEventType && first.lifeEventType in setOf(LifeEventType.MOMENT, LifeEventType.DIARY, LifeEventType.MESSAGE))
+                }
+            }) return false
         val signatures = (existing + plan.actions).map { "${it.characterId}|${it.triggerWorldDate}|${it.triggerMinutes}|${it.lifeEventType}|${it.title.trim()}" }
         return signatures.size == signatures.toSet().size
     }
@@ -48,4 +63,5 @@ object WorldPlanValidator {
 
     fun dayOffsetWithin(from: String, to: String, maxDays: Int): Int? =
         (0..maxDays).firstOrNull { WorldTimeAdvancer.advanceDateLabel(from, it) == to }
+
 }
