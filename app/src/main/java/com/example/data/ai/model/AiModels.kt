@@ -29,6 +29,7 @@ data class AiChatRequest(
     val stream: Boolean = true,
     val temperature: Double? = null,
     val maxTokens: Int? = null,
+    val jsonResponse: Boolean = false,
 )
 
 data class AiUsage(

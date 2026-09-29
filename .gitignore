@@ -27,3 +27,5 @@ vite.config.ts
 index.html
 /src/
 
+
+/.tools/

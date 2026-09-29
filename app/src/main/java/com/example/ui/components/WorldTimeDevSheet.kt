@@ -28,6 +28,7 @@ import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -40,6 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.engine.ProactiveGraph
 import com.example.data.engine.WorldHeartbeatEngine
+import com.example.data.engine.WorldPlanRuntime
+import kotlinx.coroutines.launch
 import com.example.ui.theme.AiluaDustyRose
 import com.example.ui.theme.AiluaMistBlue
 import com.example.ui.theme.AiluaMoonGold
@@ -52,9 +55,15 @@ fun WorldTimeDevSheet(
 ) {
     val clock by WorldHeartbeatEngine.worldClock.collectAsStateWithLifecycle()
     val scheduledActions by WorldHeartbeatEngine.scheduledActions.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
 
-    val nextAction = scheduledActions.firstOrNull { !it.fired && it.triggerTimeMinutes >= clock.minutesOfDay }
-        ?: scheduledActions.firstOrNull { !it.fired }
+    val nextAction = scheduledActions.filter { !it.fired }
+        .mapNotNull { action ->
+            val offset = if (action.worldDate.isBlank()) 0 else com.example.data.engine.WorldPlanValidator.dayOffset(clock.dateLabel, action.worldDate)
+                ?: return@mapNotNull null
+            val distance = offset * 1440 + action.triggerTimeMinutes - clock.minutesOfDay
+            if (distance > 0) action to distance else null
+        }.minByOrNull { it.second }?.first
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -245,6 +254,11 @@ fun WorldTimeDevSheet(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Action Buttons
+            OutlinedButton(
+                onClick = { scope.launch { WorldPlanRuntime.maybePlan(force = true) } },
+                modifier = Modifier.fillMaxWidth().testTag("generate_world_plan")
+            ) { Text("Generate next world plan", fontSize = 12.sp) }
+
             Text(
                 text = "推进虚拟时间",
                 style = MaterialTheme.typography.labelMedium.copy(

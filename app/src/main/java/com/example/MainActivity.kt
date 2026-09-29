@@ -38,11 +38,13 @@ import com.example.data.context.CharacterContext
 import com.example.data.engine.CallStateEngine
 import com.example.data.engine.ProactiveGraph
 import com.example.data.engine.WorldHeartbeatEngine
+import com.example.data.engine.WorldPlanRuntime
 import com.example.data.engine.WorldStateRepository
 import com.example.data.local.AiluaLocalStore
 import com.example.data.model.CallAction
 import com.example.data.model.CallState
 import com.example.data.registry.CharacterRegistry
+import com.example.data.relationship.repository.RelationshipStateRepository
 import com.example.navigation.AiluaDestinations
 import com.example.navigation.AppRouter
 import com.example.ui.apps.AppLibraryScreen
@@ -79,11 +81,15 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AiluaLocalStore.init(applicationContext)
+        RelationshipStateRepository.restore()
         ProviderGraph.init(applicationContext)
         MemoryGraph.init(applicationContext)
+        WorldPlanRuntime.init(applicationContext)
         ProactiveGraph.init(applicationContext)
         WorldStateRepository.syncWithLocalStore()
+        RelationshipStateRepository.rebuild(WorldStateRepository.events.value)
         CallStateEngine.syncWithLocalStore()
+        lifecycleScope.launch { WorldPlanRuntime.maybePlan() }
 
         // Lightweight foreground-only world ticker (Step 6)
         // 60 real seconds -> advance virtual time by 1 minute
@@ -93,6 +99,7 @@ class MainActivity : ComponentActivity() {
                 while (isActive) {
                     delay(60_000L)
                     WorldHeartbeatEngine.advanceTime(1)
+                    WorldPlanRuntime.maybePlan()
                     // P3D-2: same heartbeat drives the proactive-message rule check.
                     ProactiveGraph.maybeFire()
                 }

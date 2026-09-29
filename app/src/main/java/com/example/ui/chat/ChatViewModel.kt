@@ -22,6 +22,8 @@ import com.example.data.chat.model.ResolvedChatTurn
 import com.example.data.chat.model.VariantStatus
 import com.example.data.chat.repository.ChatRepository
 import com.example.data.engine.UserActivityRecorder
+import com.example.data.engine.WorldHeartbeatEngine
+import com.example.data.relationship.repository.RelationshipStateRepository
 import com.example.data.memory.auto.AutoMemoryExtractor
 import com.example.data.memory.model.MemoryType
 import com.example.data.memory.repository.MemoryGraph
@@ -145,6 +147,8 @@ class ChatViewModel(
             type = MemoryType.LONG_TERM,
             importance = 0.7,
         )
+        val worldClock = WorldHeartbeatEngine.worldClock.value
+        RelationshipStateRepository.recordMemory(characterId, message.id, message.text, worldClock.dateLabel, worldClock.timeFormatted)
     }
 
     fun switchVariant(turnId: String, direction: Int) {

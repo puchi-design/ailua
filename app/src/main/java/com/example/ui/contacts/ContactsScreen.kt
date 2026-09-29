@@ -30,6 +30,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,8 +42,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.mock.MockData
+import com.example.data.engine.WorldHeartbeatEngine
+import com.example.data.engine.WorldStateRepository
 import com.example.data.model.ContactItem
+import com.example.data.model.LifeEventType
+import com.example.data.model.isUserActivity
+import com.example.data.projection.projectPresence
+import com.example.data.relationship.repository.RelationshipStateRepository
 import com.example.data.registry.CharacterRegistry
 import com.example.ui.components.AiluaAvatar
 import com.example.ui.components.VirtualPhoneHomeBar
@@ -61,23 +68,28 @@ fun ContactsScreen(
     onOpenRelations: () -> Unit = {}
 ) {
     val allRegisteredCharacters = CharacterRegistry.getAllCharacters()
-    val registeredCustoms = allRegisteredCharacters.filter { it.id != "mira" && it.id != "yuna" && it.id != "noa" }
-    val customContacts = registeredCustoms.map { profile ->
+    val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
+    val clock by WorldHeartbeatEngine.worldClock.collectAsStateWithLifecycle()
+    val relations by RelationshipStateRepository.states.collectAsStateWithLifecycle()
+    val contacts = allRegisteredCharacters.map { profile ->
+        val presence = projectPresence(profile, worldEvents)
+        val latest = WorldStateRepository.eventsForCharacter(profile.id).lastOrNull { !it.isUserActivity() }
+        val relation = relations.firstOrNull { setOf(it.fromCharacterId, it.toCharacterId) == setOf("user", profile.id) }
+        val minutesAgo = if (latest?.worldDateLabel == clock.dateLabel) clock.minutesOfDay - latest.worldMinutesOfDay else -1
         ContactItem(
             id = "c_${profile.id}",
             characterId = profile.id,
             name = profile.name,
             englishName = profile.englishName,
             avatarId = profile.avatarId,
-            shortStatus = profile.contextualQuote.ifBlank { profile.currentActivity },
-            relationshipType = profile.relationshipType,
-            relationshipLevel = profile.bondLevel,
-            lastActivity = "刚刚活跃",
+            shortStatus = "${presence.currentLocation} · ${presence.currentActivity} · ${if (minutesAgo >= 0) "${minutesAgo}分钟前" else latest?.time ?: "暂无动态"}",
+            relationshipType = relation?.stage?.name ?: "初识",
+            relationshipLevel = relation?.affinity ?: 0,
+            lastActivity = if (minutesAgo >= 0) "${minutesAgo}分钟前" else latest?.time ?: "暂无动态",
             unreadCount = 0,
-            onlineState = "在线"
+            onlineState = if (latest?.type == LifeEventType.SLEEP) "休息中" else if (latest != null) "生活中" else "暂无动态"
         )
     }
-    val contacts = MockData.contactsList + customContacts
     val primaryCompanion = contacts.firstOrNull { it.characterId == "mira" }
     val otherCharacters = contacts.filter { it.characterId != "mira" }
 
@@ -129,7 +141,7 @@ fun ContactsScreen(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "心网独立生命体名录 (共3位)",
+                            text = "心网独立生命体名录 (共${contacts.size}位)",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 10.5.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)

@@ -28,6 +28,8 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,7 +39,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.mock.MockData
+import com.example.data.registry.CharacterRegistry
+import com.example.data.relationship.repository.RelationshipStateRepository
 import com.example.data.model.RelationLink
 import com.example.ui.components.AiluaAvatar
 import com.example.ui.components.VirtualPhoneHomeBar
@@ -53,7 +56,27 @@ fun RelationsScreen(
     onToggleTheme: () -> Unit = {},
     onBack: () -> Unit = {}
 ) {
-    val relations = MockData.relationsList
+    val states by RelationshipStateRepository.states.collectAsStateWithLifecycle()
+    val relations = states.map { state ->
+        RelationLink(
+            id = "${state.fromCharacterId}_${state.toCharacterId}",
+            fromCharacterId = state.fromCharacterId,
+            toCharacterId = state.toCharacterId,
+            fromName = if (state.fromCharacterId == "user") "你" else CharacterRegistry.getCharacter(state.fromCharacterId).name,
+            toName = if (state.toCharacterId == "user") "你" else CharacterRegistry.getCharacter(state.toCharacterId).name,
+            relationshipLabel = when (state.stage) {
+                com.example.data.relationship.model.RelationshipStage.STRANGER -> "陌生"
+                com.example.data.relationship.model.RelationshipStage.ACQUAINTANCE -> "初识"
+                com.example.data.relationship.model.RelationshipStage.FAMILIAR -> "熟悉"
+                com.example.data.relationship.model.RelationshipStage.CLOSE -> "亲近"
+                com.example.data.relationship.model.RelationshipStage.INTIMATE -> "亲密"
+                com.example.data.relationship.model.RelationshipStage.STRAINED -> "紧张"
+            },
+            closeness = state.affinity,
+            recentInteraction = state.recentInteraction?.let { "$it · ${state.lastMeaningfulInteractionAt ?: state.updatedAt} · 信任 ${state.trust}" } ?: "尚无共同互动",
+            sharedMemory = state.sharedMemory ?: "尚无共同记忆（共 ${state.sharedMemoryCount} 条）",
+        )
+    }
 
     Box(
         modifier = Modifier

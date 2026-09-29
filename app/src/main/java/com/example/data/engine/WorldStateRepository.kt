@@ -3,6 +3,7 @@ package com.example.data.engine
 import com.example.data.local.AiluaLocalStore
 import com.example.data.mock.MockData
 import com.example.data.model.LifeEvent
+import com.example.data.relationship.repository.RelationshipStateRepository
 import com.example.data.model.LifeEventType
 import com.example.data.model.parseClockTimeToMinutes
 import com.example.data.model.sortedChronologically
@@ -59,6 +60,7 @@ object WorldStateRepository {
         val normalized = normalizeWorldTime(event)
         _events.value = listOf(normalized) + _events.value
         AiluaLocalStore.appendWorldEvent(normalized)
+        RelationshipStateRepository.observe(normalized)
         return normalized
     }
 

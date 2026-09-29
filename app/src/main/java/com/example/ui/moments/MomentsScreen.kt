@@ -59,6 +59,8 @@ import com.example.data.mock.MockData
 import com.example.data.model.MomentComment
 import com.example.data.model.MomentPost
 import com.example.data.engine.WorldStateRepository
+import com.example.data.engine.WorldHeartbeatEngine
+import com.example.data.relationship.repository.RelationshipStateRepository
 import com.example.data.projection.projectMoments
 import com.example.ui.components.AiluaAvatar
 import com.example.ui.components.VirtualPhoneHomeBar
@@ -210,6 +212,8 @@ fun MomentsScreen(
                                     timestamp = "刚刚"
                                 )
                                 localEdits[current.id] = current.copy(comments = current.comments + newComment)
+                                val worldClock = WorldHeartbeatEngine.worldClock.value
+                                RelationshipStateRepository.recordMomentComment(current.authorId, newComment.id, newCommentText, worldClock.dateLabel, worldClock.timeFormatted)
                             }
                         }
                     )

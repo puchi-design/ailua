@@ -244,7 +244,8 @@ class OpenAiCompatibleProvider(
             put("messages", messages)
             put("stream", request.stream)
             request.temperature?.let { put("temperature", it) }
-            request.maxTokens?.let { put("max_tokens", it) }
+              request.maxTokens?.let { put("max_tokens", it) }
+              if (request.jsonResponse) put("response_format", buildJsonObject { put("type", "json_object") })
         }.toString()
     }
 

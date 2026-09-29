@@ -6,6 +6,8 @@ import com.example.data.codec.CharacterCardJsonCodec
 import com.example.data.model.CallSession
 import com.example.data.model.CharacterCard
 import com.example.data.model.LifeEvent
+import com.example.data.model.WorldPlan
+import com.example.data.relationship.model.RelationshipState
 import com.example.data.model.ProactiveSettings
 import com.example.data.model.ProactiveState
 import com.example.data.model.TheaterBookmark
@@ -43,6 +45,8 @@ object AiluaLocalStore {
     const val KEY_CALL_HISTORY = "call_history_json"
     const val KEY_FIRED_WORLD_ACTION_IDS = "fired_world_action_ids"
     const val KEY_WORLD_EVENTS = "world_events_json"
+    const val KEY_WORLD_PLAN = "world_plan_json"
+    const val KEY_RELATIONSHIPS = "relationships_json"
     const val KEY_BOOKMARKED_MSGS = "bookmarked_message_ids"
     const val KEY_HOME_APP_ORDER = "home_app_order"
     const val KEY_PROACTIVE_ENABLED = "proactive_message_enabled"
@@ -80,6 +84,10 @@ object AiluaLocalStore {
 
     private val _savedWorldEvents = MutableStateFlow<List<LifeEvent>>(emptyList())
     val savedWorldEvents: StateFlow<List<LifeEvent>> = _savedWorldEvents.asStateFlow()
+    private val _savedWorldPlan = MutableStateFlow<WorldPlan?>(null)
+    val savedWorldPlan: StateFlow<WorldPlan?> = _savedWorldPlan.asStateFlow()
+    private val _savedRelationships = MutableStateFlow<List<RelationshipState>>(emptyList())
+    val savedRelationships: StateFlow<List<RelationshipState>> = _savedRelationships.asStateFlow()
 
     private val _savedCallHistory = MutableStateFlow<List<CallSession>>(emptyList())
     val savedCallHistory: StateFlow<List<CallSession>> = _savedCallHistory.asStateFlow()
@@ -133,6 +141,12 @@ object AiluaLocalStore {
                 val list = json.decodeFromString(ListSerializer(LifeEvent.serializer()), eventsJson)
                 _savedWorldEvents.value = list
             } catch (_: Exception) {}
+        }
+        prefs.getString(KEY_WORLD_PLAN, null)?.let { value ->
+            _savedWorldPlan.value = runCatching { json.decodeFromString(WorldPlan.serializer(), value) }.getOrNull()
+        }
+        prefs.getString(KEY_RELATIONSHIPS, null)?.let { value ->
+            _savedRelationships.value = runCatching { json.decodeFromString(ListSerializer(RelationshipState.serializer()), value) }.getOrDefault(emptyList())
         }
 
         // 6. Call History
@@ -249,6 +263,18 @@ object AiluaLocalStore {
             val updated = listOf(event) + current
             saveWorldEvents(updated)
         }
+    }
+
+    fun saveWorldPlan(plan: WorldPlan) {
+        val encoded = json.encodeToString(WorldPlan.serializer(), plan)
+        sharedPrefs?.edit()?.putString(KEY_WORLD_PLAN, encoded)?.apply()
+        _savedWorldPlan.value = plan
+    }
+
+    fun saveRelationships(states: List<RelationshipState>) {
+        val encoded = json.encodeToString(ListSerializer(RelationshipState.serializer()), states)
+        sharedPrefs?.edit()?.putString(KEY_RELATIONSHIPS, encoded)?.apply()
+        _savedRelationships.value = states
     }
 
     // === Call History ===

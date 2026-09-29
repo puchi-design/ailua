@@ -29,4 +29,6 @@ object ProviderGraph {
     val repository: ProviderRepository
         get() = instance
             ?: error("ProviderGraph.init(context) must be called from MainActivity.onCreate before use")
+
+    val isReady: Boolean get() = instance != null
 }

@@ -13,6 +13,8 @@ import com.example.data.chat.repository.ChatRepository
 import com.example.data.chat.repository.EpochClock
 import com.example.data.memory.model.MemoryType
 import com.example.data.memory.repository.MemoryRepository
+import com.example.data.engine.WorldHeartbeatEngine
+import com.example.data.relationship.repository.RelationshipStateRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
@@ -99,6 +101,8 @@ class AutoMemoryExtractor(
                     type = MemoryType.LONG_TERM,
                     importance = item.importance.coerceIn(0.0, 1.0),
                 )
+                val worldClock = WorldHeartbeatEngine.worldClock.value
+                RelationshipStateRepository.recordMemory(characterId, "batch:${batch.first().id}:${batch.last().id}:$index", content, worldClock.dateLabel, worldClock.timeFormatted)
             }
             cursorQueries.upsertMemoryExtractCursor(
                 cursor_key = cursorKey,
