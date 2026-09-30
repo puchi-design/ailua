@@ -16,4 +16,7 @@ data class ChatSession(
     val characterId: String,
     val createdAtEpochMs: Long,
     val updatedAtEpochMs: Long,
-)
+) {
+    val type: ChatSessionType get() = if (GroupChatIdentity.isGroup(characterId)) ChatSessionType.GROUP else ChatSessionType.PRIVATE
+    val participantCharacterIds: List<String> get() = GroupChatIdentity.participants(characterId)
+}

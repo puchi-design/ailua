@@ -1,6 +1,7 @@
 package com.example.data.chat.repository
 
 import com.example.data.chat.model.ChatSession
+import com.example.data.chat.model.GroupChatIdentity
 import com.example.data.chat.model.ChatTurn
 import com.example.data.chat.model.ChatVariant
 import com.example.data.chat.model.ResolvedChatTurn
@@ -39,6 +40,10 @@ interface ChatRepository {
      * creates one (P3C-3 §13 — one canonical session per character).
      */
     fun getOrCreatePrivateSession(characterId: String): ChatSession
+
+    /** Persists group membership in the canonical session's existing identity field. */
+    fun getOrCreateGroupSession(groupId: String, participants: List<String>): ChatSession =
+        getOrCreatePrivateSession(GroupChatIdentity.key(groupId, participants))
 
     /** Appends a USER turn with its single variant (index 0, [VariantStatus.COMPLETE]). */
     fun appendUserTurn(sessionId: String, content: String): ChatTurn

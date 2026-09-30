@@ -9,10 +9,22 @@ import com.example.data.ai.prompt.PromptAssembler
 import com.example.data.ai.prompt.PromptAssemblyInput
 import com.example.data.ai.prompt.PromptMemory
 import com.example.data.chat.model.ChatTurnRole
+import com.example.data.chat.model.GroupMessage
+import com.example.data.chat.model.GroupReply
+import com.example.data.chat.model.GroupSpeakerPlanner
 import com.example.data.chat.model.ResolvedChatTurn
 import com.example.data.chat.model.VariantStatus
 import com.example.data.chat.repository.ChatRepository
 import com.example.data.memory.repository.MemoryRepository
+import com.example.data.memory.model.MemoryType
+import com.example.data.firstsession.FirstSessionPolicy
+import com.example.data.engine.WorldHeartbeatEngine
+import com.example.data.engine.WorldStateRepository
+import com.example.data.model.LifeEvent
+import com.example.data.model.LifeEventType
+import com.example.data.model.LIFE_EVENT_ACTOR_USER
+import com.example.data.registry.CharacterRegistry
+import com.example.data.relationship.repository.RelationshipStateRepository
 import com.example.data.model.CharacterCardData
 import com.example.data.projection.CharacterPresence
 import com.example.data.reality.RealityContextPolicy
@@ -51,6 +63,7 @@ data class StreamingState(
     val turnId: String,
     val variantId: String,
     val text: String,
+    val speakerId: String? = null,
 )
 
 /**
@@ -91,6 +104,140 @@ class ChatGenerationRuntime(
 
     /** Live streaming state for the active generation; `null` when idle. */
     val streaming: StateFlow<StreamingState?> = _streaming.asStateFlow()
+
+    /** Group messages share the same SQLDelight repository, provider and prompt boundary. */
+    suspend fun sendGroup(groupId: String, participants: List<String>, userContent: String): SendResult {
+        if (userContent.isBlank()) return SendResult.NothingToRegenerate
+        val resolved = providerResolver.resolve() ?: return SendResult.NotConfigured
+        val session = repository.getOrCreateGroupSession(groupId, participants)
+        repository.recoverInterruptedVariants(session.id)
+        val userTurn = repository.appendUserTurn(session.id, userContent.trim())
+        val names = participants.associateWith { CharacterRegistry.getCharacter(it).name }
+        val previousCount = repository.getResolvedTurns(session.id).count { it.role == ChatTurnRole.ASSISTANT }
+        val speakers = GroupSpeakerPlanner.choose(userContent, participants, names, previousCount)
+        for ((index, speaker) in speakers.withIndex()) {
+            val result = generateGroupReply(session.id, participants, speaker, resolved, null, userContent)
+            if (result != SendResult.Completed) return result
+            FirstSessionPolicy.firstMemory(userContent)?.let { fact ->
+                memoryRepository.saveMemory(speaker, fact, "group_chat", userTurn.id, MemoryType.LONG_TERM, 0.7)
+            }
+            val clock = WorldHeartbeatEngine.worldClock.value
+            WorldStateRepository.appendLifeEvent(LifeEvent(
+                id = "group_user_${userTurn.id}_$speaker", characterId = speaker,
+                time = clock.timeFormatted, type = LifeEventType.MESSAGE,
+                title = "用户在群聊中与${names[speaker]}交流", description = userContent.take(120),
+                worldDateLabel = clock.dateLabel, worldMinutesOfDay = clock.minutesOfDay,
+                relatedCharacterIds = listOf("user"), sourceAppId = "group_chat", sourceRefId = userTurn.id,
+                metadata = mapOf("actor" to LIFE_EVENT_ACTOR_USER),
+            ))
+            if (index > 0) {
+                WorldStateRepository.appendLifeEvent(LifeEvent(
+                    id = "group_exchange_${userTurn.id}_$speaker", characterId = speaker,
+                    time = clock.timeFormatted, type = LifeEventType.MESSAGE,
+                    title = "${names[speaker]}回应${names[speakers[index - 1]]}", description = "两人在群聊中交换了想法",
+                    worldDateLabel = clock.dateLabel, worldMinutesOfDay = clock.minutesOfDay,
+                    relatedCharacterIds = listOf(speakers[index - 1]), sourceAppId = "group_chat", sourceRefId = userTurn.id,
+                ))
+            }
+        }
+        return SendResult.Completed
+    }
+
+    suspend fun regenerateGroup(groupId: String, participants: List<String>): SendResult {
+        val resolved = providerResolver.resolve() ?: return SendResult.NotConfigured
+        val session = repository.getOrCreateGroupSession(groupId, participants)
+        val turns = repository.getResolvedTurns(session.id)
+        val target = turns.lastOrNull { it.role == ChatTurnRole.ASSISTANT } ?: return SendResult.NothingToRegenerate
+        val speaker = GroupMessage.speaker(target.activeVariant?.content.orEmpty(), participants)
+            ?: return SendResult.NoCharacter
+        val lastUserText = turns.lastOrNull { it.role == ChatTurnRole.USER }?.activeVariant?.content.orEmpty()
+        return generateGroupReply(session.id, participants, speaker, resolved, target.id, lastUserText)
+    }
+
+    private suspend fun generateGroupReply(
+        sessionId: String, participants: List<String>, speaker: String,
+        resolved: ResolvedProvider, targetTurnId: String?, recentUserText: String,
+    ): SendResult {
+        if (speaker !in participants) return SendResult.NoCharacter
+        val card = promptContext.characterCard(speaker) ?: return SendResult.NoCharacter
+        val turns = repository.getResolvedTurns(sessionId)
+        val history = turns.filter { targetTurnId == null || it.id != targetTurnId }.takeLast(10).mapNotNull { turn ->
+            val variant = turn.activeVariant?.takeIf { it.status == VariantStatus.COMPLETE } ?: return@mapNotNull null
+            if (turn.role == ChatTurnRole.USER) AiMessage(AiRole.USER, variant.content.take(400))
+            else GroupMessage.decode(variant.content, participants)?.let { reply ->
+                AiMessage(AiRole.ASSISTANT, "${CharacterRegistry.getCharacter(reply.characterId).name}：${reply.content.take(400)}")
+            }
+        }
+        val presence = promptContext.presence(speaker)
+        val (date, time) = promptContext.temporal()
+        val relationships = RelationshipStateRepository.states.value.filter { state ->
+            speaker in listOf(state.fromCharacterId, state.toCharacterId) &&
+                (state.fromCharacterId in participants || state.fromCharacterId == "user") &&
+                (state.toCharacterId in participants || state.toCharacterId == "user")
+        }.take(4).joinToString("；") { "${it.fromCharacterId}与${it.toCharacterId}:${it.stage.name}" }
+        val groupRule = "这是群聊，成员：${participants.joinToString("、") { CharacterRegistry.getCharacter(it).name }}。" +
+            "本轮只由${CharacterRegistry.getCharacter(speaker).name}发言。你只能代表自己，不能替其他角色声明心理。" +
+            "只输出该角色要说的消息正文，不要角色名或其他角色回复。关系：$relationships"
+        val input = PromptAssemblyInput(
+            character = card, worldState = presence,
+            recentLifeEvents = promptContext.lifeEvents(speaker).takeLast(6),
+            memories = memoryRepository.getMemoriesForPrompt(speaker, 4).map {
+                PromptMemory(id = it.id, content = it.content, characterIds = listOf(speaker))
+            },
+            history = history, currentDate = date, currentTime = time,
+            activeLore = promptContext.activeLore(speaker, presence?.currentLocation, recentUserText, null).take(2),
+        )
+        val request = AiChatRequest(resolved.model, listOf(AiMessage(AiRole.SYSTEM, groupRule)) + PromptAssembler.assemble(input).messages)
+        val variantId: String
+        val turnId: String
+        if (targetTurnId == null) {
+            val turn = repository.appendAssistantTurn(sessionId, "$speaker\n", VariantStatus.STREAMING, resolved.profileId, resolved.model)
+            turnId = turn.id
+            variantId = turn.activeVariantId ?: error("group assistant variant missing")
+        } else {
+            turnId = targetTurnId
+            variantId = repository.appendVariant(targetTurnId, "$speaker\n", VariantStatus.STREAMING, resolved.profileId, resolved.model).id
+        }
+        val partial = StringBuilder()
+        _streaming.value = StreamingState(sessionId, turnId, variantId, "", speaker)
+        var result: SendResult = SendResult.Failed(AiProviderError.Protocol("回复中断"))
+        try {
+            resolved.provider.streamChat(request).collect { event ->
+                when (event) {
+                    is AiStreamEvent.Delta -> {
+                        partial.append(event.text)
+                        _streaming.value = StreamingState(sessionId, turnId, variantId, partial.toString(), speaker)
+                    }
+                    is AiStreamEvent.Completed -> {
+                        if (event.text.isNotBlank()) {
+                            repository.updateVariant(variantId, GroupMessage.encode(GroupReply(speaker, event.text), participants), VariantStatus.COMPLETE)
+                            result = SendResult.Completed
+                        } else {
+                            repository.updateVariant(variantId, "$speaker\n", VariantStatus.FAILED, "EMPTY", "回复为空")
+                        }
+                    }
+                    is AiStreamEvent.Failed -> {
+                        repository.updateVariant(variantId, "$speaker\n", VariantStatus.FAILED, event.error.typeName(), "生成失败")
+                        result = SendResult.Failed(event.error)
+                    }
+                    AiStreamEvent.Cancelled -> {
+                        repository.updateVariant(variantId, "$speaker\n", VariantStatus.CANCELLED, "CANCELLED", null)
+                        result = SendResult.Cancelled
+                    }
+                    else -> Unit
+                }
+            }
+            if (result is SendResult.Failed && repository.getVariants(turnId).lastOrNull()?.status == VariantStatus.STREAMING) {
+                repository.updateVariant(variantId, "$speaker\n", VariantStatus.FAILED, "INTERRUPTED", "回复中断")
+            }
+            return result
+        } catch (e: CancellationException) {
+            withContext(NonCancellable) { repository.updateVariant(variantId, "$speaker\n", VariantStatus.CANCELLED, "CANCELLED", null) }
+            throw e
+        } finally {
+            _streaming.value = null
+        }
+    }
 
     /** Sends one user message and generates the real assistant reply (§5). */
     suspend fun send(characterId: String, userContent: String): SendResult {
