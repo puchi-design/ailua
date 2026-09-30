@@ -3,6 +3,7 @@ package com.example
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.firstsession.FirstSessionStore
+import com.example.data.context.CharacterContext
 import com.example.data.reality.RealityRepository
 import com.example.data.reality.RealitySettings
 import org.junit.Assert.*
@@ -29,5 +30,13 @@ class P5SettingsPersistenceTest {
         RealityRepository.init(context)
         assertEquals(disabled, RealityRepository.settings.value)
         RealityRepository.setSettings(RealitySettings())
+
+        CharacterContext.init(context)
+        CharacterContext.select("yuna")
+        assertEquals("yuna", context.getSharedPreferences("ailua_character_context", Context.MODE_PRIVATE)
+            .getString("selected_id", null))
+        CharacterContext.init(context)
+        assertEquals("yuna", CharacterContext.currentId())
+        CharacterContext.select("mira")
     }
 }

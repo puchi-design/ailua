@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -87,6 +88,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AiluaLocalStore.init(applicationContext)
+        CharacterContext.init(applicationContext)
         FirstSessionStore.init(applicationContext)
         RealityRepository.init(applicationContext)
         RelationshipStateRepository.restore()
@@ -132,7 +134,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AiluaAppRoot() {
     val systemDark = isSystemInDarkTheme()
-    var isDarkTheme by remember { mutableStateOf(systemDark) }
+    val context = LocalContext.current
+    val appearancePrefs = remember(context) { context.getSharedPreferences("ailua_settings", android.content.Context.MODE_PRIVATE) }
+    var isDarkTheme by remember { mutableStateOf(appearancePrefs.getBoolean("dark_theme", systemDark)) }
+    LaunchedEffect(isDarkTheme) { appearancePrefs.edit().putBoolean("dark_theme", isDarkTheme).apply() }
     val navController = rememberNavController()
     val firstSession by FirstSessionStore.state.collectAsStateWithLifecycle()
     var postWelcomeRoute by remember { mutableStateOf<String?>(null) }

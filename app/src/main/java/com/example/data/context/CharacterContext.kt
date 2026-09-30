@@ -1,5 +1,6 @@
 package com.example.data.context
 
+import android.content.Context
 import com.example.data.model.CharacterProfile
 import com.example.data.registry.CharacterRegistry
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,10 +27,19 @@ object CharacterContext {
 
     private val _selectedId = MutableStateFlow(DEFAULT_CHARACTER_ID)
     val selectedId: StateFlow<String> = _selectedId.asStateFlow()
+    private var context: Context? = null
+
+    fun init(appContext: Context) {
+        context = appContext.applicationContext
+        _selectedId.value = context!!.getSharedPreferences("ailua_character_context", Context.MODE_PRIVATE)
+            .getString("selected_id", DEFAULT_CHARACTER_ID)?.takeIf { it.isNotBlank() } ?: DEFAULT_CHARACTER_ID
+    }
 
     fun select(characterId: String) {
         if (characterId.isBlank()) return
         _selectedId.value = characterId
+        context?.getSharedPreferences("ailua_character_context", Context.MODE_PRIVATE)
+            ?.edit()?.putString("selected_id", characterId)?.apply()
     }
 
     fun currentId(): String = _selectedId.value
