@@ -463,6 +463,7 @@ fun AiluaAppRoot() {
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBack = { navController.popBackStack() },
                         onPreviewCharacter = { charId ->
+                            CharacterContext.select(charId)
                             navController.navigate(AiluaDestinations.profileRoute(charId))
                         }
                     )
