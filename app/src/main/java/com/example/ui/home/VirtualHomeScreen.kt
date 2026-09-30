@@ -8,7 +8,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,10 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -67,7 +62,14 @@ import com.example.data.projection.projectPresence
 import com.example.data.model.isUserActivity
 import com.example.data.model.sortedChronologically
 import com.example.data.engine.WorldStateRepository
-import com.example.data.local.AiluaLocalStore
+import com.example.data.desktop.DesktopItem
+import com.example.data.desktop.DesktopPlacement
+import com.example.data.desktop.WorkspaceSeed
+import com.example.ui.design.launcher.WorkspaceAppGrid
+import com.example.ui.design.launcher.WorkspaceAppLabel
+import com.example.ui.design.launcher.WorkspaceViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.platform.LocalContext
 import com.example.data.mock.MockData
 import com.example.data.model.CharacterProfile
 import com.example.data.model.LetterDeliveryState
@@ -86,8 +88,6 @@ import com.example.ui.theme.AiluaDustyRose
 import com.example.ui.theme.AiluaMistBlue
 import com.example.ui.theme.AiluaMoonGold
 import com.example.ui.theme.AiluaMutedLavender
-import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.rememberReorderableLazyGridState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -115,6 +115,10 @@ fun VirtualHomeScreen(
     initialEditing: Boolean = false
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
+    val context = LocalContext.current
+    val workspaceViewModel: WorkspaceViewModel = viewModel(factory = WorkspaceViewModel.factory(context))
+    val workspace by workspaceViewModel.workspace.collectAsStateWithLifecycle()
+    val workspaceError by workspaceViewModel.error.collectAsStateWithLifecycle()
     val worldClock by WorldHeartbeatEngine.worldClock.collectAsStateWithLifecycle()
     val heartbeatState by WorldHeartbeatEngine.heartbeatState.collectAsStateWithLifecycle()
     val firstSession by FirstSessionStore.state.collectAsStateWithLifecycle()
@@ -141,18 +145,6 @@ fun VirtualHomeScreen(
         HomeAppDef("call_history", "通话记录", "call", null)
     )
 
-    // Saved order wins, unknown ids drop, brand new apps append at the end
-    var homeAppOrder by remember {
-        mutableStateOf(
-            HomeAppOrder.normalize(
-                savedIds = AiluaLocalStore.getHomeAppOrder(),
-                availableIds = defaultHomeApps.map { it.id }
-            )
-        )
-    }
-    val homeApps = homeAppOrder.mapNotNull { id -> defaultHomeApps.firstOrNull { it.id == id } }
-    val persistHomeAppOrder = { AiluaLocalStore.saveHomeAppOrder(homeAppOrder) }
-
     // Wallpaper: default theme tracks the AILUA world clock, the other themes stay fixed
     val wallpaper = themeWallpaper(
         theme = homeTheme,
@@ -163,7 +155,6 @@ fun VirtualHomeScreen(
 
     // Long press the wallpaper enters edit mode, tapping blank space leaves it
     BackHandler(enabled = isEditing) {
-        persistHomeAppOrder()
         isEditing = false
     }
 
@@ -175,7 +166,6 @@ fun VirtualHomeScreen(
                 detectTapGestures(
                     onTap = {
                         if (isEditing) {
-                            persistHomeAppOrder()
                             isEditing = false
                         }
                     },
@@ -204,16 +194,15 @@ fun VirtualHomeScreen(
                 when (page) {
                     0 -> PageMainHome(
                         character = character,
-                        homeApps = homeApps,
+                        homeApps = defaultHomeApps,
+                        workspaceItems = workspace.itemsFor(WorkspaceSeed.HOME_ID),
                         worldClock = worldClock,
                         heartbeatState = heartbeatState,
                         accent = homeTheme.accent,
                         isEditing = isEditing,
+                        isDragging = isGridDragging,
                         onEnterEdit = { isEditing = true },
-                        onOrderMove = { fromIndex, toIndex ->
-                            homeAppOrder = HomeAppOrder.move(homeAppOrder, fromIndex, toIndex)
-                            persistHomeAppOrder()
-                        },
+                        onCommitLayout = workspaceViewModel::commitLayout,
                         onDragStateChange = { isGridDragging = it },
                         onOpenDevTime = { showDevTimeSheet = true },
                         onNavigateToMessages = onNavigateToMessages,
@@ -255,7 +244,6 @@ fun VirtualHomeScreen(
                             testTag = "home_edit_done",
                             accent = homeTheme.accent
                         ) {
-                            persistHomeAppOrder()
                             isEditing = false
                         }
                     }
@@ -296,6 +284,8 @@ fun VirtualHomeScreen(
                 }
             }
 
+            workspaceError?.let { Text(it, modifier = Modifier.padding(horizontal = 24.dp), color = MaterialTheme.colorScheme.error) }
+
             if (!firstSession.journeyComplete) {
                 val guideText = if (!firstSession.receivedFirstReply) {
                     "${character.name}好像在等你 · 去聊聊"
@@ -329,7 +319,6 @@ fun VirtualHomeScreen(
                 canGoBack = false,
                 onGoHome = {
                     if (isEditing) {
-                        persistHomeAppOrder()
                         isEditing = false
                     }
                 }
@@ -354,12 +343,14 @@ fun VirtualHomeScreen(
 private fun PageMainHome(
     character: CharacterProfile,
     homeApps: List<HomeAppDef>,
+    workspaceItems: List<DesktopItem>,
     worldClock: com.example.data.model.WorldClock,
     heartbeatState: com.example.data.engine.WorldHeartbeatState,
     accent: Color,
     isEditing: Boolean,
+    isDragging: Boolean,
     onEnterEdit: () -> Unit,
-    onOrderMove: (Int, Int) -> Unit,
+    onCommitLayout: (Map<String, DesktopPlacement>) -> Unit,
     onDragStateChange: (Boolean) -> Unit,
     onOpenDevTime: () -> Unit,
     onNavigateToMessages: () -> Unit,
@@ -390,6 +381,7 @@ private fun PageMainHome(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState(), enabled = !isDragging)
             .padding(horizontal = 18.dp)
     ) {
         Spacer(modifier = Modifier.height(2.dp))
@@ -403,33 +395,24 @@ private fun PageMainHome(
 
         Spacer(modifier = Modifier.height(22.dp))
 
-        // Launcher icon grid fills the rest of the desktop page (scrolls itself)
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-        ) {
-            AppIconGrid(
-                apps = homeApps,
+        // P5.2 spatial workspace: six real rows, including empty cells.
+        val visibleRows = if (isEditing) 6 else maxOf(3, (workspaceItems.maxOfOrNull { it.cellY + it.spanY } ?: 0) + 1).coerceAtMost(6)
+        Box(Modifier.fillMaxWidth().height((visibleRows * 82).dp)) {
+            WorkspaceAppGrid(
+                items = workspaceItems,
+                displayRows = visibleRows,
+                labels = homeApps.associate { it.id to WorkspaceAppLabel(it.name, it.iconKey, it.badge) },
                 isEditing = isEditing,
                 onEnterEdit = onEnterEdit,
-                onOrderMove = onOrderMove,
-                onDragStateChange = onDragStateChange,
-                onAppClick = { app ->
+                onDragging = onDragStateChange,
+                onCommit = onCommitLayout,
+                onAppClick = { id ->
                     dispatchAppAction(
-                        app.id,
-                        onNavigateToMessages,
-                        onNavigateToMoments,
-                        onNavigateToLiving,
-                        onNavigateToContacts,
-                        onNavigateToCheckPhone,
-                        onNavigateToDiary,
-                        onNavigateToMemories,
-                        onNavigateToRelations,
-                        onNavigateToApps,
-                        onAppClick
+                        id, onNavigateToMessages, onNavigateToMoments, onNavigateToLiving,
+                        onNavigateToContacts, onNavigateToCheckPhone, onNavigateToDiary,
+                        onNavigateToMemories, onNavigateToRelations, onNavigateToApps, onAppClick
                     )
-                }
+                },
             )
         }
 
@@ -677,63 +660,6 @@ internal fun LivingPresenceStrip(
                 modifier = Modifier.size(17.dp),
                 tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
-        }
-    }
-}
-
-@Composable
-private fun AppIconGrid(
-    apps: List<HomeAppDef>,
-    isEditing: Boolean,
-    onEnterEdit: () -> Unit,
-    onOrderMove: (Int, Int) -> Unit,
-    onDragStateChange: (Boolean) -> Unit,
-    onAppClick: (HomeAppDef) -> Unit
-) {
-    val lazyGridState = rememberLazyGridState()
-    val reorderableLazyGridState = rememberReorderableLazyGridState(lazyGridState) { from, to ->
-        onOrderMove(from.index, to.index)
-    }
-
-    LazyVerticalGrid(
-        state = lazyGridState,
-        columns = GridCells.Fixed(4),
-        modifier = Modifier
-            .fillMaxSize()
-            .testTag("home_app_grid"),
-        verticalArrangement = Arrangement.spacedBy(18.dp),
-        contentPadding = PaddingValues(bottom = 10.dp)
-    ) {
-        items(apps, key = { it.id }) { app ->
-            ReorderableItem(reorderableLazyGridState, key = app.id) { isDraggingItem ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .pointerInput(app.id) {
-                            detectTapGestures(
-                                onLongPress = { if (!isEditing) onEnterEdit() }
-                            )
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    AppIconItem(
-                        name = app.name,
-                        iconKey = app.iconKey,
-                        badge = app.badge,
-                        editMode = isEditing,
-                        isDragging = isDraggingItem,
-                        onClick = if (isEditing) ({}) else ({ onAppClick(app) }),
-                        modifier = if (isEditing) {
-                            Modifier.draggableHandle(
-                                onDragStarted = { onDragStateChange(true) },
-                                onDragStopped = { onDragStateChange(false) }
-                            )
-                        } else {
-                            Modifier
-                        }
-                    )
-                }
-            }
         }
     }
 }
