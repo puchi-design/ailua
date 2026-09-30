@@ -49,6 +49,7 @@ object AiluaLocalStore {
     const val KEY_RELATIONSHIPS = "relationships_json"
     const val KEY_BOOKMARKED_MSGS = "bookmarked_message_ids"
     const val KEY_HOME_APP_ORDER = "home_app_order"
+    const val KEY_WORKSPACE_MIGRATION_COMPLETE = "workspace_migration_complete"
     const val KEY_PROACTIVE_ENABLED = "proactive_message_enabled"
     const val KEY_PROACTIVE_INTERVAL_HOURS = "proactive_interval_hours"
     const val KEY_PROACTIVE_QUIET_START = "proactive_quiet_start_minute"
@@ -338,6 +339,11 @@ object AiluaLocalStore {
     fun saveHomeAppOrder(ids: List<String>) {
         _homeAppOrder.value = ids
         sharedPrefs?.edit()?.putString(KEY_HOME_APP_ORDER, ids.joinToString(","))?.apply()
+    }
+
+    /** Audit marker only; the SQLDelight tables remain the source of truth. */
+    fun markWorkspaceMigrated() {
+        sharedPrefs?.edit()?.putBoolean(KEY_WORKSPACE_MIGRATION_COMPLETE, true)?.apply()
     }
 
     // === Proactive Message Settings (P3D-2) ===

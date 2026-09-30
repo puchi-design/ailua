@@ -1,0 +1,24 @@
+CREATE TABLE desktop_item (
+ id TEXT NOT NULL PRIMARY KEY,
+ item_type TEXT NOT NULL,
+ source_id TEXT NOT NULL,
+ container TEXT NOT NULL,
+ page_id TEXT,
+ cell_x INTEGER NOT NULL,
+ cell_y INTEGER NOT NULL,
+ span_x INTEGER NOT NULL DEFAULT 1,
+ span_y INTEGER NOT NULL DEFAULT 1,
+ rank INTEGER NOT NULL DEFAULT 0,
+ locked INTEGER NOT NULL DEFAULT 0,
+ FOREIGN KEY(page_id) REFERENCES desktop_page(id) ON DELETE CASCADE
+);
+CREATE INDEX desktop_item_page_idx ON desktop_item(page_id);
+selectAllItems:
+SELECT * FROM desktop_item ORDER BY container, page_id, rank, id;
+insertItem:
+INSERT INTO desktop_item(id, item_type, source_id, container, page_id, cell_x, cell_y, span_x, span_y, rank, locked)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+updatePlacement:
+UPDATE desktop_item SET container = ?, page_id = ?, cell_x = ?, cell_y = ?, span_x = ?, span_y = ?, rank = ? WHERE id = ?;
+deleteItem:
+DELETE FROM desktop_item WHERE id = ?;

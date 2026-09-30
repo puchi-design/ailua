@@ -1,0 +1,17 @@
+CREATE TABLE desktop_page (
+ id TEXT NOT NULL PRIMARY KEY,
+ rank INTEGER NOT NULL,
+ is_home INTEGER NOT NULL DEFAULT 0
+);
+selectAllPages:
+SELECT * FROM desktop_page ORDER BY rank ASC;
+insertPage:
+INSERT INTO desktop_page(id, rank, is_home) VALUES (?, ?, ?);
+deletePage:
+DELETE FROM desktop_page WHERE id = ?;
+updatePageRank:
+UPDATE desktop_page SET rank = ? WHERE id = ?;
+clearHomePage:
+UPDATE desktop_page SET is_home = 0;
+markHomePage:
+UPDATE desktop_page SET is_home = 1 WHERE id = ?;
