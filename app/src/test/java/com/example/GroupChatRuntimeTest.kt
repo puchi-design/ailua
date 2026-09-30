@@ -11,6 +11,7 @@ import com.example.data.chat.model.GroupMessage
 import com.example.data.chat.model.GroupReply
 import com.example.data.chat.model.GroupSpeakerPlanner
 import com.example.data.chat.model.VariantStatus
+import com.example.data.engine.WorldStateRepository
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
@@ -75,6 +76,10 @@ class GroupChatRuntimeTest {
         assertEquals(listOf("mira", "yuna"), afterTwo.takeLast(2).mapNotNull {
             GroupMessage.decode(it.activeVariant?.content.orEmpty(), participants)?.characterId
         })
+        val secondTurnEvents = WorldStateRepository.events.value.filter { it.sourceAppId == "group_chat" && it.sourceRefId == afterTwo[2].id }
+        assertEquals(setOf("mira", "yuna"), secondTurnEvents.filter { "user" in it.relatedCharacterIds }.map { it.characterId }.toSet())
+        assertEquals(listOf("mira"), secondTurnEvents.single { it.id.startsWith("group_exchange_") }.relatedCharacterIds)
+        assertFalse(secondTurnEvents.any { it.characterId == "noa" })
         assertEquals(SendResult.Completed, fixture.runtime.regenerateGroup("rain_tea", participants))
         val last = fixture.repository.getResolvedTurns(session.id).last()
         assertEquals(ChatTurnRole.ASSISTANT, last.role)

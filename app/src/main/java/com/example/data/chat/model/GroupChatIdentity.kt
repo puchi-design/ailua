@@ -9,7 +9,7 @@ object GroupChatIdentity {
         require(groupId.matches(Regex("[a-z0-9_]+")))
         require(participants.size in 2..8 && participants.distinct().size == participants.size)
         require(participants.all { it.matches(Regex("[a-z0-9_]+")) })
-        return "$PREFIX$groupId:${participants.joinToString(",")}" 
+        return "$PREFIX$groupId:${participants.joinToString(",")}"
     }
     fun participants(key: String): List<String> =
         if (key.startsWith(PREFIX)) key.substringAfterLast(':').split(',').filter { it.isNotBlank() } else emptyList()

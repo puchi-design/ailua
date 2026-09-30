@@ -74,6 +74,8 @@ import com.example.ui.moments.MomentsScreen
 import com.example.ui.onboarding.WelcomeScreen
 import com.example.ui.relations.RelationsScreen
 import com.example.ui.reality.RealityBridgeScreen
+import com.example.ui.settings.SettingsScreen
+import com.example.ui.settings.PrivacyScreen
 import com.example.ui.theater.TheaterScreen
 import com.example.ui.theme.AiluaTheme
 import com.example.ui.world.WorldPlacesScreen
@@ -389,11 +391,26 @@ fun AiluaAppRoot() {
                         onNavigateToMailbox = { navController.navigate(AiluaDestinations.MAILBOX) },
                         onNavigateToCall = { navController.navigate(AiluaDestinations.callRoute(selectedCharacterId)) },
                         onNavigateToGallery = { navController.navigate(AiluaDestinations.GALLERY) },
-                        onNavigateToReality = { navController.navigate(AiluaDestinations.REALITY) }
+                        onNavigateToReality = { navController.navigate(AiluaDestinations.REALITY) },
+                        onNavigateToSettings = { navController.navigate(AiluaDestinations.SETTINGS) }
                     )
                 }
                 composable(AiluaDestinations.REALITY) {
                     RealityBridgeScreen(onBack = { navController.popBackStack() }, isDarkTheme = isDarkTheme, onToggleTheme = { isDarkTheme = !isDarkTheme })
+                }
+                composable(AiluaDestinations.SETTINGS) {
+                    SettingsScreen(
+                        onBack = { navController.popBackStack() },
+                        onReality = { navController.navigate(AiluaDestinations.REALITY) },
+                        onPrivacy = { navController.navigate(AiluaDestinations.PRIVACY) },
+                        onCharacters = { navController.navigate(AiluaDestinations.CHARACTER_CREATOR) },
+                        onToggleTheme = { isDarkTheme = !isDarkTheme },
+                        isDarkTheme = isDarkTheme,
+                    )
+                }
+                composable(AiluaDestinations.PRIVACY) {
+                    PrivacyScreen(onBack = { navController.popBackStack() }, isDarkTheme = isDarkTheme,
+                        onToggleTheme = { isDarkTheme = !isDarkTheme })
                 }
 
                 // Screen 12: Character Profile

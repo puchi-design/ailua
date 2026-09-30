@@ -17,7 +17,7 @@ data class ProviderPreset(val label: String, val url: String, val model: String)
 object ProviderSetup {
     val presets = listOf(
         ProviderPreset("OpenAI", "https://api.openai.com/v1", "gpt-4o-mini"),
-        ProviderPreset("DeepSeek", "https://api.deepseek.com/v1", "deepseek-chat"),
+        ProviderPreset("DeepSeek", "https://api.deepseek.com", "deepseek-flash"),
         ProviderPreset("OpenRouter", "https://openrouter.ai/api/v1", "openai/gpt-4o-mini"),
         ProviderPreset("兼容接口 / 自定义", "", ""),
     )

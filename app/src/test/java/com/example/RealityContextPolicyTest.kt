@@ -23,5 +23,7 @@ class RealityContextPolicyTest {
         assertTrue(allText.contains("5 小时"))
         assertTrue(allText.contains("8000 步"))
         assertFalse(allText.contains("社交"))
+        assertNull(RealityContextPolicy.context(snapshot.copy(todayScreenTimeMinutes = null, todaySteps = null),
+            RealitySettings(batteryEnabled = false)))
     }
 }

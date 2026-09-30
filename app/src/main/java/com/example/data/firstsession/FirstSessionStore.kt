@@ -5,6 +5,7 @@ import com.example.data.engine.WorldHeartbeatEngine
 import com.example.data.engine.WorldStateRepository
 import com.example.data.model.LifeEvent
 import com.example.data.model.LifeEventType
+import com.example.data.model.WorldClock
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -27,6 +28,21 @@ object FirstSessionPolicy {
         val name = Regex("^(?:我叫|你可以叫我|叫我)([\\p{L}\\p{N}]{2,12})[。！!，, ]*$").matchEntire(trimmed)
         if (name != null) return "用户希望被称为${name.groupValues[1]}"
         return null
+    }
+
+    fun continuation(characterId: String, characterName: String, location: String, clock: WorldClock): LifeEvent {
+        val activity = when (characterId) {
+            "yuna" -> "整理新甜点的食谱"
+            "noa" -> "翻开桌边的旧书"
+            else -> "整理窗边的手记"
+        }
+        return LifeEvent(
+            id = "first_session_continuation_$characterId", characterId = characterId,
+            time = clock.timeFormatted, type = LifeEventType.THOUGHT,
+            title = "$characterName$activity", description = "$characterName$activity，继续自己的生活。",
+            location = location, worldDateLabel = clock.dateLabel,
+            worldMinutesOfDay = clock.minutesOfDay, sourceAppId = "first_session",
+        )
     }
 }
 
@@ -70,15 +86,9 @@ object FirstSessionStore {
 
     fun markFirstReply(characterId: String, characterName: String, location: String) {
         if (mutable.value.receivedFirstReply) return
-        update("reply") { it.copy(receivedFirstReply = true) }
         val clock = WorldHeartbeatEngine.worldClock.value
-        WorldStateRepository.appendLifeEvent(LifeEvent(
-            id = "first_session_continuation_$characterId", characterId = characterId,
-            time = clock.timeFormatted, type = LifeEventType.THOUGHT,
-            title = "${characterName}整理手记", description = "${characterName}回到窗边，继续整理刚才的手记。",
-            location = location, worldDateLabel = clock.dateLabel,
-            worldMinutesOfDay = clock.minutesOfDay, sourceAppId = "first_session",
-        ))
+        WorldStateRepository.appendLifeEvent(FirstSessionPolicy.continuation(characterId, characterName, location, clock))
+        update("reply") { it.copy(receivedFirstReply = true) }
         update("continuation") { it.copy(continuationCreated = true) }
     }
 }

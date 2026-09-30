@@ -52,6 +52,7 @@ import com.example.ui.theme.AiluaMistBlue
 import com.example.ui.theme.AiluaMoonGold
 import java.util.UUID
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 import androidx.compose.runtime.rememberCoroutineScope
 
 /**
@@ -315,7 +316,9 @@ fun AiConnectionSheet(
                                     editingId = saved.id
                                     onConnected()
                                 }
-                            } finally { isTesting = false }
+                            } catch (e: CancellationException) { throw e }
+                            catch (_: Exception) { statusMessage = "连接测试失败，请检查配置后重试" }
+                            finally { isTesting = false }
                         }
                     },
                     enabled = canSave,

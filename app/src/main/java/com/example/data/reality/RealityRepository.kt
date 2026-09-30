@@ -48,6 +48,8 @@ object RealityRepository {
         val prefs = appContext.getSharedPreferences("reality_bridge", Context.MODE_PRIVATE)
         _settings.value = RealitySettings(
             enabled = prefs.getBoolean("enabled", true),
+            batteryEnabled = prefs.getBoolean("battery_enabled", true),
+            screenEnabled = prefs.getBoolean("screen_enabled", true),
             usageEnabled = prefs.getBoolean("usage_enabled", false),
             healthEnabled = prefs.getBoolean("health_enabled", false),
         )
@@ -57,6 +59,8 @@ object RealityRepository {
         val ctx = context ?: return
         ctx.getSharedPreferences("reality_bridge", Context.MODE_PRIVATE).edit()
             .putBoolean("enabled", value.enabled)
+            .putBoolean("battery_enabled", value.batteryEnabled)
+            .putBoolean("screen_enabled", value.screenEnabled)
             .putBoolean("usage_enabled", value.usageEnabled)
             .putBoolean("health_enabled", value.healthEnabled)
             .apply()
@@ -98,7 +102,7 @@ object RealityRepository {
             val percent = if (level >= 0 && scale > 0) level * 100 / scale else null
             val status = battery?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
             val charging = if (status >= 0) status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL else null
-            val interactive = runCatching { (ctx.getSystemService(Context.POWER_SERVICE) as PowerManager).isInteractive }.getOrNull()
+            val interactive = if (settingsValue.screenEnabled) runCatching { (ctx.getSystemService(Context.POWER_SERVICE) as PowerManager).isInteractive }.getOrNull() else null
             val usage = if (settingsValue.usageEnabled && usageGranted) {
                 if (force || now - usageFetchedAt >= 15 * 60_000L) {
                     cachedUsage = readUsage(ctx, now)

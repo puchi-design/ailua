@@ -704,7 +704,7 @@ object MockData {
             category = "核心伴生",
             description = "与陪伴者开启私密温存的心灵对话，支持主动来信、语音、叙事与群聊茶会",
             status = AppStatus.AVAILABLE,
-            badge = "2",
+            badge = null,
             iconKey = "chat",
             route = "messages"
         ),
@@ -724,7 +724,7 @@ object MockData {
             category = "核心伴生",
             description = "陪伴者的生活圈与心境记录，分享日常照片、即时所感与随笔碎碎念",
             status = AppStatus.AVAILABLE,
-            badge = "New",
+            badge = null,
             iconKey = "moments",
             route = "moments"
         ),
@@ -744,7 +744,7 @@ object MockData {
             category = "核心伴生",
             description = "陪伴者手写的私密心灵日记本，记录生活微澜、天气心境与对你的挂念",
             status = AppStatus.AVAILABLE,
-            badge = "3",
+            badge = null,
             iconKey = "diary",
             route = "diary"
         ),
@@ -774,7 +774,7 @@ object MockData {
             category = "核心伴生",
             description = "羁绊沉淀的心灵结晶库，回溯对话中诞生的宝贵承诺与情绪碎片",
             status = AppStatus.AVAILABLE,
-            badge = "12",
+            badge = null,
             iconKey = "memories",
             route = "memories"
         ),

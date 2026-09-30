@@ -199,11 +199,15 @@ class ChatViewModel(
             }
             SendResult.Completed -> {
                 if (!FirstSessionStore.state.value.receivedFirstReply && lastUserText != null) {
-                    FirstSessionPolicy.firstMemory(lastUserText.orEmpty())?.let { fact ->
-                        memoryRepository.saveMemory(characterId, fact, "chat", "first_session_name", MemoryType.LONG_TERM, 0.8)
+                    try {
+                        FirstSessionPolicy.firstMemory(lastUserText.orEmpty())?.let { fact ->
+                            memoryRepository.saveMemory(characterId, fact, "chat", "first_session_name", MemoryType.LONG_TERM, 0.8)
+                        }
+                        FirstSessionStore.markSent()
+                        FirstSessionStore.markFirstReply(characterId, character.name, character.location)
+                    } catch (_: Exception) {
+                        // First-session guidance is optional; the completed reply is authoritative.
                     }
-                    FirstSessionStore.markSent()
-                    FirstSessionStore.markFirstReply(characterId, character.name, character.location)
                 }
                 recordChatActivity()
                 launchAutoMemory()

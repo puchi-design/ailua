@@ -92,6 +92,9 @@ fun GroupChatScreen(
                 TextButton(onClick = { vm.dismissError() }) { Text("关闭") }
             }
         }
+        if (!state.busy && state.messages.lastOrNull()?.speakerId != null && state.messages.lastOrNull()?.failed == false) {
+            TextButton(onClick = { vm.regenerate() }) { Text("重新生成上一条回复") }
+        }
         if (state.busy) TextButton(onClick = { vm.cancel() }) { Text("停止生成") }
         Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
@@ -128,6 +131,8 @@ private fun GroupBubble(message: GroupUiMessage) {
         ) {
             if (speaker != null) Text(speaker.name, style = MaterialTheme.typography.labelSmall)
             Text(message.text, style = MaterialTheme.typography.bodyMedium)
+            if (message.time.isNotBlank()) Text(message.time, style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

@@ -54,6 +54,8 @@ fun RealityBridgeScreen(onBack: () -> Unit, isDarkTheme: Boolean = false, onTogg
             Text("现实感知", style = MaterialTheme.typography.headlineSmall)
             Text("只读取本机概括信号。使用统计和健康数据需主动开启；原始记录不会写入世界事件或聊天数据库。", style = MaterialTheme.typography.bodyMedium)
             SettingRow("启用现实感知", settings.enabled) { RealityRepository.setSettings(settings.copy(enabled = it)) }
+            SettingRow("使用电量作为聊天背景", settings.batteryEnabled) { RealityRepository.setSettings(settings.copy(batteryEnabled = it)) }
+            SettingRow("读取屏幕交互状态", settings.screenEnabled) { RealityRepository.setSettings(settings.copy(screenEnabled = it)) }
             Text("电量：${snapshot?.batteryPercent?.let { "$it%" } ?: "未知"}${if (snapshot?.charging == true) " · 充电中" else ""}")
             Text("屏幕：${when (snapshot?.screenInteractive) { true -> "正在使用"; false -> "未交互"; null -> "未知" }}")
             SettingRow("允许读取使用时长", settings.usageEnabled) { RealityRepository.setSettings(settings.copy(usageEnabled = it)) }

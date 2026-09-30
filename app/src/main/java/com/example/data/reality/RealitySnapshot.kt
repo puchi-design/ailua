@@ -18,6 +18,8 @@ data class RealitySnapshot(
 
 data class RealitySettings(
     val enabled: Boolean = true,
+    val batteryEnabled: Boolean = true,
+    val screenEnabled: Boolean = true,
     val usageEnabled: Boolean = false,
     val healthEnabled: Boolean = false,
 )
@@ -27,7 +29,7 @@ object RealityContextPolicy {
     fun context(snapshot: RealitySnapshot?, settings: RealitySettings): String? {
         if (!settings.enabled || snapshot == null) return null
         val lines = buildList {
-            if (snapshot.batteryPercent != null && snapshot.batteryPercent < 20 && snapshot.charging == false)
+            if (settings.batteryEnabled && snapshot.batteryPercent != null && snapshot.batteryPercent < 20 && snapshot.charging == false)
                 add("手机电量较低（${snapshot.batteryPercent}%），尚未充电")
             if (settings.usageEnabled && snapshot.todayScreenTimeMinutes != null && snapshot.todayScreenTimeMinutes >= 240)
                 add("今天使用手机约 ${snapshot.todayScreenTimeMinutes / 60} 小时")

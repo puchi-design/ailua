@@ -45,7 +45,8 @@ object AppRouter {
         "call" to AiluaDestinations.CALL_HISTORY,
         "companion_call" to AiluaDestinations.CALL_HISTORY,
         "gallery" to AiluaDestinations.GALLERY,
-        "reality" to AiluaDestinations.REALITY
+        "reality" to AiluaDestinations.REALITY,
+        "settings" to AiluaDestinations.SETTINGS,
     )
 
     fun destinationOrNull(appId: String): String? = destinationByAppId[appId]
