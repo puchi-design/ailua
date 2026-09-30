@@ -23,6 +23,8 @@ import com.example.data.chat.model.VariantStatus
 import com.example.data.chat.repository.ChatRepository
 import com.example.data.engine.UserActivityRecorder
 import com.example.data.engine.WorldHeartbeatEngine
+import com.example.data.firstsession.FirstSessionPolicy
+import com.example.data.firstsession.FirstSessionStore
 import com.example.data.relationship.repository.RelationshipStateRepository
 import com.example.data.memory.auto.AutoMemoryExtractor
 import com.example.data.memory.model.MemoryType
@@ -196,6 +198,13 @@ class ChatViewModel(
                 it.copy(errorMessage = friendlyError(result.error))
             }
             SendResult.Completed -> {
+                if (!FirstSessionStore.state.value.receivedFirstReply && lastUserText != null) {
+                    FirstSessionPolicy.firstMemory(lastUserText.orEmpty())?.let { fact ->
+                        memoryRepository.saveMemory(characterId, fact, "chat", "first_session_name", MemoryType.LONG_TERM, 0.8)
+                    }
+                    FirstSessionStore.markSent()
+                    FirstSessionStore.markFirstReply(characterId, character.name, character.location)
+                }
                 recordChatActivity()
                 launchAutoMemory()
             }

@@ -29,6 +29,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -45,10 +46,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.ai.model.ProviderProfile
+import com.example.data.ai.onboarding.ProviderSetup
 import com.example.data.ai.repository.ProviderGraph
 import com.example.ui.theme.AiluaMistBlue
 import com.example.ui.theme.AiluaMoonGold
 import java.util.UUID
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 
 /**
  * AiConnectionSheet — minimal OpenAI-compatible provider configuration
@@ -64,6 +68,7 @@ import java.util.UUID
 @Composable
 fun AiConnectionSheet(
     onDismiss: () -> Unit,
+    onConnected: () -> Unit = {},
     sheetState: SheetState = rememberModalBottomSheetState(),
 ) {
     val repository = ProviderGraph.repository
@@ -76,6 +81,8 @@ fun AiConnectionSheet(
     var model by remember { mutableStateOf("") }
     var apiKeyInput by remember { mutableStateOf("") }
     var statusMessage by remember { mutableStateOf<String?>(null) }
+    var isTesting by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     fun resetForm() {
         editingId = null
@@ -85,8 +92,10 @@ fun AiConnectionSheet(
         apiKeyInput = ""
     }
 
-    val canSave = name.isNotBlank() && baseUrl.isNotBlank() && model.isNotBlank()
     val maskedKey = editingId?.let { id -> repository.maskedKeyLabel(id) }
+    val keyPresent = apiKeyInput.isNotBlank() || maskedKey != null
+    val validation = ProviderSetup.validate(baseUrl, model, keyPresent)
+    val canSave = name.isNotBlank() && validation == null && !isTesting
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -221,11 +230,25 @@ fun AiConnectionSheet(
                 Spacer(modifier = Modifier.height(10.dp))
             }
 
+            Text("选择服务商", style = MaterialTheme.typography.labelMedium)
+            ProviderSetup.presets.forEach { preset ->
+                FilterChip(
+                    selected = name == preset.label,
+                    onClick = {
+                        name = preset.label
+                        baseUrl = preset.url
+                        model = preset.model
+                        statusMessage = null
+                    },
+                    label = { Text(preset.label) },
+                )
+            }
+
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Name") },
+                label = { Text("连接名称") },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 colors = fieldColors(),
@@ -235,7 +258,7 @@ fun AiConnectionSheet(
                 value = baseUrl,
                 onValueChange = { baseUrl = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Base URL") },
+                label = { Text("API 地址") },
                 placeholder = { Text("https://api.openai.com/v1") },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
@@ -246,7 +269,7 @@ fun AiConnectionSheet(
                 value = model,
                 onValueChange = { model = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Model") },
+                label = { Text("模型") },
                 placeholder = { Text("gpt-4o-mini") },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
@@ -270,6 +293,35 @@ fun AiConnectionSheet(
             Spacer(modifier = Modifier.height(14.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
+                Button(
+                    onClick = {
+                        if (isTesting) return@Button
+                        isTesting = true
+                        statusMessage = "正在连接…"
+                        scope.launch {
+                            try {
+                                val key = apiKeyInput.takeIf { it.isNotBlank() }
+                                    ?: editingId?.let { repository.resolveApiKey(it) }.orEmpty()
+                                val result = ProviderSetup.test(baseUrl.trim(), model.trim(), key)
+                                statusMessage = result
+                                if (result == "连接成功") {
+                                    val id = editingId ?: UUID.randomUUID().toString()
+                                    val saved = repository.saveProfile(ProviderProfile(
+                                        id, name.trim().ifBlank { "自带 API Key" }, baseUrl.trim(), model.trim(), repository.profile(id)?.apiKeyRef
+                                    ))
+                                    if (apiKeyInput.isNotBlank()) repository.setApiKey(saved.id, apiKeyInput.trim())
+                                    repository.setActiveProfile(saved.id)
+                                    apiKeyInput = ""
+                                    editingId = saved.id
+                                    onConnected()
+                                }
+                            } finally { isTesting = false }
+                        }
+                    },
+                    enabled = canSave,
+                    shape = RoundedCornerShape(12.dp),
+                ) { Text(if (isTesting) "正在连接…" else "测试连接") }
+                Spacer(modifier = Modifier.width(8.dp))
                 Button(
                     onClick = {
                         val id = editingId ?: UUID.randomUUID().toString()

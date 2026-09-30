@@ -89,6 +89,7 @@ import com.example.data.projection.projectPresence
 import com.example.ui.components.AiluaAvatar
 import com.example.ui.components.AiConnectionSheet
 import com.example.ui.components.ProactiveSettingsSheet
+import com.example.data.firstsession.FirstSessionStore
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
 import com.example.ui.theme.AiluaDustyRose
@@ -119,6 +120,7 @@ fun ChatScreen(
         factory = ChatViewModel.factory(appContext, character),
     )
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val firstSession by FirstSessionStore.state.collectAsStateWithLifecycle()
     val messages = uiState.messages
     val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
     val currentActivity = projectPresence(character, worldEvents).currentActivity
@@ -148,7 +150,9 @@ fun ChatScreen(
         messages.lastOrNull { it.sender == MessageSender.CHARACTER }?.id
     }
 
-    val quickPrompts = when (character.id.lowercase()) {
+    val quickPrompts = if (!firstSession.sentFirstMessage) listOf(
+        "你现在在做什么？", "今天过得怎么样？", "第一次见面，你想让我怎么称呼你？"
+    ) else when (character.id.lowercase()) {
         "yuna" -> listOf(
             "你在做什么呢？",
             "今天有点累…",
@@ -310,6 +314,14 @@ fun ChatScreen(
             }
 
             // Quick Prompt Chips → real runtime
+            if (firstSession.receivedFirstReply && !firstSession.viewedLiving) {
+                Text(
+                    "她会记住重要的事情，也会继续自己的生活。",
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             FlowRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -327,7 +339,7 @@ fun ChatScreen(
                                 MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                                 RoundedCornerShape(12.dp)
                             )
-                            .clickable { viewModel.send(prompt) }
+                            .clickable(enabled = !uiState.isGenerating) { viewModel.send(prompt) }
                             .padding(horizontal = 10.dp, vertical = 5.dp)
                     ) {
                         Text(

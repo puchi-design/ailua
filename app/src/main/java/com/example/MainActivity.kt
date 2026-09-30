@@ -41,6 +41,7 @@ import com.example.data.engine.WorldHeartbeatEngine
 import com.example.data.engine.WorldPlanRuntime
 import com.example.data.engine.WorldStateRepository
 import com.example.data.local.AiluaLocalStore
+import com.example.data.firstsession.FirstSessionStore
 import com.example.data.model.CallAction
 import com.example.data.model.CallState
 import com.example.data.registry.CharacterRegistry
@@ -70,6 +71,7 @@ import com.example.ui.mailbox.MailboxScreen
 import com.example.ui.memories.MemoriesScreen
 import com.example.ui.motion.AppMotion
 import com.example.ui.moments.MomentsScreen
+import com.example.ui.onboarding.WelcomeScreen
 import com.example.ui.relations.RelationsScreen
 import com.example.ui.reality.RealityBridgeScreen
 import com.example.ui.theater.TheaterScreen
@@ -83,6 +85,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AiluaLocalStore.init(applicationContext)
+        FirstSessionStore.init(applicationContext)
         RealityRepository.init(applicationContext)
         RelationshipStateRepository.restore()
         ProviderGraph.init(applicationContext)
@@ -129,11 +132,28 @@ fun AiluaAppRoot() {
     val systemDark = isSystemInDarkTheme()
     var isDarkTheme by remember { mutableStateOf(systemDark) }
     val navController = rememberNavController()
+    val firstSession by FirstSessionStore.state.collectAsStateWithLifecycle()
+    var postWelcomeRoute by remember { mutableStateOf<String?>(null) }
 
     // Step 2 & 3: Observe CallStateEngine as sole authority with lifecycle awareness
     val currentCall by CallStateEngine.currentCall.collectAsStateWithLifecycle()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    LaunchedEffect(firstSession.onboardingComplete, postWelcomeRoute) {
+        val route = postWelcomeRoute
+        if (firstSession.onboardingComplete && route != null) {
+            navController.navigate(route)
+            postWelcomeRoute = null
+        }
+    }
+    LaunchedEffect(currentRoute) {
+        when (currentRoute) {
+            AiluaDestinations.LIVING -> FirstSessionStore.markLiving()
+            AiluaDestinations.MOMENTS -> FirstSessionStore.markMoments()
+            AiluaDestinations.CHECK_PHONE -> FirstSessionStore.markCheckPhone()
+        }
+    }
 
     // Active companion (CharacterContext bootstrap default: Mira) — profiles always
     // resolve through CharacterRegistry, never a hardcoded sample profile
@@ -157,6 +177,14 @@ fun AiluaAppRoot() {
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
+            if (!firstSession.onboardingComplete) {
+                WelcomeScreen { characterId, importCard ->
+                    CharacterContext.select(characterId)
+                    postWelcomeRoute = if (importCard) AiluaDestinations.CHARACTER_CREATOR else AiluaDestinations.chatRoute(characterId)
+                    FirstSessionStore.completeOnboarding()
+                }
+                return@Surface
+            }
             NavHost(
                 navController = navController,
                 startDestination = AiluaDestinations.HOME,

@@ -60,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.engine.WorldHeartbeatEngine
+import com.example.data.firstsession.FirstSessionStore
 import com.example.data.registry.CharacterRegistry
 import com.example.data.context.CharacterContext
 import com.example.data.projection.projectPresence
@@ -116,6 +117,7 @@ fun VirtualHomeScreen(
     val pagerState = rememberPagerState(pageCount = { 2 })
     val worldClock by WorldHeartbeatEngine.worldClock.collectAsStateWithLifecycle()
     val heartbeatState by WorldHeartbeatEngine.heartbeatState.collectAsStateWithLifecycle()
+    val firstSession by FirstSessionStore.state.collectAsStateWithLifecycle()
     val letters by MailboxRepository.letters.collectAsStateWithLifecycle()
     val unreadLettersCount = letters.count { it.deliveryState == LetterDeliveryState.DELIVERED && !it.isRead }
     var showDevTimeSheet by remember { mutableStateOf(false) }
@@ -292,6 +294,24 @@ fun VirtualHomeScreen(
                         }
                     }
                 }
+            }
+
+            if (!firstSession.journeyComplete) {
+                val guideText = if (!firstSession.receivedFirstReply) {
+                    "${character.name}好像在等你 · 去聊聊"
+                } else {
+                    "她离开聊天后还在生活 · 看看现在"
+                }
+                Text(
+                    text = guideText,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
+                        .clickable { if (firstSession.receivedFirstReply) onNavigateToLiving() else onNavigateToChat() }
+                        .padding(12.dp).testTag("first_session_guide"),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
             }
 
             // Persistent Virtual Phone Dock (system launcher style, translucent + theme tinted)
