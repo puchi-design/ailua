@@ -11,8 +11,8 @@ import org.junit.Test
 class ChatMigrationTest {
 
     @Test
-    fun schemaVersionIsFive() {
-        assertEquals(5, ChatDatabase.Schema.version)
+    fun schemaVersionIsSix() {
+        assertEquals(6, ChatDatabase.Schema.version)
     }
 
     @Test
@@ -73,6 +73,24 @@ class ChatMigrationTest {
             assertEquals("HOTSEAT", f.database.desktopItemQueries.selectAllItems().executeAsList()
                 .single { it.id == "dock_messages" }.container)
             assertEquals("仍在这里", f.repository.getResolvedTurns(session.id).single().activeVariant?.content)
+        } finally { f.driver.close() }
+    }
+
+    @Test
+    fun migratingFromV5AddsWidgetSeedMarkerWithoutChangingChat() {
+        val f = ChatTestHarness.inMemory()
+        try {
+            val session = f.repository.getOrCreatePrivateSession("mira")
+            f.repository.appendUserTurn(session.id, "组件升级")
+            f.driver.execute(null, "DROP TABLE workspace_widget_state", 0)
+            f.driver.execute(null, "PRAGMA user_version = 5", 0)
+            ChatDatabase.Schema.migrate(f.driver, oldVersion = 5, newVersion = 6)
+            val workspace = com.example.data.desktop.local.SqlDelightWorkspaceRepository(f.database)
+            workspace.migrateIfEmpty(emptyList())
+            workspace.seedDefaultWidgetsOnce()
+            assertEquals(2, workspace.snapshot().items.count {
+                it.type == com.example.data.desktop.DesktopItemType.AILUA_WIDGET })
+            assertEquals("组件升级", f.repository.getResolvedTurns(session.id).single().activeVariant?.content)
         } finally { f.driver.close() }
     }
 

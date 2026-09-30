@@ -1,0 +1,10 @@
+CREATE TABLE workspace_widget_state (
+ id INTEGER NOT NULL PRIMARY KEY CHECK (id = 1),
+ seeded INTEGER NOT NULL
+);
+
+selectWidgetSeedState:
+SELECT seeded FROM workspace_widget_state WHERE id = 1;
+
+markWidgetSeeded:
+INSERT OR REPLACE INTO workspace_widget_state(id, seeded) VALUES (1, 1);

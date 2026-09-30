@@ -74,6 +74,33 @@ class WorkspaceViewModel(context: Context) : ViewModel() {
         }
     }
 
+    suspend fun addWidget(sourceId: String, pageId: String, spanX: Int, spanY: Int): Boolean? {
+        return try {
+            val updated = ready.await().addWidget(sourceId, pageId, spanX, spanY)
+            if (updated != null) mutableWorkspace.value = updated
+            mutableError.value = null
+            updated != null
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            mutableError.value = "组件未添加，请重试"
+            null
+        }
+    }
+
+    suspend fun deleteWidget(itemId: String): Boolean {
+        return try {
+            mutableWorkspace.value = ready.await().deleteWidget(itemId)
+            mutableError.value = null
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            mutableError.value = "组件未删除，请重试"
+            false
+        }
+    }
+
     companion object {
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
             initializer { WorkspaceViewModel(context) }

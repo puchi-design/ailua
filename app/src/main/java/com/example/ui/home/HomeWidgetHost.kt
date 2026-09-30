@@ -4,6 +4,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -13,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.example.data.engine.WorldHeartbeatState
 import com.example.data.model.CharacterProfile
 import com.example.data.model.WorldClock
+import com.example.data.desktop.WidgetPlacement
 import com.example.ui.components.BondProgressWidget
 import com.example.ui.components.MemorySnippetWidget
 
@@ -44,10 +55,14 @@ data class WidgetHostContext(
 )
 
 /** A registered widget: identity + the composable that renders it. */
+data class WidgetSize(val spanX: Int, val spanY: Int)
+
 data class WidgetSpec(
     val id: HomeWidgetId,
     val title: String,
-    val content: @Composable (WidgetHostContext) -> Unit
+    val defaultSize: WidgetSize,
+    val supportedSizes: List<WidgetSize>,
+    val content: @Composable (WidgetHostContext, WidgetSize) -> Unit
 )
 
 enum class WidgetHostLayout { Stack, Row }
@@ -67,35 +82,93 @@ object WidgetRegistry {
         HomeWidgetId.BOND
     )
 
+    private fun sizes(id: HomeWidgetId) = WidgetPlacement.supportedSizes.getValue(id.stableId)
+        .map { WidgetSize(it.first, it.second) }
+
     private val specs: Map<String, WidgetSpec> = listOf(
-        WidgetSpec(HomeWidgetId.CHARACTER_LIVING, "Character Living") { context ->
-            LivingPresenceStrip(
-                character = context.character,
-                onOpenChat = context.onOpenChat,
-                onOpenLiving = context.onOpenLiving,
-                onOpenProfile = context.onOpenProfile
-            )
+        WidgetSpec(HomeWidgetId.CHARACTER_LIVING, "小弥状态", WidgetSize(4, 2),
+            sizes(HomeWidgetId.CHARACTER_LIVING)) { context, size ->
+            if (size.spanX == 2) {
+                Column(Modifier.fillMaxWidth().clickable { context.onOpenLiving() }) {
+                    Text(context.character.name, style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(5.dp))
+                    Text(context.character.mood, style = MaterialTheme.typography.labelMedium)
+                    Text(context.character.contextualQuote, style = MaterialTheme.typography.bodySmall,
+                        maxLines = 2)
+                    Spacer(Modifier.height(5.dp))
+                    Text("聊天 ›", color = context.accent, modifier = Modifier.clickable { context.onOpenChat() })
+                }
+            } else {
+                Column {
+                    LivingPresenceStrip(context.character, context.onOpenChat,
+                        context.onOpenLiving, context.onOpenProfile)
+                    if (size.spanY == 2) {
+                        Spacer(Modifier.height(10.dp))
+                        Text("生活轨迹 · ${context.character.contextualQuote}",
+                            style = MaterialTheme.typography.bodySmall, maxLines = 2,
+                            modifier = Modifier.clickable { context.onOpenLiving() })
+                    }
+                }
+            }
         },
-        WidgetSpec(HomeWidgetId.WORLD_CLOCK, "World Clock") { context ->
-            DesktopWorldClock(
-                worldClock = context.worldClock,
-                heartbeatState = context.heartbeatState,
-                accent = context.accent,
-                onOpenDevTime = context.onOpenDevTime
-            )
+        WidgetSpec(HomeWidgetId.WORLD_CLOCK, "世界时钟", WidgetSize(4, 1),
+            sizes(HomeWidgetId.WORLD_CLOCK)) { context, size ->
+            if (size.spanX == 4) {
+                Row(Modifier.fillMaxWidth().clickable { context.onOpenDevTime() },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(context.worldClock.timeFormatted,
+                        style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    Column(Modifier.weight(1f)) {
+                        Text(context.worldClock.dateLabel,
+                            style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                        Text("${context.worldClock.dayPhase.label} · ${context.worldClock.weather.label}",
+                            style = MaterialTheme.typography.labelSmall, color = context.accent,
+                            maxLines = 1)
+                    }
+                    Text("跃迁 ›", style = MaterialTheme.typography.labelSmall,
+                        color = context.accent)
+                }
+            } else {
+                Column(Modifier.clickable { context.onOpenDevTime() }) {
+                    Text(context.worldClock.timeFormatted,
+                        style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    Text(context.worldClock.weather.label, style = MaterialTheme.typography.labelSmall,
+                        color = context.accent)
+                    if (size.spanY == 2) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(context.worldClock.dateLabel, style = MaterialTheme.typography.bodySmall)
+                        Text(context.heartbeatState.currentPhase.atmosphere,
+                            style = MaterialTheme.typography.bodySmall, maxLines = 2)
+                    }
+                }
+            }
         },
-        WidgetSpec(HomeWidgetId.MEMORY_ECHO, "Memory Echo") { context ->
-            MemorySnippetWidget(
+        WidgetSpec(HomeWidgetId.MEMORY_ECHO, "记忆回响", WidgetSize(2, 2),
+            sizes(HomeWidgetId.MEMORY_ECHO)) { context, size ->
+            if (size.spanX == 4) {
+                Column(Modifier.clickable { context.onNavigateToMemories() }) {
+                    Text("记忆回响", style = MaterialTheme.typography.labelMedium,
+                        color = context.accent)
+                    Text(context.character.memories.firstOrNull()?.snippet.orEmpty(),
+                        style = MaterialTheme.typography.bodySmall, maxLines = 2)
+                }
+            } else MemorySnippetWidget(
                 title = "记忆回响",
                 snippet = context.character.memories.firstOrNull()?.snippet.orEmpty(),
                 onClick = context.onNavigateToMemories
             )
         },
-        WidgetSpec(HomeWidgetId.BOND, "Bond") { context ->
-            BondProgressWidget(
-                character = context.character,
-                onClick = context.onOpenProfile
-            )
+        WidgetSpec(HomeWidgetId.BOND, "心契", WidgetSize(2, 2),
+            sizes(HomeWidgetId.BOND)) { context, size ->
+            if (size.spanY == 1) {
+                Row(Modifier.fillMaxWidth().clickable { context.onOpenProfile() },
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text("心契", style = MaterialTheme.typography.titleSmall, color = context.accent)
+                    Text("  ·  查看关系 ›", style = MaterialTheme.typography.labelSmall)
+                }
+            } else BondProgressWidget(context.character, onClick = context.onOpenProfile)
         }
     ).associateBy { it.id.stableId }
 
@@ -127,7 +200,7 @@ fun AiluaWidgetHost(
             modifier = modifier.testTag("home_widget_host"),
             verticalArrangement = Arrangement.spacedBy(spacing)
         ) {
-            resolved.forEach { spec -> spec.content(context) }
+            resolved.forEach { spec -> spec.content(context, spec.defaultSize) }
         }
         WidgetHostLayout.Row -> Row(
             modifier = modifier.testTag("home_widget_host"),
@@ -135,7 +208,7 @@ fun AiluaWidgetHost(
         ) {
             resolved.forEach { spec ->
                 Box(modifier = Modifier.weight(1f)) {
-                    spec.content(context)
+                    spec.content(context, spec.defaultSize)
                 }
             }
         }

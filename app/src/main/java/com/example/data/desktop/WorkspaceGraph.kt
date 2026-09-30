@@ -16,6 +16,7 @@ object WorkspaceGraph {
         MemoryGraph.init(context.applicationContext)
         val repo = SqlDelightWorkspaceRepository(MemoryGraph.database)
         repo.migrateIfEmpty(AiluaLocalStore.getHomeAppOrder())
+        repo.seedDefaultWidgetsOnce()
         AiluaLocalStore.markWorkspaceMigrated()
         instance = repo
     }

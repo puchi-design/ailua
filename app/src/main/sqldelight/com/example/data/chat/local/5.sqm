@@ -1,0 +1,4 @@
+CREATE TABLE workspace_widget_state (
+ id INTEGER NOT NULL PRIMARY KEY CHECK (id = 1),
+ seeded INTEGER NOT NULL
+);

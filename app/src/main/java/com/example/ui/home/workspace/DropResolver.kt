@@ -9,6 +9,7 @@ import com.example.data.desktop.DesktopPlacement
 import com.example.data.desktop.GridSpec
 import com.example.data.desktop.WorkspaceCommit
 import com.example.data.desktop.WorkspaceSnapshot
+import com.example.data.desktop.WidgetPlacement
 import com.example.ui.design.launcher.layout.DragDirection
 import com.example.ui.design.launcher.layout.LayoutSolution
 import com.example.ui.design.launcher.layout.ReorderSolver
@@ -20,6 +21,21 @@ sealed interface DropPlan {
 
 /** Pure placement policy shared by page, cross-page, and hotseat drops. */
 object DropResolver {
+    fun resolveResize(snapshot: WorkspaceSnapshot, item: DesktopItem, spanX: Int, spanY: Int): DropPlan {
+        if (item.type != DesktopItemType.AILUA_WIDGET ||
+            !WidgetPlacement.supports(item.sourceId, spanX, spanY))
+            return DropPlan.Reject("Unsupported size")
+        val resized = item.copy(spanX = spanX, spanY = spanY)
+        val plan = resolveDrop(snapshot, resized, DesktopContainer.WORKSPACE, item.pageId,
+            CellRect(item.cellX, item.cellY, spanX, spanY), DragDirection.DOWN)
+        if (plan is DropPlan.Accept) {
+            val destination = plan.preview?.placements?.get(item.id)
+            if (destination?.x != item.cellX || destination.y != item.cellY)
+                return DropPlan.Reject("No room to resize")
+        }
+        return plan
+    }
+
     fun resolveDrop(
         snapshot: WorkspaceSnapshot,
         item: DesktopItem,
@@ -29,7 +45,9 @@ object DropResolver {
         direction: DragDirection = DragDirection.RIGHT,
         temporaryPage: DesktopPage? = null,
     ): DropPlan {
-        if (item.locked || item.type != DesktopItemType.APP) return DropPlan.Reject("Item cannot move")
+        if (item.locked || item.type == DesktopItemType.FOLDER) return DropPlan.Reject("Item cannot move")
+        if (item.type == DesktopItemType.AILUA_WIDGET && targetContainer == DesktopContainer.HOTSEAT)
+            return DropPlan.Reject("Widgets cannot enter hotseat")
         return when (targetContainer) {
             DesktopContainer.WORKSPACE -> resolveWorkspace(
                 snapshot, item, targetPageId, targetCell, direction, temporaryPage,
@@ -62,6 +80,8 @@ object DropResolver {
                 pageId = pageId,
                 cellX = rect.x,
                 cellY = rect.y,
+                spanX = rect.spanX,
+                spanY = rect.spanY,
                 rank = rect.y * bounds.columns + rect.x,
             )
             if (next == original.placement()) null else id to next

@@ -21,12 +21,16 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.example.data.desktop.CellRect
 import com.example.data.desktop.DesktopItem
+import com.example.data.desktop.DesktopItemType
 import com.example.data.desktop.GridSpec
 import com.example.ui.components.AppIconItem
 import com.example.ui.design.launcher.CellLayout
 import com.example.ui.design.launcher.DropIndicator
 import com.example.ui.design.launcher.WorkspaceAppLabel
 import com.example.ui.design.launcher.layout.LayoutSolution
+import com.example.ui.home.WidgetHostContext
+import com.example.ui.home.WidgetSize
+import com.example.ui.home.widget.WorkspaceWidgetItem
 import kotlin.math.roundToInt
 import androidx.compose.ui.unit.IntOffset
 
@@ -40,6 +44,14 @@ fun WorkspacePageGrid(
     preview: LayoutSolution?,
     hoverCell: CellRect?,
     canDrop: Boolean,
+    widgetContext: WidgetHostContext,
+    selectedWidgetId: String?,
+    resizeOutline: CellRect?,
+    resizeValid: Boolean,
+    onWidgetSelect: (String) -> Unit,
+    onWidgetDelete: (String) -> Unit,
+    onWidgetResizePreview: (String, WidgetSize) -> Unit,
+    onWidgetResizeCommit: (String, WidgetSize) -> Unit,
     onBounds: (Rect) -> Unit,
     onAppClick: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -49,7 +61,16 @@ fun WorkspacePageGrid(
         val cellWidth = constraints.maxWidth.toFloat() / grid.columns
         val cellHeight = constraints.maxHeight.toFloat() / grid.rows
         CellLayout(grid, items, preview, Modifier.fillMaxSize()) { item ->
-            labels[item.sourceId]?.let { label ->
+            if (item.type == DesktopItemType.AILUA_WIDGET) {
+                Box(Modifier.fillMaxSize().alpha(if (item.id == draggedItemId) 0.25f else 1f)) {
+                    WorkspaceWidgetItem(item, widgetContext, isEditing,
+                        selected = selectedWidgetId == item.id,
+                        onSelect = { onWidgetSelect(item.id) },
+                        onDelete = { onWidgetDelete(item.id) },
+                        onResizePreview = { onWidgetResizePreview(item.id, it) },
+                        onResizeCommit = { onWidgetResizeCommit(item.id, it) })
+                }
+            } else if (item.type == DesktopItemType.APP) labels[item.sourceId]?.let { label ->
                 Box(
                     Modifier.fillMaxSize().alpha(if (item.id == draggedItemId) 0.25f else 1f),
                     contentAlignment = Alignment.Center,
@@ -65,13 +86,22 @@ fun WorkspacePageGrid(
         if (hoverCell != null) {
             DropIndicator(
                 position = IntOffset((hoverCell.x * cellWidth).roundToInt(), (hoverCell.y * cellHeight).roundToInt()),
-                width = cellWidth.roundToInt(), height = cellHeight.roundToInt(), valid = canDrop,
+                width = (cellWidth * hoverCell.spanX).roundToInt(),
+                height = (cellHeight * hoverCell.spanY).roundToInt(), valid = canDrop,
+            )
+        }
+        if (resizeOutline != null) {
+            DropIndicator(
+                position = IntOffset((resizeOutline.x * cellWidth).roundToInt(),
+                    (resizeOutline.y * cellHeight).roundToInt()),
+                width = (cellWidth * resizeOutline.spanX).roundToInt(),
+                height = (cellHeight * resizeOutline.spanY).roundToInt(), valid = resizeValid,
             )
         }
     }
 }
 
-/** Ordinary pages share one cell renderer; the first page keeps its existing widgets outside it. */
+/** Every ordinary page uses the same spatial renderer for apps and widgets. */
 @Composable
 fun WorkspacePage(
     items: List<DesktopItem>,
@@ -82,6 +112,14 @@ fun WorkspacePage(
     preview: LayoutSolution?,
     hoverCell: CellRect?,
     canDrop: Boolean,
+    widgetContext: WidgetHostContext,
+    selectedWidgetId: String?,
+    resizeOutline: CellRect?,
+    resizeValid: Boolean,
+    onWidgetSelect: (String) -> Unit,
+    onWidgetDelete: (String) -> Unit,
+    onWidgetResizePreview: (String, WidgetSize) -> Unit,
+    onWidgetResizeCommit: (String, WidgetSize) -> Unit,
     onBounds: (Rect) -> Unit,
     onAppClick: (String) -> Unit,
 ) {
@@ -93,6 +131,11 @@ fun WorkspacePage(
         WorkspacePageGrid(
             items = items, labels = labels, displayRows = 6, isEditing = isEditing,
             draggedItemId = draggedItemId, preview = preview, hoverCell = hoverCell,
+            widgetContext = widgetContext, selectedWidgetId = selectedWidgetId,
+            resizeOutline = resizeOutline, resizeValid = resizeValid,
+            onWidgetSelect = onWidgetSelect, onWidgetDelete = onWidgetDelete,
+            onWidgetResizePreview = onWidgetResizePreview,
+            onWidgetResizeCommit = onWidgetResizeCommit,
             canDrop = canDrop, onBounds = onBounds, onAppClick = onAppClick,
             modifier = Modifier.fillMaxWidth().height((6 * 82).dp),
         )

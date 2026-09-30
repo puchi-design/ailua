@@ -13,6 +13,7 @@ import com.example.data.desktop.WorkspaceRepository
 import com.example.data.desktop.WorkspaceCommit
 import com.example.data.desktop.WorkspaceSeed
 import com.example.data.desktop.WorkspaceSnapshot
+import com.example.data.desktop.WidgetPlacement
 import com.example.ui.design.launcher.layout.GridOccupancy
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -105,6 +106,26 @@ class SqlDelightWorkspaceRepository(private val database: ChatDatabase) : Worksp
         }
     }
 
+    /** The marker is stored in the same database transaction, so deleting all widgets stays deleted. */
+    fun seedDefaultWidgetsOnce() {
+        database.transaction {
+            if (database.workspaceWidgetStateQueries.selectWidgetSeedState().executeAsOneOrNull() != null)
+                return@transaction
+            val before = snapshot()
+            val planned = WidgetPlacement.defaultHome(before).orEmpty()
+            planned.filter { it.type == DesktopItemType.AILUA_WIDGET }.forEach(::insert)
+            planned.filter { it.type != DesktopItemType.AILUA_WIDGET }.forEach { item ->
+                val previous = before.items.first { it.id == item.id }
+                if (item.placement() != previous.placement()) {
+                    items.updatePlacement(item.container.name, item.pageId, item.cellX.toLong(),
+                        item.cellY.toLong(), item.spanX.toLong(), item.spanY.toLong(), item.rank.toLong(), item.id)
+                }
+            }
+            database.workspaceWidgetStateQueries.markWidgetSeeded()
+            validate(snapshot())
+        }
+    }
+
     override suspend fun applyDrop(commit: WorkspaceCommit): WorkspaceSnapshot = withContext(Dispatchers.IO) {
         database.transactionWithResult {
             val before = snapshot()
@@ -135,6 +156,40 @@ class SqlDelightWorkspaceRepository(private val database: ChatDatabase) : Worksp
         }
     }
 
+    override suspend fun addWidget(sourceId: String, pageId: String, spanX: Int, spanY: Int): WorkspaceSnapshot? =
+        withContext(Dispatchers.IO) {
+            require(WidgetPlacement.supports(sourceId, spanX, spanY))
+            database.transactionWithResult {
+                val before = snapshot()
+                require(before.pages.any { it.id == pageId })
+                val cell = WidgetPlacement.firstVacant(before.itemsFor(pageId), spanX, spanY)
+                    ?: return@transactionWithResult null
+                val widget = DesktopItem(
+                    "widget_${sourceId}_${UUID.randomUUID()}", DesktopItemType.AILUA_WIDGET, sourceId,
+                    DesktopContainer.WORKSPACE, pageId, cell.x, cell.y, spanX, spanY,
+                    cell.y * GridSpec().columns + cell.x,
+                )
+                insert(widget)
+                snapshot()
+            }
+        }
+
+    override suspend fun deleteWidget(itemId: String): WorkspaceSnapshot = withContext(Dispatchers.IO) {
+        database.transactionWithResult {
+            val before = snapshot()
+            require(before.items.any { it.id == itemId && it.type == DesktopItemType.AILUA_WIDGET })
+            items.deleteItem(itemId)
+            var current = snapshot()
+            while (current.pages.size > 1) {
+                val last = current.pages.last()
+                if (last.isHome || current.itemsFor(last.id).isNotEmpty()) break
+                pages.deletePage(last.id)
+                current = snapshot()
+            }
+            current
+        }
+    }
+
     private fun validate(state: WorkspaceSnapshot) {
         require(state.pages.count { it.isHome } == 1)
         require(state.items.filter { it.type == DesktopItemType.APP }.map { it.sourceId }.distinct().size ==
@@ -149,6 +204,9 @@ class SqlDelightWorkspaceRepository(private val database: ChatDatabase) : Worksp
             state.itemsFor(page.id).forEach { occupancy.mark(it) }
         }
         require(state.items.filter { it.container == DesktopContainer.WORKSPACE }.all { it.pageId in pageIds })
+        require(state.items.filter { it.type == DesktopItemType.AILUA_WIDGET }.all {
+            it.container == DesktopContainer.WORKSPACE && WidgetPlacement.supports(it.sourceId, it.spanX, it.spanY)
+        })
     }
 
     private fun insert(item: DesktopItem) {

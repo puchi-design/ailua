@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.pager.HorizontalPager
@@ -70,6 +71,7 @@ import com.example.data.engine.WorldStateRepository
 import com.example.data.desktop.DesktopItem
 import com.example.data.desktop.DesktopContainer
 import com.example.data.desktop.DesktopPage
+import com.example.data.desktop.DesktopItemType
 import com.example.data.desktop.CellRect
 import com.example.ui.design.launcher.WorkspaceAppLabel
 import com.example.ui.design.launcher.WorkspaceViewModel
@@ -86,6 +88,8 @@ import com.example.ui.home.workspace.WorkspacePage
 import com.example.ui.home.workspace.WorkspacePageGrid
 import com.example.ui.home.hotseat.HomeHotseat
 import com.example.ui.home.special.LifeBentoPage
+import com.example.ui.home.widget.WidgetPickerSheet
+import com.example.ui.home.widget.WorkspaceWidgetItem
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.platform.LocalContext
 import com.example.data.mock.MockData
@@ -153,6 +157,12 @@ fun VirtualHomeScreen(
     val unreadLettersCount = letters.count { it.deliveryState == LetterDeliveryState.DELIVERED && !it.isRead }
     var showDevTimeSheet by remember { mutableStateOf(false) }
     var showThemeSheet by remember { mutableStateOf(false) }
+    var showWidgetPicker by remember { mutableStateOf(false) }
+    var widgetMessage by remember { mutableStateOf<String?>(null) }
+    var selectedWidgetId by remember { mutableStateOf<String?>(null) }
+    var resizeItemId by remember { mutableStateOf<String?>(null) }
+    var resizeSize by remember { mutableStateOf<WidgetSize?>(null) }
+    var resizePlan by remember { mutableStateOf<DropPlan?>(null) }
     val homeTheme = HomeThemeCatalog.byId(HomeThemeStore.selectedId)
 
     // Edit mode: entered by long pressing the wallpaper or an app icon,
@@ -193,6 +203,40 @@ fun VirtualHomeScreen(
     val latestDrag by rememberUpdatedState(dragState)
     val latestDropPlan by rememberUpdatedState(dropPlan)
 
+    val widgetContext = WidgetHostContext(
+        character = character, accent = homeTheme.accent, worldClock = worldClock,
+        heartbeatState = heartbeatState,
+        onOpenDevTime = if (isEditing) ({}) else ({ showDevTimeSheet = true }),
+        onOpenLiving = if (isEditing) ({}) else onNavigateToLiving,
+        onOpenChat = if (isEditing) ({}) else onNavigateToChat,
+        onOpenProfile = if (isEditing) ({}) else onOpenProfile,
+        onNavigateToMemories = if (isEditing) ({}) else onNavigateToMemories,
+    )
+
+    fun previewResize(itemId: String, size: WidgetSize) {
+        val item = workspace.items.firstOrNull { it.id == itemId } ?: return
+        if (size.spanX == item.spanX && size.spanY == item.spanY) {
+            resizeItemId = null
+            resizeSize = null
+            resizePlan = null
+            return
+        }
+        resizeItemId = itemId
+        resizeSize = size
+        resizePlan = DropResolver.resolveResize(workspace, item, size.spanX, size.spanY)
+    }
+
+    fun commitResize(itemId: String, size: WidgetSize) {
+        val item = workspace.items.firstOrNull { it.id == itemId } ?: return
+        val plan = DropResolver.resolveResize(workspace, item, size.spanX, size.spanY)
+        resizeItemId = null
+        resizeSize = null
+        resizePlan = null
+        if (plan is DropPlan.Accept && plan.commit.placements.isNotEmpty()) {
+            scope.launch { workspaceViewModel.applyDrop(plan.commit) }
+        } else if (plan is DropPlan.Reject) widgetMessage = "当前位置放不下这个尺寸"
+    }
+
     fun localBounds(rect: Rect): Rect = Rect(
         rect.left - rootOrigin.x, rect.top - rootOrigin.y,
         rect.right - rootOrigin.x, rect.bottom - rootOrigin.y,
@@ -225,8 +269,12 @@ fun VirtualHomeScreen(
             }
             page != null && pageRect?.contains(point) == true -> {
                 val rows = gridRows[page.id] ?: 6
-                val x = ((point.x - pageRect.left) / (pageRect.width / 4f)).toInt().coerceIn(0, 3)
-                val y = ((point.y - pageRect.top) / (pageRect.height / rows.toFloat())).toInt().coerceIn(0, rows - 1)
+                val anchor = if (item.type == DesktopItemType.AILUA_WIDGET)
+                    point - dragState.grabOffset else point
+                val x = ((anchor.x - pageRect.left) / (pageRect.width / 4f)).toInt()
+                    .coerceIn(0, 4 - item.spanX)
+                val y = ((anchor.y - pageRect.top) / (pageRect.height / rows.toFloat())).toInt()
+                    .coerceIn(0, rows - item.spanY)
                 Triple(DesktopContainer.WORKSPACE, page.id, CellRect(x, y, item.spanX, item.spanY))
             }
             else -> null
@@ -353,6 +401,7 @@ fun VirtualHomeScreen(
                             }
                         }
                         isEditing = true
+                        selectedWidgetId = item?.takeIf { it.type == DesktopItemType.AILUA_WIDGET }?.id
                         if (item != null) {
                             val bounds = if (item.container == DesktopContainer.HOTSEAT) dock!! else pageGrid!!
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -424,41 +473,26 @@ fun VirtualHomeScreen(
                     val hover = if (dragState.currentPageId == workspacePage.id &&
                         dragState.targetContainer == DesktopContainer.WORKSPACE) dragState.hoverCell else null
                     val preview = if (hover != null) (dropPlan as? DropPlan.Accept)?.preview else null
-                    if (workspacePage.isHome) PageMainHome(
-                        character = character,
-                        labels = labels,
-                        workspaceItems = pageItems,
-                        worldClock = worldClock,
-                        heartbeatState = heartbeatState,
-                        accent = homeTheme.accent,
-                        isEditing = isEditing,
-                        isDragging = dragState.isDragging,
-                        draggedItemId = dragState.draggedItemId,
-                        preview = preview,
-                        hoverCell = hover,
-                        canDrop = dropPlan is DropPlan.Accept,
-                        onGridBounds = { rect, rows ->
-                            gridBounds[workspacePage.id] = rect
-                            gridRows[workspacePage.id] = rows
-                        },
-                        onOpenDevTime = { showDevTimeSheet = true },
-                        onNavigateToMessages = onNavigateToMessages,
-                        onNavigateToChat = onNavigateToChat,
-                        onNavigateToMoments = onNavigateToMoments,
-                        onNavigateToLiving = onNavigateToLiving,
-                        onNavigateToContacts = onNavigateToContacts,
-                        onNavigateToCheckPhone = onNavigateToCheckPhone,
-                        onNavigateToDiary = onNavigateToDiary,
-                        onNavigateToMemories = onNavigateToMemories,
-                        onNavigateToRelations = onNavigateToRelations,
-                        onNavigateToApps = onNavigateToApps,
-                        onOpenProfile = onOpenProfile,
-                        onAppClick = onAppClick
-                    )
-                    else WorkspacePage(
+                    WorkspacePage(
                         items = pageItems, labels = labels, isEditing = isEditing,
                         isDragging = dragState.isDragging, draggedItemId = dragState.draggedItemId,
                         preview = preview, hoverCell = hover, canDrop = dropPlan is DropPlan.Accept,
+                        widgetContext = widgetContext,
+                        selectedWidgetId = selectedWidgetId,
+                        resizeOutline = if (resizeItemId != null &&
+                            pageItems.any { it.id == resizeItemId }) {
+                            val resized = pageItems.first { it.id == resizeItemId }
+                            resizeSize?.let { CellRect(resized.cellX, resized.cellY, it.spanX, it.spanY) }
+                        } else null,
+                        resizeValid = resizePlan is DropPlan.Accept,
+                        onWidgetSelect = { selectedWidgetId = it },
+                        onWidgetDelete = { id ->
+                            scope.launch {
+                                if (workspaceViewModel.deleteWidget(id)) selectedWidgetId = null
+                            }
+                        },
+                        onWidgetResizePreview = ::previewResize,
+                        onWidgetResizeCommit = ::commitResize,
                         onBounds = { gridBounds[workspacePage.id] = it; gridRows[workspacePage.id] = 6 },
                         onAppClick = { id -> dispatchAppAction(
                             id, onNavigateToMessages, onNavigateToMoments, onNavigateToLiving,
@@ -522,18 +556,21 @@ fun VirtualHomeScreen(
                 }
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
                     if (isEditing) {
-                        HomeEditPill(
-                            label = "主题",
-                            testTag = "home_edit_theme",
-                            accent = homeTheme.accent
-                        ) {
-                            showThemeSheet = true
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            HomeEditPill("+组件", "home_edit_widgets", homeTheme.accent) {
+                                showWidgetPicker = true
+                            }
+                            HomeEditPill("主题", "home_edit_theme", homeTheme.accent) {
+                                showThemeSheet = true
+                            }
                         }
                     }
                 }
             }
 
             workspaceError?.let { Text(it, modifier = Modifier.padding(horizontal = 24.dp), color = MaterialTheme.colorScheme.error) }
+            widgetMessage?.let { Text(it, modifier = Modifier.padding(horizontal = 24.dp),
+                color = MaterialTheme.colorScheme.error) }
 
             if (!firstSession.journeyComplete) {
                 val guideText = if (!firstSession.receivedFirstReply) {
@@ -583,7 +620,17 @@ fun VirtualHomeScreen(
 
         val draggedItem = workspace.items.firstOrNull { it.id == dragState.draggedItemId }
         val draggedLabel = draggedItem?.let { labels[it.sourceId] }
-        if (dragState.isDragging && draggedLabel != null) {
+        if (dragState.isDragging && draggedItem?.type == DesktopItemType.AILUA_WIDGET) {
+            val item = draggedItem
+            Box(Modifier.offset {
+                IntOffset((dragState.pointerPosition.x - dragState.grabOffset.x).roundToInt(),
+                    (dragState.pointerPosition.y - dragState.grabOffset.y).roundToInt())
+            }.size(with(density) { dragState.previewWidth.toDp() },
+                with(density) { dragState.previewHeight.toDp() })) {
+                WorkspaceWidgetItem(item, widgetContext, false, false,
+                    onSelect = {}, onDelete = {}, onResizePreview = {}, onResizeCommit = {})
+            }
+        } else if (dragState.isDragging && draggedLabel != null) {
             DragLayer(
                 label = draggedLabel,
                 position = IntOffset(
@@ -606,100 +653,20 @@ fun VirtualHomeScreen(
                 onDismiss = { showThemeSheet = false }
             )
         }
-    }
-}
-
-@Composable
-private fun PageMainHome(
-    character: CharacterProfile,
-    labels: Map<String, WorkspaceAppLabel>,
-    workspaceItems: List<DesktopItem>,
-    worldClock: com.example.data.model.WorldClock,
-    heartbeatState: com.example.data.engine.WorldHeartbeatState,
-    accent: Color,
-    isEditing: Boolean,
-    isDragging: Boolean,
-    draggedItemId: String?,
-    preview: LayoutSolution?,
-    hoverCell: CellRect?,
-    canDrop: Boolean,
-    onGridBounds: (Rect, Int) -> Unit,
-    onOpenDevTime: () -> Unit,
-    onNavigateToMessages: () -> Unit,
-    onNavigateToChat: () -> Unit,
-    onNavigateToMoments: () -> Unit,
-    onNavigateToLiving: () -> Unit,
-    onNavigateToContacts: () -> Unit,
-    onNavigateToCheckPhone: () -> Unit,
-    onNavigateToDiary: () -> Unit,
-    onNavigateToMemories: () -> Unit,
-    onNavigateToRelations: () -> Unit,
-    onNavigateToApps: () -> Unit,
-    onOpenProfile: () -> Unit,
-    onAppClick: (String) -> Unit
-) {
-    val widgetContext = WidgetHostContext(
-        character = character,
-        accent = accent,
-        worldClock = worldClock,
-        heartbeatState = heartbeatState,
-        onOpenDevTime = onOpenDevTime,
-        onOpenLiving = onNavigateToLiving,
-        onOpenChat = onNavigateToChat,
-        onOpenProfile = onOpenProfile,
-        onNavigateToMemories = onNavigateToMemories
-    )
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState(), enabled = !isDragging)
-            .padding(horizontal = 18.dp)
-    ) {
-        Spacer(modifier = Modifier.height(2.dp))
-
-        // Desktop widgets are rendered through the lightweight widget host
-        AiluaWidgetHost(
-            widgetIds = WidgetRegistry.defaultOrder.take(2),
-            context = widgetContext,
-            spacing = 18.dp
-        )
-
-        Spacer(modifier = Modifier.height(22.dp))
-
-        // P5.2 spatial workspace: six real rows, including empty cells.
-        val visibleRows = if (isEditing) 6 else maxOf(3, (workspaceItems.maxOfOrNull { it.cellY + it.spanY } ?: 0) + 1).coerceAtMost(6)
-        Box(Modifier.fillMaxWidth().height((visibleRows * 82).dp)) {
-            WorkspacePageGrid(
-                items = workspaceItems,
-                displayRows = visibleRows,
-                labels = labels,
-                isEditing = isEditing,
-                draggedItemId = draggedItemId,
-                preview = preview,
-                hoverCell = hoverCell,
-                canDrop = canDrop,
-                onBounds = { onGridBounds(it, visibleRows) },
-                modifier = Modifier.fillMaxSize(),
-                onAppClick = { id ->
-                    dispatchAppAction(
-                        id, onNavigateToMessages, onNavigateToMoments, onNavigateToLiving,
-                        onNavigateToContacts, onNavigateToCheckPhone, onNavigateToDiary,
-                        onNavigateToMemories, onNavigateToRelations, onNavigateToApps, onAppClick
-                    )
-                },
-            )
+        if (showWidgetPicker) {
+            WidgetPickerSheet(onDismiss = { showWidgetPicker = false }) { sourceId, size ->
+                val page = workspacePages.getOrNull(pagerState.currentPage)
+                if (page == null) {
+                    widgetMessage = "请先切换到桌面页"
+                } else scope.launch {
+                    when (workspaceViewModel.addWidget(sourceId, page.id, size.spanX, size.spanY)) {
+                        true -> { showWidgetPicker = false; widgetMessage = null }
+                        false -> widgetMessage = "这一页放不下啦"
+                        null -> widgetMessage = "组件未添加，请重试"
+                    }
+                }
+            }
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Bottom desktop widgets: Memory Echo + Bond (same registry, real state)
-        AiluaWidgetHost(
-            widgetIds = WidgetRegistry.defaultOrder.drop(2),
-            context = widgetContext,
-            layout = WidgetHostLayout.Row,
-            spacing = 12.dp
-        )
     }
 }
 
