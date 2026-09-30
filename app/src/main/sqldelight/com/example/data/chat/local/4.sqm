@@ -1,0 +1,1 @@
+UPDATE desktop_item SET container = 'HOTSEAT' WHERE container = 'DOCK';

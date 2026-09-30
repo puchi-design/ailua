@@ -11,8 +11,8 @@ import org.junit.Test
 class ChatMigrationTest {
 
     @Test
-    fun schemaVersionIsFour() {
-        assertEquals(4, ChatDatabase.Schema.version)
+    fun schemaVersionIsFive() {
+        assertEquals(5, ChatDatabase.Schema.version)
     }
 
     @Test
@@ -56,6 +56,23 @@ class ChatMigrationTest {
             workspace.migrateIfEmpty(listOf("gallery"))
             assertEquals("gallery", workspace.snapshot().itemsFor("page_home").first().sourceId)
             assertEquals("迁移前", f.repository.getResolvedTurns(session.id).single().activeVariant?.content)
+        } finally { f.driver.close() }
+    }
+
+    @Test
+    fun migratingFromV4ConvertsDockRowsToHotseatWithoutChangingChat() {
+        val f = ChatTestHarness.inMemory()
+        try {
+            val session = f.repository.getOrCreatePrivateSession("mira")
+            f.repository.appendUserTurn(session.id, "仍在这里")
+            val workspace = com.example.data.desktop.local.SqlDelightWorkspaceRepository(f.database)
+            workspace.migrateIfEmpty(emptyList())
+            f.driver.execute(null, "UPDATE desktop_item SET container = 'DOCK' WHERE id = 'dock_messages'", 0)
+            f.driver.execute(null, "PRAGMA user_version = 4", 0)
+            ChatDatabase.Schema.migrate(f.driver, oldVersion = 4, newVersion = 5)
+            assertEquals("HOTSEAT", f.database.desktopItemQueries.selectAllItems().executeAsList()
+                .single { it.id == "dock_messages" }.container)
+            assertEquals("仍在这里", f.repository.getResolvedTurns(session.id).single().activeVariant?.content)
         } finally { f.driver.close() }
     }
 

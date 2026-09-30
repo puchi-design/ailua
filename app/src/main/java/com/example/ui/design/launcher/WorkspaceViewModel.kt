@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.data.desktop.DesktopPlacement
+import com.example.data.desktop.WorkspaceCommit
 import com.example.data.desktop.WorkspaceGraph
 import com.example.data.desktop.WorkspaceRepository
 import com.example.data.desktop.WorkspaceSeed
@@ -57,6 +58,19 @@ class WorkspaceViewModel(context: Context) : ViewModel() {
             } catch (_: Exception) {
                 mutableError.value = "桌面布局未保存，请重试"
             }
+        }
+    }
+
+    suspend fun applyDrop(commit: WorkspaceCommit): Boolean {
+        return try {
+            mutableWorkspace.value = ready.await().applyDrop(commit)
+            mutableError.value = null
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            mutableError.value = "桌面布局未保存，请重试"
+            false
         }
     }
 

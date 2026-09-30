@@ -14,7 +14,7 @@ object WorkspaceSeed {
             DesktopItem("app_$id", DesktopItemType.APP, id, DesktopContainer.WORKSPACE,
                 HOME_ID, index % 4, index / 4, rank = index)
         } + dockApps.mapIndexed { index, id ->
-            DesktopItem("dock_$id", DesktopItemType.APP, id, DesktopContainer.DOCK,
+            DesktopItem("dock_$id", DesktopItemType.APP, id, DesktopContainer.HOTSEAT,
                 null, index, 0, rank = index)
         }
         return WorkspaceSnapshot(listOf(page), items)

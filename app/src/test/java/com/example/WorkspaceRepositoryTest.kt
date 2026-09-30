@@ -26,7 +26,7 @@ class WorkspaceRepositoryTest {
             val restored = SqlDelightWorkspaceRepository(reopened.database).snapshot()
             assertEquals(3, restored.items.single { it.id == "app_gallery" }.cellX)
             assertEquals(3, restored.items.single { it.id == "app_gallery" }.cellY)
-            assertEquals(5, restored.items.count { it.container == DesktopContainer.DOCK })
+            assertEquals(5, restored.items.count { it.container == DesktopContainer.HOTSEAT })
             reopened.driver.close()
         } finally { file.delete() }
     }

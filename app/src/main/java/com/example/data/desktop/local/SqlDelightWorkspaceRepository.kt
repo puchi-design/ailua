@@ -10,6 +10,7 @@ import com.example.data.desktop.DesktopPage
 import com.example.data.desktop.DesktopPlacement
 import com.example.data.desktop.GridSpec
 import com.example.data.desktop.WorkspaceRepository
+import com.example.data.desktop.WorkspaceCommit
 import com.example.data.desktop.WorkspaceSeed
 import com.example.data.desktop.WorkspaceSnapshot
 import com.example.ui.design.launcher.layout.GridOccupancy
@@ -104,13 +105,43 @@ class SqlDelightWorkspaceRepository(private val database: ChatDatabase) : Worksp
         }
     }
 
+    override suspend fun applyDrop(commit: WorkspaceCommit): WorkspaceSnapshot = withContext(Dispatchers.IO) {
+        database.transactionWithResult {
+            val before = snapshot()
+            require(commit.placements.keys.all { id -> before.items.any { it.id == id && !it.locked } })
+            commit.newPage?.let { page ->
+                require(!page.isHome && page.rank == before.pages.size && before.pages.none { it.id == page.id })
+                require(commit.placements.values.any { it.pageId == page.id && it.container == DesktopContainer.WORKSPACE })
+                pages.insertPage(page.id, page.rank.toLong(), 0L)
+            }
+            val withPage = if (commit.newPage == null) before else before.copy(pages = before.pages + commit.newPage)
+            val after = withPage.copy(items = withPage.items.map { item ->
+                commit.placements[item.id]?.let(item::withPlacement) ?: item
+            })
+            validate(after)
+            after.items.filter { it.id in commit.placements }.forEach { item ->
+                items.updatePlacement(item.container.name, item.pageId, item.cellX.toLong(),
+                    item.cellY.toLong(), item.spanX.toLong(), item.spanY.toLong(), item.rank.toLong(), item.id)
+            }
+            // Only trailing empty ordinary pages are reclaimed; the home page and one-page minimum survive.
+            var current = snapshot()
+            while (current.pages.size > 1) {
+                val last = current.pages.last()
+                if (last.isHome || current.itemsFor(last.id).isNotEmpty()) break
+                pages.deletePage(last.id)
+                current = snapshot()
+            }
+            current
+        }
+    }
+
     private fun validate(state: WorkspaceSnapshot) {
         require(state.pages.count { it.isHome } == 1)
         require(state.items.filter { it.type == DesktopItemType.APP }.map { it.sourceId }.distinct().size ==
             state.items.count { it.type == DesktopItemType.APP }) { "Duplicate app" }
         val pageIds = state.pages.map { it.id }.toSet()
-        val dock = state.dockItems()
-        require(dock.size <= 5 && dock.map { it.rank }.distinct().size == dock.size)
+        val dock = state.hotseatItems()
+        require(dock.size <= 5 && dock.map { it.cellX }.distinct().size == dock.size)
         require(dock.all { it.pageId == null && it.rank in 0..4 && it.cellX == it.rank &&
             it.cellY == 0 && it.spanX == 1 && it.spanY == 1 })
         for (page in state.pages) {

@@ -1,7 +1,7 @@
 package com.example.data.desktop
 
 enum class DesktopItemType { APP, AILUA_WIDGET, FOLDER }
-enum class DesktopContainer { WORKSPACE, DOCK }
+enum class DesktopContainer { WORKSPACE, HOTSEAT }
 
 data class DesktopPage(val id: String, val rank: Int, val isHome: Boolean)
 
@@ -37,8 +37,15 @@ data class DesktopPlacement(
 
 data class WorkspaceSnapshot(val pages: List<DesktopPage>, val items: List<DesktopItem>) {
     fun itemsFor(pageId: String) = items.filter { it.container == DesktopContainer.WORKSPACE && it.pageId == pageId }
-    fun dockItems() = items.filter { it.container == DesktopContainer.DOCK }.sortedBy { it.rank }
+    fun hotseatItems() = items.filter { it.container == DesktopContainer.HOTSEAT }.sortedBy { it.cellX }
+    fun dockItems() = hotseatItems()
 }
+
+/** A resolved drop is written as one transaction, including an optional new page. */
+data class WorkspaceCommit(
+    val placements: Map<String, DesktopPlacement>,
+    val newPage: DesktopPage? = null,
+)
 
 data class GridSpec(val columns: Int = 4, val rows: Int = 6) {
     init { require(columns > 0 && rows > 0) }

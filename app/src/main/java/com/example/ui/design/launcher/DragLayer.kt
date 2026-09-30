@@ -39,12 +39,14 @@ fun DragLayer(
 }
 
 @Composable
-fun DropIndicator(position: IntOffset, width: Int, height: Int) {
+fun DropIndicator(position: IntOffset, width: Int, height: Int, valid: Boolean = true) {
     val density = LocalDensity.current
     val widthDp: Dp = with(density) { width.toDp() }
     val heightDp: Dp = with(density) { height.toDp() }
     Box(
         Modifier.offset { position }.size(widthDp, heightDp)
-            .border(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.55f), RoundedCornerShape(14.dp))
+            .border(2.dp,
+                (if (valid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error).copy(alpha = 0.7f),
+                RoundedCornerShape(14.dp))
     )
 }
