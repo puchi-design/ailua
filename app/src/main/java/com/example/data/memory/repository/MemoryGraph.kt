@@ -18,19 +18,25 @@ import com.example.data.chat.local.platform.UuidIdGenerator
  * It owns its own driver for the same `ailua_chat.db` file: SQLite handles
  * cross-connection access with normal locking, and keeping the graph's
  * connection process-wide means the Memories flow never dies with a screen.
+ * The Workspace repository reuses this connection.
  */
 object MemoryGraph {
 
     @Volatile
     private var instance: MemoryRepository? = null
+    @Volatile private var sharedDatabase: ChatDatabase? = null
+
+    val database: ChatDatabase get() = checkNotNull(sharedDatabase) { "MemoryGraph not initialized" }
 
     fun init(context: Context) {
         if (instance == null) {
             synchronized(this) {
                 if (instance == null) {
                     val driver = ChatDriverFactory(context.applicationContext).createDriver()
+                    val database = ChatDatabase(driver)
+                    sharedDatabase = database
                     instance = SqlDelightMemoryRepository(
-                        database = ChatDatabase(driver),
+                        database = database,
                         idGenerator = UuidIdGenerator(),
                         clock = SystemEpochClock(),
                     )
