@@ -12,6 +12,15 @@
     <uses-permission android:name="android.permission.health.READ_SLEEP" />
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
+        <!-- Android 11+ visibility for common ADW/Nova launcher icon-pack entry points. -->
+        <intent><action android:name="org.adw.ActivityStarter.THEMES" /></intent>
+        <intent><action android:name="com.novalauncher.THEME" /></intent>
+        <intent><action android:name="com.teslacoilsw.launcher.THEME" /></intent>
+        <intent><action android:name="com.gau.go.launcherex.theme" /></intent>
+        <intent><action android:name="com.anddoes.launcher.THEME" /></intent>
+        <intent><action android:name="com.dlto.atom.launcher.THEME" /></intent>
+        <intent><action android:name="com.apusapps.launcher.THEME" /></intent>
+        <intent><action android:name="app.lawnchair.icons.THEMED_ICON" /></intent>
     </queries>
 
     <application

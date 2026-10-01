@@ -13,7 +13,10 @@ data class ThemeSelection(
     val themePresetId: String = ThemeCatalog.DEFAULT_ID,
     val paletteOverrideId: String? = null,
     val wallpaperOverrideId: String? = null,
-    val iconStyleOverrideId: String? = null
+    val iconStyleOverrideId: String? = null,
+    val wallpaperSourceId: String? = null,
+    val iconSourceOverrideId: String? = null,
+    val manualIconOverrides: Map<String, String> = emptyMap()
 )
 
 data class AiluaThemePreset(

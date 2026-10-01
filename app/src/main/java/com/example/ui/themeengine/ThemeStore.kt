@@ -2,6 +2,7 @@ package com.example.ui.themeengine
 
 import android.content.Context
 import android.content.SharedPreferences
+import org.json.JSONObject
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -18,6 +19,9 @@ object ThemeStore {
     private const val KEY_WALLPAPER = "theme_engine_wallpaper_override_id"
     private const val KEY_ICON = "theme_engine_icon_style_override_id"
     private const val KEY_MIGRATED = "theme_engine_migrated"
+    private const val KEY_WALLPAPER_SOURCE = "theme_engine_wallpaper_source"
+    private const val KEY_ICON_SOURCE = "theme_engine_icon_source"
+    private const val KEY_MANUAL_ICONS = "theme_engine_manual_icons"
 
     private var preferences: SharedPreferences? = null
 
@@ -49,7 +53,13 @@ object ThemeStore {
                 themePresetId = prefs.getString(KEY_PRESET, ThemeCatalog.DEFAULT_ID).orEmpty(),
                 paletteOverrideId = prefs.getString(KEY_PALETTE, null),
                 wallpaperOverrideId = prefs.getString(KEY_WALLPAPER, null),
-                iconStyleOverrideId = prefs.getString(KEY_ICON, null)
+                iconStyleOverrideId = prefs.getString(KEY_ICON, null),
+                wallpaperSourceId = prefs.getString(KEY_WALLPAPER_SOURCE, null),
+                iconSourceOverrideId = prefs.getString(KEY_ICON_SOURCE, null),
+                manualIconOverrides = runCatching {
+                    val json = JSONObject(prefs.getString(KEY_MANUAL_ICONS, "{}") ?: "{}")
+                    json.keys().asSequence().associateWith { json.getString(it) }
+                }.getOrDefault(emptyMap())
             ).normalized()
         }
         val oldId = sequenceOf("home_theme_id", "home_theme", "selected_home_theme")
@@ -73,7 +83,12 @@ object ThemeStore {
         themePresetId = ThemeCatalog.byId(themePresetId).id,
         paletteOverrideId = paletteOverrideId?.takeIf { id -> PaletteCatalog.palettes.any { it.id == id } },
         wallpaperOverrideId = wallpaperOverrideId?.takeIf { id -> WallpaperCatalog.options.any { it.id == id } },
-        iconStyleOverrideId = iconStyleOverrideId?.takeIf { id -> IconStyleCatalog.options.any { it.id == id } }
+        iconStyleOverrideId = iconStyleOverrideId?.takeIf { id -> IconStyleCatalog.options.any { it.id == id } },
+        wallpaperSourceId = wallpaperSourceId?.takeIf { id -> id.matches(Regex("[a-zA-Z0-9._-]+")) },
+        iconSourceOverrideId = iconSourceOverrideId?.takeIf { id ->
+            (id.startsWith("android:") && id.removePrefix("android:").matches(Regex("[a-zA-Z0-9._]+"))) ||
+            (id.startsWith("theme:") && id.removePrefix("theme:").matches(Regex("[a-zA-Z0-9._-]+")))
+        }
     )
 
     internal fun write(prefs: SharedPreferences, value: ThemeSelection) {
@@ -82,6 +97,9 @@ object ThemeStore {
             .putString(KEY_PALETTE, value.paletteOverrideId)
             .putString(KEY_WALLPAPER, value.wallpaperOverrideId)
             .putString(KEY_ICON, value.iconStyleOverrideId)
+            .putString(KEY_WALLPAPER_SOURCE, value.wallpaperSourceId)
+            .putString(KEY_ICON_SOURCE, value.iconSourceOverrideId)
+            .putString(KEY_MANUAL_ICONS, JSONObject(value.manualIconOverrides).toString())
             .putBoolean(KEY_MIGRATED, true)
             .apply()
     }

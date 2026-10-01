@@ -53,22 +53,27 @@ import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Icon
+import androidx.compose.foundation.Image
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -85,12 +90,16 @@ import com.example.ui.themeengine.IconShapeSpec
 import com.example.ui.themeengine.IdentityColorMode
 import com.example.ui.themeengine.LocalAiluaTheme
 import com.example.ui.themeengine.TypographyFamily
+import com.example.ui.themeengine.ThemeStore
+import com.example.ui.themeengine.icon.IconResolver
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sign
 import kotlin.math.sin
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 object AppIconDefaults {
     val ContainerSize = 56.dp
@@ -153,6 +162,19 @@ fun AppIconItem(
     val iconSpec = theme.icons
     val motion = theme.motion
     val identity = getAppIdentity(iconKey)
+    val context = LocalContext.current
+    val density = LocalDensity.current
+    val selection = ThemeStore.selection
+    val targetSizePx = with(density) { size.roundToPx() }.coerceIn(1, 1024)
+    val externalBitmap by produceState<android.graphics.Bitmap?>(
+        initialValue = null,
+        context, iconKey, targetSizePx, selection.iconSourceOverrideId,
+        selection.manualIconOverrides
+    ) {
+        value = withContext(Dispatchers.IO) {
+            IconResolver.get(context).resolveBitmap(iconKey, selection, targetSizePx)
+        }
+    }
     val shape = iconShapeFor(iconSpec.shape)
     val containerSize = size * iconSpec.containerScale
     val glyphSize = size * iconSpec.glyphScale
@@ -222,7 +244,14 @@ fun AppIconItem(
                     EditMotion.NONE -> Unit
                 }
             }
-            if (iconSpec.containerStyle == IconContainerStyle.GLYPH_ONLY) {
+            val resolvedBitmap = externalBitmap
+            if (resolvedBitmap != null) {
+                Image(
+                    bitmap = resolvedBitmap.asImageBitmap(),
+                    contentDescription = name,
+                    modifier = Modifier.size(containerSize).then(editModifier)
+                )
+            } else if (iconSpec.containerStyle == IconContainerStyle.GLYPH_ONLY) {
                 Icon(
                     imageVector = identity.glyph,
                     contentDescription = name,
