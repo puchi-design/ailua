@@ -68,12 +68,12 @@ class AndroidIconPackResolver(
 
     fun loadBitmap(packageName: String, drawableName: String, targetSizePx: Int): Bitmap? {
         if (targetSizePx !in 1..1024 || !drawableName.matches(DRAWABLE_NAME)) return null
-        bitmapCache.get(packageName, drawableName, targetSizePx)?.let { return it }
         val resources = try {
             appContext.packageManager.getResourcesForApplication(packageName)
         } catch (_: PackageManager.NameNotFoundException) {
             return null
         }
+        bitmapCache.get(packageName, drawableName, targetSizePx)?.let { return it }
         val id = resources.getIdentifier(drawableName, "drawable", packageName)
             .takeIf { it != 0 }
             ?: resources.getIdentifier(drawableName, "mipmap", packageName)

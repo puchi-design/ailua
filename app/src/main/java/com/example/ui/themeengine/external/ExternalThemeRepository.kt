@@ -32,17 +32,19 @@ object ExternalThemeRepository {
 
     @Synchronized
     fun delete(id: String): Boolean {
+        val deleted = store?.delete(id) ?: false
+        if (!deleted) return false
         val current = ThemeStore.selection
         val wallpaperUsed = current.wallpaperSourceId == id
         val iconsUsed = current.iconSourceOverrideId == "theme:$id"
         if (wallpaperUsed || iconsUsed) ThemeStore.update(current.copy(
+            themePresetId = "milk",
             wallpaperSourceId = if (wallpaperUsed) null else current.wallpaperSourceId,
             iconSourceOverrideId = if (iconsUsed) null else current.iconSourceOverrideId,
             manualIconOverrides = if (iconsUsed) emptyMap() else current.manualIconOverrides
         ))
-        val deleted = store?.delete(id) ?: false
-        if (deleted) themes = themes.filterNot { it.id == id }
-        return deleted
+        themes = themes.filterNot { it.id == id }
+        return true
     }
 
     fun apply(id: String, preserveShell: Boolean = true) {

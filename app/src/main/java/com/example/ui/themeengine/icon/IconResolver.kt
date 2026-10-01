@@ -46,7 +46,9 @@ class IconResolver private constructor(context: Context) {
         }
     }
 
-    fun loadAsset(ref: ThemeAssetRef, targetSizePx: Int): Bitmap? { return when (ref) {
+    fun loadAsset(ref: ThemeAssetRef, targetSizePx: Int): Bitmap? {
+        if (targetSizePx !in 1..1024) return null
+        return when (ref) {
         is ThemeAssetRef.InstalledAndroidResource ->
             installedPacks.loadBitmap(ref.packageName, ref.drawableName, targetSizePx)
         is ThemeAssetRef.LocalFile -> {
@@ -57,21 +59,24 @@ class IconResolver private constructor(context: Context) {
             decoded
         }
         is ThemeAssetRef.BuiltIn -> null
-    } }
+        }
+    }
 
-    private fun decodeSized(bytes: ByteArray, size: Int): Bitmap? { return runCatching {
+    private fun decodeSized(bytes: ByteArray, size: Int): Bitmap? {
+        return runCatching {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
         var sample = 1
-        while (bounds.outWidth / (sample * 2) > size * 2 &&
-            bounds.outHeight / (sample * 2) > size * 2
+        while (bounds.outWidth / sample > size * 2 ||
+            bounds.outHeight / sample > size * 2
         ) sample *= 2
         val options = BitmapFactory.Options().apply { inSampleSize = sample }
         val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options) ?: return null
         if (decoded.width == size && decoded.height == size) decoded
         else Bitmap.createScaledBitmap(decoded, size, size, true).also { decoded.recycle() }
-    }.getOrNull() }
+        }.getOrNull()
+    }
 
     companion object {
         @Volatile private var instance: IconResolver? = null

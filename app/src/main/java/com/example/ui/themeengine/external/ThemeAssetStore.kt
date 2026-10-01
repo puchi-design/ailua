@@ -4,18 +4,24 @@ import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
 
 /** Private app storage for normalized theme assets. Install uses a temporary directory. */
 class ThemeAssetStore(context: Context) {
     val root: File = File(context.applicationContext.filesDir, "themes").also { it.mkdirs() }
+    private val idPattern = Regex("[A-Za-z0-9_-][A-Za-z0-9._-]*")
+    private fun validId(id: String) = idPattern.matches(id)
+    private fun directChild(name: String): File = File(root, name).also { child ->
+        val canonical = child.canonicalFile
+        require(canonical.parentFile == root.canonicalFile && canonical.name == name) {
+            "无效的主题目录"
+        }
+    }
 
     @Synchronized
     fun install(preview: ThemeImportPreview): ExternalThemePackage {
         val theme = preview.theme
-        require(theme.id.matches(Regex("[a-zA-Z0-9._-]+")))
-        val temporary = File(root, ".${theme.id}-${System.nanoTime()}.tmp")
+        require(validId(theme.id)) { "无效的主题 ID" }
+        val temporary = directChild(".${theme.id}-${System.nanoTime()}.tmp")
         require(temporary.mkdirs()) { "无法创建主题目录" }
         try {
             for ((relativePath, bytes) in preview.assets) {
@@ -29,8 +35,8 @@ class ThemeAssetStore(context: Context) {
                 destination.writeBytes(bytes)
             }
             File(temporary, "manifest.json").writeText(encodeManifest(theme).toString(), Charsets.UTF_8)
-            val target = File(root, theme.id)
-            val previous = File(root, ".${theme.id}.previous")
+            val target = directChild(theme.id)
+            val previous = directChild(".${theme.id}.previous")
             if (previous.exists()) previous.deleteRecursively()
             if (target.exists() && !target.renameTo(previous)) error("无法替换旧主题")
             if (!temporary.renameTo(target)) {
@@ -45,9 +51,13 @@ class ThemeAssetStore(context: Context) {
     }
 
     fun loadAll(): List<ExternalThemePackage> = root.listFiles().orEmpty()
-        .filter { it.isDirectory && !it.name.startsWith('.') }
+        .filter { it.isDirectory && validId(it.name) }
         .mapNotNull { directory ->
-            try { decodeManifest(JSONObject(File(directory, "manifest.json").readText(Charsets.UTF_8))) }
+            try {
+                if (directChild(directory.name).canonicalFile != directory.canonicalFile) return@mapNotNull null
+                decodeManifest(JSONObject(File(directory, "manifest.json").readText(Charsets.UTF_8)))
+                    .takeIf { it.id == directory.name }
+            }
             catch (_: Exception) { null }
         }
 
@@ -66,8 +76,8 @@ class ThemeAssetStore(context: Context) {
 
     @Synchronized
     fun delete(id: String): Boolean {
-        if (!id.matches(Regex("[a-zA-Z0-9._-]+"))) return false
-        val target = File(root, id)
+        if (!validId(id)) return false
+        val target = runCatching { directChild(id) }.getOrNull() ?: return false
         return !target.exists() || target.deleteRecursively()
     }
 
@@ -110,7 +120,7 @@ class ThemeAssetStore(context: Context) {
 
     private fun decodeManifest(json: JSONObject): ExternalThemePackage {
         val id = json.getString("id")
-        require(id.matches(Regex("[a-zA-Z0-9._-]+")))
+        require(validId(id))
         val format = ExternalThemeFormat.valueOf(json.getString("sourceFormat"))
         val iconJson = json.optJSONObject("icons")
         val icons = iconJson?.let { objectJson ->

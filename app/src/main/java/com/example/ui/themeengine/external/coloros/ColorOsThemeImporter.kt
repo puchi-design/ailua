@@ -13,8 +13,10 @@ import org.w3c.dom.Node
 class ColorOsThemeImporter : ParsingThemeImporter() {
     override val format = ExternalThemeFormat.COLOROS_THEME
 
-    override fun parse(source: ImportedThemeSource): ThemeImportPreview {
-        val archive = SafeThemeArchive(source.bytes)
+    override fun parse(source: ImportedThemeSource): ThemeImportPreview =
+        parse(source, SafeThemeArchive(source.bytes))
+
+    fun parse(source: ImportedThemeSource, archive: SafeThemeArchive): ThemeImportPreview {
         val infoPath = archive.listEntries().firstOrNull { it.equals("themeInfo.xml", true) }
             ?: archive.listEntries().firstOrNull { it.endsWith("/themeInfo.xml", true) }
             ?: throw IllegalArgumentException("缺少 themeInfo.xml")

@@ -36,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
@@ -104,13 +105,21 @@ import com.example.ui.components.WorldTimeDevSheet
 import com.example.ui.themeengine.AiluaThemeProvider
 import com.example.ui.themeengine.ThemeResolver
 import com.example.ui.themeengine.ThemeStore
+import com.example.ui.themeengine.external.ExternalThemeRepository
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import com.example.ui.themecenter.ThemeCenterSheet
 import com.example.ui.theme.AiluaMistBlue
 import androidx.compose.ui.unit.IntOffset
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -163,9 +172,10 @@ fun VirtualHomeScreen(
     var resizeItemId by remember { mutableStateOf<String?>(null) }
     var resizeSize by remember { mutableStateOf<WidgetSize?>(null) }
     var resizePlan by remember { mutableStateOf<DropPlan?>(null) }
-    remember(context) { ThemeStore.initialize(context); true }
+    remember(context) { ThemeStore.initialize(context); ExternalThemeRepository.initialize(context); true }
+    val selection = ThemeStore.selection
     val themeRuntime = ThemeResolver.resolve(
-        ThemeStore.selection, isDarkTheme, worldClock.dayPhase, worldClock.weather
+        selection, isDarkTheme, worldClock.dayPhase, worldClock.weather
     )
 
     // Edit mode: entered by long pressing the wallpaper or an app icon,
@@ -347,6 +357,22 @@ fun VirtualHomeScreen(
         }
     }
 
+    val importedWallpaper by produceState<ImageBitmap?>(null, selection.wallpaperSourceId, ExternalThemeRepository.themes) {
+        value = withContext(Dispatchers.IO) {
+            runCatching {
+                val bytes = selection.wallpaperSourceId?.let(ExternalThemeRepository::get)
+                    ?.wallpapers?.firstOrNull()?.let(ExternalThemeRepository::assetBytes) ?: return@runCatching null
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+                if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@runCatching null
+                var sample = 1
+                while (bounds.outWidth / sample > 2048 || bounds.outHeight / sample > 2048) sample *= 2
+                val options = BitmapFactory.Options().apply { inSampleSize = sample }
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)?.asImageBitmap()
+            }.getOrNull()
+        }
+    }
+
     // Long press the wallpaper enters edit mode, tapping blank space leaves it
     BackHandler(enabled = isEditing || dragState.isDragging) {
         if (dragState.isDragging) scope.launch { finishDrag(restoreSourcePage = true) }
@@ -445,6 +471,13 @@ fun VirtualHomeScreen(
             }
             .testTag("virtual_home_screen")
     ) {
+        val wallpaperBitmap = importedWallpaper
+        if (wallpaperBitmap != null) {
+            Image(
+                bitmap = wallpaperBitmap, contentDescription = null,
+                modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop
+            )
+        }
         Column(
             modifier = Modifier.fillMaxSize()
         ) {

@@ -1,8 +1,9 @@
 package com.example.ui.themeengine.external.mtz
 
-import org.xmlpull.v1.XmlPullParser
-import org.xmlpull.v1.XmlPullParserFactory
 import java.io.ByteArrayInputStream
+import javax.xml.parsers.DocumentBuilderFactory
+import org.w3c.dom.Element
+import org.w3c.dom.Node
 
 data class MtzDescription(
     val title: String? = null,
@@ -26,44 +27,45 @@ data class MtzDescription(
 /** Tolerates missing and differently cased fields in MIUI description.xml. */
 object MtzDescriptionParser {
     fun parse(bytes: ByteArray): MtzDescription {
+        require(bytes.size <= 1024 * 1024) { "description.xml 过大" }
+        val xml = bytes.toString(Charsets.UTF_8)
+        require(!Regex("<!\\s*(DOCTYPE|ENTITY)", RegexOption.IGNORE_CASE).containsMatchIn(xml)) {
+            "不支持包含 DTD 的主题元数据"
+        }
+        val factory = DocumentBuilderFactory.newInstance().apply {
+            isNamespaceAware = true
+            isExpandEntityReferences = false
+            runCatching { setFeature("http://apache.org/xml/features/disallow-doctype-decl", true) }
+            runCatching { setFeature("http://xml.org/sax/features/external-general-entities", false) }
+            runCatching { setFeature("http://xml.org/sax/features/external-parameter-entities", false) }
+            runCatching { setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false) }
+        }
+        val root = factory.newDocumentBuilder().parse(ByteArrayInputStream(bytes)).documentElement
         val fields = linkedMapOf<String, String>()
-        val parser = XmlPullParserFactory.newInstance().newPullParser()
-        ByteArrayInputStream(bytes).use { input ->
-            parser.setInput(input, null)
-            var activeField: String? = null
-            var activeDepth = -1
-            var value = StringBuilder()
-            while (true) {
-                when (parser.next()) {
-                    XmlPullParser.START_TAG -> {
-                        val field = fieldName(parser.name)
-                        if (field != null && activeField == null) {
-                            activeField = field
-                            activeDepth = parser.depth
-                            value = StringBuilder()
-                        }
-                        for (index in 0 until parser.attributeCount) {
-                            val attribute = fieldName(parser.getAttributeName(index)) ?: continue
-                            parser.getAttributeValue(index)?.trim()
-                                ?.takeIf(String::isNotEmpty)?.let { fields.putIfAbsent(attribute, it) }
+        fun visit(node: Node) {
+            if (node is Element) {
+                fieldName(node.localName ?: node.tagName)?.let { field ->
+                    val directText = (0 until node.childNodes.length).mapNotNull { index ->
+                        node.childNodes.item(index).takeIf {
+                            it.nodeType == Node.TEXT_NODE || it.nodeType == Node.CDATA_SECTION_NODE
+                        }?.nodeValue
+                    }.joinToString("").trim()
+                    directText.takeIf(String::isNotEmpty)?.let { fields.putIfAbsent(field, it) }
+                }
+                val attributes = node.attributes
+                for (index in 0 until attributes.length) {
+                    val attribute = attributes.item(index)
+                    fieldName(attribute.localName ?: attribute.nodeName)?.let { field ->
+                        attribute.nodeValue?.trim()?.takeIf(String::isNotEmpty)?.let {
+                            fields.putIfAbsent(field, it)
                         }
                     }
-                    XmlPullParser.TEXT, XmlPullParser.CDSECT -> {
-                        if (activeField != null) value.append(parser.text)
-                    }
-                    XmlPullParser.END_TAG -> {
-                        if (parser.depth == activeDepth && fieldName(parser.name) == activeField) {
-                            value.toString().trim().takeIf(String::isNotEmpty)?.let {
-                                fields.putIfAbsent(activeField, it)
-                            }
-                            activeField = null
-                            activeDepth = -1
-                        }
-                    }
-                    XmlPullParser.END_DOCUMENT -> break
                 }
             }
+            val children = node.childNodes
+            for (index in 0 until children.length) visit(children.item(index))
         }
+        visit(root)
         return MtzDescription(
             title = fields["title"], designer = fields["designer"],
             author = fields["author"], version = fields["version"],
@@ -83,5 +85,3 @@ object MtzDescriptionParser {
         else -> null
     }
 }
-
-

@@ -26,7 +26,8 @@ import com.example.data.model.WeatherState
 import com.example.ui.themeengine.*
 
 private enum class ThemeCenterTab(val title: String) {
-    THEMES("主题"), PALETTES("配色"), WALLPAPERS("壁纸"), ICONS("图标")
+    THEMES("内置"), MINE("我的主题"), PACKS("图标包"), IMPORT("导入"),
+    PALETTES("配色"), WALLPAPERS("壁纸"), ICONS("图标样式")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,7 +56,7 @@ fun ThemeCenterSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(14.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                ThemeCenterTab.entries.forEach { item ->
+                ThemeCenterTab.entries.take(4).forEach { item ->
                     val selected = tab == item
                     val shape = RoundedCornerShape(13.dp)
                     Box(Modifier.weight(1f).clip(shape)
@@ -70,9 +71,25 @@ fun ThemeCenterSheet(
                     }
                 }
             }
+            Spacer(Modifier.height(7.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                ThemeCenterTab.entries.drop(4).forEach { item ->
+                    val selected = tab == item
+                    val shape = RoundedCornerShape(10.dp)
+                    Box(Modifier.weight(1f).clip(shape)
+                        .background(if (selected) runtime.palette.accent.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                        .clickable { tab = item }.padding(vertical = 6.dp)
+                        .testTag("theme_center_tab_" + item.name.lowercase()),
+                        contentAlignment = Alignment.Center) {
+                        Text(item.title,
+                            color = if (selected) runtime.palette.accent else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp)
+                    }
+                }
+            }
             Spacer(Modifier.height(12.dp))
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-                if (tab != ThemeCenterTab.THEMES) {
+                if (tab in setOf(ThemeCenterTab.PALETTES, ThemeCenterTab.WALLPAPERS, ThemeCenterTab.ICONS)) {
                     ThemePreview(runtime, Modifier.fillMaxWidth().height(190.dp))
                     Spacer(Modifier.height(14.dp))
                 }
@@ -105,6 +122,11 @@ fun ThemeCenterSheet(
                         }
                         Spacer(Modifier.height(10.dp))
                     }
+                    ThemeCenterTab.MINE -> MyThemesSection(runtime)
+                    ThemeCenterTab.PACKS -> IconPacksSection(runtime)
+                    ThemeCenterTab.IMPORT -> ImportThemeSection(runtime) {
+                        tab = ThemeCenterTab.MINE
+                    }
                     ThemeCenterTab.PALETTES -> {
                         ChoiceRow("跟随主题", "使用当前主题的默认配色",
                             ThemeResolver.resolve(selection.copy(paletteOverrideId = null), isDarkTheme, dayPhase, weather).palette.accent,
@@ -121,35 +143,37 @@ fun ThemeCenterSheet(
                         }
                     }
                     ThemeCenterTab.WALLPAPERS -> {
-                        val defaultColors = ThemeResolver.resolve(selection.copy(wallpaperOverrideId = null),
+                        val defaultColors = ThemeResolver.resolve(selection.copy(wallpaperOverrideId = null, wallpaperSourceId = null),
                             isDarkTheme, dayPhase, weather).wallpaper.colors
                         WallpaperRow("跟随主题", "使用当前主题的默认壁纸", defaultColors,
-                            selection.wallpaperOverrideId == null, "wallpaper_option_default") {
-                            ThemeStore.update(selection.copy(wallpaperOverrideId = null))
+                            selection.wallpaperOverrideId == null && selection.wallpaperSourceId == null, "wallpaper_option_default") {
+                            ThemeStore.update(selection.copy(wallpaperOverrideId = null, wallpaperSourceId = null))
                         }
                         WallpaperCatalog.options.forEach { option ->
-                            val candidate = selection.copy(wallpaperOverrideId = option.id)
+                            val candidate = selection.copy(wallpaperOverrideId = option.id, wallpaperSourceId = null)
                             WallpaperRow(option.name, option.nameEn,
                                 ThemeResolver.resolve(candidate, isDarkTheme, dayPhase, weather).wallpaper.colors,
-                                selection.wallpaperOverrideId == option.id, "wallpaper_option_" + option.id) {
+                                selection.wallpaperOverrideId == option.id && selection.wallpaperSourceId == null, "wallpaper_option_" + option.id) {
                                 ThemeStore.update(candidate)
                             }
                         }
+                        ExternalWallpaperChoices(runtime)
                     }
                     ThemeCenterTab.ICONS -> {
                         IconRow("跟随主题", "使用当前主题的默认图标",
-                            ThemeResolver.resolve(selection.copy(iconStyleOverrideId = null), isDarkTheme, dayPhase, weather),
-                            selection.iconStyleOverrideId == null, "icon_option_default") {
-                            ThemeStore.update(selection.copy(iconStyleOverrideId = null))
+                            ThemeResolver.resolve(selection.copy(iconStyleOverrideId = null, iconSourceOverrideId = null, manualIconOverrides = emptyMap()), isDarkTheme, dayPhase, weather),
+                            selection.iconStyleOverrideId == null && selection.iconSourceOverrideId == null, "icon_option_default") {
+                            ThemeStore.update(selection.copy(iconStyleOverrideId = null, iconSourceOverrideId = null, manualIconOverrides = emptyMap()))
                         }
                         IconStyleCatalog.options.forEach { option ->
-                            val candidate = selection.copy(iconStyleOverrideId = option.id)
+                            val candidate = selection.copy(iconStyleOverrideId = option.id, iconSourceOverrideId = null, manualIconOverrides = emptyMap())
                             IconRow(option.name, option.nameEn,
                                 ThemeResolver.resolve(candidate, isDarkTheme, dayPhase, weather),
-                                selection.iconStyleOverrideId == option.id, "icon_option_" + option.id) {
+                                selection.iconStyleOverrideId == option.id && selection.iconSourceOverrideId == null, "icon_option_" + option.id) {
                                 ThemeStore.update(candidate)
                             }
                         }
+                        ExternalIconChoices(runtime)
                     }
                 }
                 Spacer(Modifier.height(28.dp))

@@ -1,25 +1,28 @@
 # AILUA Theme Package Schema v1
 
-A `.ailuatheme` file is a ZIP archive. This document reserves a portable package format for a future importer. AILUA P5.3 does **not** parse or install these files yet. Built-in themes currently use `ThemeCatalog` and `ThemeResolver`.
+An .ailuatheme file is a ZIP archive that AILUA can import locally. The importer recognizes its contents even if a file provider supplies a generic or misleading filename.
 
 ## Archive layout
 
-```text
-example.ailuatheme
-├── manifest.json             required
-├── theme.json                required
-├── preview/                  optional preview media
-├── wallpaper/                optional wallpaper assets
-├── icons/                    reserved for app icon assets
-├── fonts/                    reserved for fonts
-└── sounds/                   reserved for audio
-```
+manifest.json and theme.json are required at the ZIP root. Image directories are optional:
 
-All paths in JSON are relative to the archive root, use forward slashes, and must remain within the archive. Consumers should reject absolute paths and `..` segments. A package must have exactly one root-level `manifest.json` and `theme.json`.
+~~~text
+example.ailuatheme
+├── manifest.json
+├── theme.json
+├── preview/
+│   └── home.jpg
+├── wallpaper/
+│   └── home.webp
+└── icons/
+    └── com.android.contacts.png
+~~~
+
+The importer reads .png, .jpg, .jpeg, and .webp files under preview/, wallpaper/, and the icon directory configured in theme.json. It does not currently load fonts/ or sounds/. Use distinct image basenames within each category because imported assets are stored by category and basename.
 
 ## manifest.json
 
-```json
+~~~json
 {
   "schema": 1,
   "id": "ailua.diary.sakura",
@@ -27,32 +30,48 @@ All paths in JSON are relative to the archive root, use forward slashes, and mus
   "author": "AILUA",
   "version": "1.0.0"
 }
-```
+~~~
 
-- `schema` is the integer format version and must be `1`.
-- `id` is a stable, namespaced package identifier. It must not collide with built-in theme IDs.
-- `name` is the user-facing package name.
-- `author` and `version` identify the package creator and release. A later importer will use both for display, not as trusted identity.
+- schema must be the integer 1; other values are rejected.
+- id is a naming hint. The installed ID is sanitized and receives a hash of the full ZIP bytes, so different package contents have different IDs. It is not a verified publisher identity.
+- name, author, and version are displayed as package metadata. The importer supplies defaults when optional fields are absent.
 
 ## theme.json
 
-```json
+~~~json
+{
+  "basePreset": "diary",
+  "palette": "sakura",
+  "wallpaper": "wallpaper/home.webp",
+  "icons": {
+    "path": "icons/"
+  }
+}
+~~~
+
+- basePreset and palette identify built-in theme tokens. The importer records both. Applying an imported package currently keeps the user's selected built-in shell and applies the palette when available.
+- wallpaper selects which imported wallpaper appears first. If the reference is absent or does not match an included image, other imported wallpapers remain available.
+- icons.path is the ZIP path prefix for icon images; it defaults to icons/. Icon filenames are normalized into app keys. For example, com.android.contacts.png maps to com.android.contacts.
+- Imported wallpapers and icons can be mixed with the current built-in theme. A package may contain only a subset of these assets.
+
+The earlier nested form is also accepted:
+
+~~~json
 {
   "preset": {
     "skin": "diary",
     "palette": "sakura",
-    "wallpaper": "wallpaper/light.webp",
-    "iconStyle": "paper",
-    "widgetStyle": "note",
-    "dockStyle": "paper_strip",
-    "typography": "serif",
-    "motion": "soft"
+    "wallpaper": "wallpaper/home.webp"
   }
 }
-```
+~~~
 
-`preset` provides visual references. `skin` names a base theme; `palette`, `iconStyle`, `widgetStyle`, `dockStyle`, `typography`, and `motion` select package or built-in tokens. `wallpaper` is an archive-relative image path. A future importer must validate every reference before installing a package and should reject missing resources or unknown token IDs. Theme selections remain separate from runtime visual objects: the resolver builds the final runtime after package resolution.
+The nested skin, palette, and wallpaper fields supply fallback values when their top-level equivalents are absent. Other nested visual token names are reserved and currently have no import effect.
 
-## Reserved integration points
+## Validation and installation
 
-The engine reserves a `ThemePackageProvider` so a future `AiluaPackageProvider` can list and resolve imported packages next to built-in presets. An `IconSource` abstraction reserves Android icon-pack, theme-package, MTZ, and ColorOS sources. This schema does not specify those external formats, dynamic calendar/clock metadata, font loading, sound playback, image decoding, or package signature verification. Import behavior, limits, and security validation belong to the future importer implementation.
+ZIP entry paths must be relative and cannot contain empty, . or .. segments. Absolute drive paths, duplicate file paths, and entries outside the archive are rejected. The importer limits the source ZIP and total extracted bytes to 80 MiB, each extracted entry to 12 MiB, and stored file entries to 2,048. Image filenames are filtered by extension; invalid image data can still fail to render.
+
+After preview and confirmation, normalized assets are stored in the app's private files/themes/<installed-id>/ directory, with a generated manifest for later loading. The original package is not executed. Deleting an imported theme removes its stored assets and clears any active wallpaper or icon source that points to it.
+
+The format does not define dynamic clock/calendar icons, font or sound playback, package signatures, or publisher verification. MIUI .mtz, ColorOS .theme, and installed Android icon packs use separate import paths.

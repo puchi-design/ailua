@@ -14,8 +14,10 @@ import com.example.ui.themeengine.external.externalThemeId
 class MtzThemeImporter : ParsingThemeImporter() {
     override val format: ExternalThemeFormat = ExternalThemeFormat.MIUI_MTZ
 
-    override fun parse(source: ImportedThemeSource): ThemeImportPreview {
-        val archive = SafeThemeArchive(source.bytes)
+    override fun parse(source: ImportedThemeSource): ThemeImportPreview =
+        parse(source, SafeThemeArchive(source.bytes))
+
+    fun parse(source: ImportedThemeSource, archive: SafeThemeArchive): ThemeImportPreview {
         val paths = archive.listEntries()
         val descriptionPath = paths.firstOrNull { it.equals("description.xml", ignoreCase = true) }
         val recognized = descriptionPath != null || paths.any {
