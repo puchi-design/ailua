@@ -98,13 +98,13 @@ import com.example.data.model.LetterDeliveryState
 import com.example.data.model.isRead
 import com.example.data.repository.MailboxRepository
 import com.example.ui.components.AiluaAvatar
-import com.example.ui.components.HomeThemeCatalog
-import com.example.ui.components.HomeThemeStore
-import com.example.ui.components.ThemePickerSheet
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
 import com.example.ui.components.WorldTimeDevSheet
-import com.example.ui.components.themeWallpaper
+import com.example.ui.themeengine.AiluaThemeProvider
+import com.example.ui.themeengine.ThemeResolver
+import com.example.ui.themeengine.ThemeStore
+import com.example.ui.themecenter.ThemeCenterSheet
 import com.example.ui.theme.AiluaMistBlue
 import androidx.compose.ui.unit.IntOffset
 import kotlinx.coroutines.delay
@@ -163,7 +163,10 @@ fun VirtualHomeScreen(
     var resizeItemId by remember { mutableStateOf<String?>(null) }
     var resizeSize by remember { mutableStateOf<WidgetSize?>(null) }
     var resizePlan by remember { mutableStateOf<DropPlan?>(null) }
-    val homeTheme = HomeThemeCatalog.byId(HomeThemeStore.selectedId)
+    remember(context) { ThemeStore.initialize(context); true }
+    val themeRuntime = ThemeResolver.resolve(
+        ThemeStore.selection, isDarkTheme, worldClock.dayPhase, worldClock.weather
+    )
 
     // Edit mode: entered by long pressing the wallpaper or an app icon,
     // left by tapping blank space, the [完成] pill, the Home bar or Back.
@@ -204,7 +207,7 @@ fun VirtualHomeScreen(
     val latestDropPlan by rememberUpdatedState(dropPlan)
 
     val widgetContext = WidgetHostContext(
-        character = character, accent = homeTheme.accent, worldClock = worldClock,
+        character = character, accent = themeRuntime.palette.accent, worldClock = worldClock,
         heartbeatState = heartbeatState,
         onOpenDevTime = if (isEditing) ({}) else ({ showDevTimeSheet = true }),
         onOpenLiving = if (isEditing) ({}) else onNavigateToLiving,
@@ -344,24 +347,17 @@ fun VirtualHomeScreen(
         }
     }
 
-    // Wallpaper: default theme tracks the AILUA world clock, the other themes stay fixed
-    val wallpaper = themeWallpaper(
-        theme = homeTheme,
-        dayPhase = worldClock.dayPhase,
-        weather = worldClock.weather,
-        isDarkTheme = isDarkTheme
-    )
-
     // Long press the wallpaper enters edit mode, tapping blank space leaves it
     BackHandler(enabled = isEditing || dragState.isDragging) {
         if (dragState.isDragging) scope.launch { finishDrag(restoreSourcePage = true) }
         else isEditing = false
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Brush.verticalGradient(wallpaper.colors))
+    AiluaThemeProvider(themeRuntime) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Brush.verticalGradient(themeRuntime.wallpaper.colors))
             .onGloballyPositioned {
                 rootOrigin = it.positionInRoot()
                 rootWidth = it.size.width
@@ -525,7 +521,7 @@ fun VirtualHomeScreen(
                         HomeEditPill(
                             label = "完成",
                             testTag = "home_edit_done",
-                            accent = homeTheme.accent
+                            accent = themeRuntime.palette.accent
                         ) {
                             isEditing = false
                         }
@@ -548,7 +544,7 @@ fun VirtualHomeScreen(
                                 .width(dotWidth)
                                 .clip(RoundedCornerShape(3.dp))
                                 .background(
-                                    if (isSelected) homeTheme.accent
+                                    if (isSelected) themeRuntime.palette.accent
                                     else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
                                 )
                         )
@@ -557,10 +553,10 @@ fun VirtualHomeScreen(
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
                     if (isEditing) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            HomeEditPill("+组件", "home_edit_widgets", homeTheme.accent) {
+                            HomeEditPill("+组件", "home_edit_widgets", themeRuntime.palette.accent) {
                                 showWidgetPicker = true
                             }
-                            HomeEditPill("主题", "home_edit_theme", homeTheme.accent) {
+                            HomeEditPill("主题", "home_edit_theme", themeRuntime.palette.accent) {
                                 showThemeSheet = true
                             }
                         }
@@ -593,7 +589,7 @@ fun VirtualHomeScreen(
             // Persistent Virtual Phone Dock (system launcher style, translucent + theme tinted)
             HomeHotseat(
                 items = workspace.hotseatItems(), labels = labels,
-                accent = homeTheme.accent,
+                accent = themeRuntime.palette.accent,
                 isEditing = isEditing,
                 draggedItemId = dragState.draggedItemId,
                 hoverSlot = if (dragState.targetContainer == DesktopContainer.HOTSEAT)
@@ -647,10 +643,11 @@ fun VirtualHomeScreen(
         }
 
         if (showThemeSheet) {
-            ThemePickerSheet(
-                selectedId = homeTheme.id,
-                onSelect = { HomeThemeStore.selectedId = it },
-                onDismiss = { showThemeSheet = false }
+            ThemeCenterSheet(
+                onDismiss = { showThemeSheet = false },
+                isDarkTheme = isDarkTheme,
+                dayPhase = worldClock.dayPhase,
+                weather = worldClock.weather,
             )
         }
         if (showWidgetPicker) {
@@ -667,6 +664,7 @@ fun VirtualHomeScreen(
                 }
             }
         }
+    }
     }
 }
 

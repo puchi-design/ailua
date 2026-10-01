@@ -47,6 +47,8 @@ import com.example.ui.theme.AiluaDustyRose
 import com.example.ui.theme.AiluaMistBlue
 import com.example.ui.theme.AiluaMoonGold
 import com.example.ui.theme.AiluaMutedLavender
+import com.example.ui.themeengine.LocalAiluaTheme
+import com.example.ui.themeengine.WidgetBackgroundStyle
 
 /**
  * The Hero Living Character Widget on AILUA Home.
@@ -295,28 +297,52 @@ fun LivingCharacterWidget(
  * Bond & Relationship Widget on Home.
  */
 @Composable
+private fun Modifier.themedSnippetSurface(): Modifier {
+    val runtime = LocalAiluaTheme.current
+    val spec = runtime.widgets
+    val shape = RoundedCornerShape(spec.cornerRadiusDp.dp)
+    return this
+        .then(if (spec.shadow.elevationDp > 0f)
+            Modifier.shadow(
+                elevation = (spec.shadow.elevationDp * 0.35f).dp,
+                shape = shape,
+                ambientColor = Color.Black.copy(alpha = 0.04f),
+                spotColor = Color.Black.copy(alpha = 0.06f)
+            )
+        else Modifier)
+        .clip(shape)
+        .background(spec.backgroundColor.copy(alpha = spec.surfaceAlpha))
+        .then(if (spec.border.widthDp > 0f)
+            Modifier.border(spec.border.widthDp.dp, spec.border.color, shape)
+        else Modifier)
+}
+
+@Composable
+private fun snippetAccent(): Color {
+    val runtime = LocalAiluaTheme.current
+    return when (runtime.widgets.backgroundStyle) {
+        WidgetBackgroundStyle.FLAT, WidgetBackgroundStyle.TRANSPARENT ->
+            runtime.widgets.foregroundColor
+        else -> runtime.palette.accent
+    }
+}
+
+/** Bond and relationship widget, using the active widget surface and palette. */
+@Composable
 fun BondProgressWidget(
     character: CharacterProfile,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {}
 ) {
+    val runtime = LocalAiluaTheme.current
+    val foreground = runtime.widgets.foregroundColor
+    val muted = foreground.copy(alpha = 0.72f)
+    val accent = snippetAccent()
     Box(
         modifier = modifier
-            .shadow(
-                elevation = 2.dp,
-                shape = RoundedCornerShape(20.dp),
-                ambientColor = Color.Black.copy(alpha = 0.03f),
-                spotColor = Color.Black.copy(alpha = 0.05f)
-            )
-            .clip(RoundedCornerShape(20.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                RoundedCornerShape(20.dp)
-            )
+            .themedSnippetSurface()
             .clickable { onClick() }
-            .padding(14.dp)
+            .padding(runtime.widgets.contentPaddingDp.dp)
             .testTag("bond_progress_widget")
     ) {
         Column {
@@ -333,46 +359,41 @@ fun BondProgressWidget(
                         imageVector = Icons.Default.Favorite,
                         contentDescription = "心契羁绊",
                         modifier = Modifier.size(14.dp),
-                        tint = AiluaDustyRose
+                        tint = accent
                     )
                     Text(
-                        text = "心契 Lv.${character.bondLevel}",
+                        text = "心契 Lv." + character.bondLevel,
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 12.sp
                         ),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = foreground
                     )
                 }
 
                 Text(
-                    text = "${character.daysTogether}天相伴",
+                    text = character.daysTogether.toString() + "天相伴",
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Medium
                     ),
-                    color = AiluaMoonGold
+                    color = accent
                 )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-
             LinearProgressIndicator(
                 progress = { character.bondProgress / 100f },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(5.dp)
+                modifier = Modifier.fillMaxWidth().height(5.dp)
                     .clip(RoundedCornerShape(3.dp)),
-                color = AiluaMutedLavender,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant
+                color = accent,
+                trackColor = foreground.copy(alpha = 0.14f)
             )
-
             Spacer(modifier = Modifier.height(6.dp))
-
             Text(
                 text = character.bondName,
                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                color = muted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -380,9 +401,7 @@ fun BondProgressWidget(
     }
 }
 
-/**
- * Memory Snippet Widget on Home.
- */
+/** Memory snippet widget, styled like the active widget surface. */
 @Composable
 fun MemorySnippetWidget(
     title: String,
@@ -390,23 +409,15 @@ fun MemorySnippetWidget(
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {}
 ) {
+    val runtime = LocalAiluaTheme.current
+    val foreground = runtime.widgets.foregroundColor
+    val muted = foreground.copy(alpha = 0.72f)
+    val accent = snippetAccent()
     Box(
         modifier = modifier
-            .shadow(
-                elevation = 2.dp,
-                shape = RoundedCornerShape(20.dp),
-                ambientColor = Color.Black.copy(alpha = 0.03f),
-                spotColor = Color.Black.copy(alpha = 0.05f)
-            )
-            .clip(RoundedCornerShape(20.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                RoundedCornerShape(20.dp)
-            )
+            .themedSnippetSurface()
             .clickable { onClick() }
-            .padding(14.dp)
+            .padding(runtime.widgets.contentPaddingDp.dp)
             .testTag("memory_snippet_widget")
     ) {
         Column {
@@ -423,7 +434,7 @@ fun MemorySnippetWidget(
                         imageVector = Icons.Default.AutoAwesome,
                         contentDescription = "记忆凝华",
                         modifier = Modifier.size(13.dp),
-                        tint = AiluaMoonGold
+                        tint = accent
                     )
                     Text(
                         text = title,
@@ -431,36 +442,32 @@ fun MemorySnippetWidget(
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 12.sp
                         ),
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = foreground,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                     contentDescription = "查看记忆",
                     modifier = Modifier.size(10.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    tint = muted.copy(alpha = 0.75f)
                 )
             }
-
             Spacer(modifier = Modifier.height(7.dp))
-
             Text(
                 text = snippet,
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontSize = 11.sp,
                     lineHeight = 15.sp
                 ),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                color = foreground.copy(alpha = 0.78f),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
         }
     }
 }
-
 @Composable
 private fun AiluaLavenderSoftBg(): Color {
     return if (MaterialTheme.colorScheme.surface == Color(0xFF1E1C27)) {

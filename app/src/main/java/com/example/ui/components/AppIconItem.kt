@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.GenericShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BookmarkBorder
@@ -68,16 +69,22 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.AiluaDustyRose
 import com.example.ui.theme.AiluaMistBlue
-import com.example.ui.theme.AiluaMoonGold
 import com.example.ui.theme.AiluaMutedLavender
+import com.example.ui.themeengine.EditMotion
+import com.example.ui.themeengine.GlyphTintMode
+import com.example.ui.themeengine.IconContainerStyle
+import com.example.ui.themeengine.IconShapeSpec
+import com.example.ui.themeengine.IdentityColorMode
+import com.example.ui.themeengine.LocalAiluaTheme
+import com.example.ui.themeengine.TypographyFamily
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
@@ -85,10 +92,6 @@ import kotlin.math.pow
 import kotlin.math.sign
 import kotlin.math.sin
 
-/**
- * Single source of truth for launcher icon geometry so the desktop grid,
- * the dock and the app library always look like the same system.
- */
 object AppIconDefaults {
     val ContainerSize = 56.dp
     const val GlyphScale = 0.46f
@@ -101,7 +104,6 @@ object AppIconDefaults {
 
 private const val SquircleExponent = 4f
 
-/** Superellipse "squircle" used by modern system launchers. */
 val AppIconShape: Shape = GenericShape { size, _ ->
     val halfWidth = size.width / 2f
     val halfHeight = size.height / 2f
@@ -118,6 +120,21 @@ val AppIconShape: Shape = GenericShape { size, _ ->
     close()
 }
 
+fun iconShapeFor(shape: IconShapeSpec): Shape = when (shape) {
+    IconShapeSpec.SQUIRCLE -> AppIconShape
+    IconShapeSpec.CIRCLE -> CircleShape
+    IconShapeSpec.ROUNDED_RECT -> RoundedCornerShape(12.dp)
+    IconShapeSpec.SOFT_SQUARE -> RoundedCornerShape(18.dp)
+    IconShapeSpec.NONE -> RoundedCornerShape(0.dp)
+}
+
+data class AppVisualIdentity(val glyph: ImageVector, val identityColors: List<Color>)
+
+fun getAppIdentity(iconKey: String): AppVisualIdentity {
+    val (glyph, colors) = getAppVisuals(iconKey)
+    return AppVisualIdentity(glyph, colors)
+}
+
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun AppIconItem(
@@ -132,32 +149,39 @@ fun AppIconItem(
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null
 ) {
+    val theme = LocalAiluaTheme.current
+    val iconSpec = theme.icons
+    val motion = theme.motion
+    val identity = getAppIdentity(iconKey)
+    val shape = iconShapeFor(iconSpec.shape)
+    val containerSize = size * iconSpec.containerScale
+    val glyphSize = size * iconSpec.glyphScale
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val pressScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1.0f,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f),
+        targetValue = if (isPressed) motion.pressScale else 1f,
+        animationSpec = spring(dampingRatio = motion.springDamping, stiffness = motion.springStiffness),
         label = "icon_press_scale"
     )
     val dragScale by animateFloatAsState(
-        targetValue = if (isDragging) 1.04f else 1.0f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 500f),
+        targetValue = if (isDragging) motion.dragScale else 1f,
+        animationSpec = spring(dampingRatio = motion.springDamping, stiffness = motion.springStiffness),
         label = "icon_drag_scale"
     )
     val editFactor by animateFloatAsState(
-        targetValue = if (editMode) 1f else 0f,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
+        targetValue = if (editMode && motion.editMotion != EditMotion.NONE) 1f else 0f,
+        animationSpec = spring(dampingRatio = motion.springDamping, stiffness = motion.springStiffness),
         label = "icon_edit_factor"
     )
-    val wiggle by rememberInfiniteTransition(label = "icon_wiggle")
-        .animateFloat(
-            initialValue = 0f,
-            targetValue = 360f,
-            animationSpec = infiniteRepeatable(tween(1100, easing = LinearEasing)),
-            label = "icon_wiggle_phase"
-        )
-
-    val (iconVector, gradientColors) = getAppVisuals(iconKey)
+    val phase = if (editMode && motion.editMotion != EditMotion.NONE) {
+        val animated by rememberInfiniteTransition(label = "icon_edit")
+            .animateFloat(
+                initialValue = 0f, targetValue = 360f,
+                animationSpec = infiniteRepeatable(tween(1100, easing = LinearEasing)),
+                label = "icon_edit_phase"
+            )
+        animated
+    } else 0f
 
     val clickModifier = if (onLongClick != null) {
         Modifier.combinedClickable(
@@ -175,58 +199,86 @@ fun AppIconItem(
     }
 
     Column(
-        modifier = modifier
-            .scale(pressScale * dragScale)
-            .then(clickModifier)
-            .testTag("app_icon_$iconKey"),
+        modifier = modifier.scale(pressScale * dragScale)
+            .then(clickModifier).testTag("app_icon_$iconKey"),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(
-            modifier = Modifier.size(size),
-            contentAlignment = Alignment.Center
-        ) {
-            // App squircle container: neutral soft shadow, hairline rim, own gradient identity
-            Box(
-                modifier = Modifier
-                    .size(size)
-                    .graphicsLayer {
-                        rotationZ = sin(wiggle * PI / 180.0).toFloat() * 2.4f * editFactor
+        Box(modifier = Modifier.size(size), contentAlignment = Alignment.Center) {
+            val identityColor = identity.identityColors.first()
+            val glyphTint = when (iconSpec.glyphTintMode) {
+                GlyphTintMode.WHITE -> Color.White
+                GlyphTintMode.IDENTITY -> if (iconSpec.identityColorMode == IdentityColorMode.NONE) theme.palette.onSurface else identityColor
+                GlyphTintMode.ON_SURFACE -> theme.palette.onSurface
+            }
+            val editModifier = Modifier.graphicsLayer {
+                val wave = sin(phase * PI / 180.0).toFloat() * editFactor
+                when (motion.editMotion) {
+                    EditMotion.WIGGLE -> rotationZ = wave * 2.4f
+                    EditMotion.FLOAT -> translationY = -wave * this.size.height * 0.06f
+                    EditMotion.SCALE -> {
+                        scaleX = 1f + wave * 0.035f
+                        scaleY = 1f + wave * 0.035f
                     }
-                    .shadow(
-                        elevation = if (isDragging) 8.dp else 2.dp,
-                        shape = AppIconShape,
-                        ambientColor = Color.Black.copy(alpha = 0.22f),
-                        spotColor = Color.Black.copy(alpha = 0.28f)
-                    )
-                    .clip(AppIconShape)
-                    .background(Brush.linearGradient(gradientColors))
-                    .border(
-                        width = 1.dp,
-                        color = Color.White.copy(alpha = 0.32f),
-                        shape = AppIconShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
+                    EditMotion.NONE -> Unit
+                }
+            }
+            if (iconSpec.containerStyle == IconContainerStyle.GLYPH_ONLY) {
                 Icon(
-                    imageVector = iconVector,
+                    imageVector = identity.glyph,
                     contentDescription = name,
-                    modifier = Modifier.size(size * AppIconDefaults.GlyphScale),
-                    tint = Color.White
+                    modifier = Modifier.size(glyphSize).then(editModifier),
+                    tint = glyphTint
                 )
+            } else {
+                val fill = when (iconSpec.containerStyle) {
+                    IconContainerStyle.GRADIENT -> Brush.linearGradient(identity.identityColors)
+                    IconContainerStyle.SOLID -> Brush.linearGradient(listOf(theme.palette.surface, theme.palette.surface))
+                    IconContainerStyle.OUTLINE -> Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
+                    IconContainerStyle.GLASS -> Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = 0.30f), theme.palette.surface.copy(alpha = 0.14f))
+                    )
+                    IconContainerStyle.PAPER -> Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = 0.24f), theme.palette.surface)
+                    )
+                    IconContainerStyle.GLYPH_ONLY -> Brush.linearGradient(identity.identityColors)
+                }
+                Box(
+                    modifier = Modifier.size(containerSize).then(editModifier)
+                        .shadow(
+                            elevation = (iconSpec.shadow.elevationDp + if (isDragging) 6f else 0f).dp,
+                            shape = shape,
+                            ambientColor = Color.Black.copy(alpha = 0.16f),
+                            spotColor = Color.Black.copy(alpha = 0.20f)
+                        )
+                        .clip(shape).background(fill)
+                        .then(if (iconSpec.border.widthDp > 0f)
+                            Modifier.border(iconSpec.border.widthDp.dp, iconSpec.border.color, shape)
+                        else Modifier),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = identity.glyph,
+                        contentDescription = name,
+                        modifier = Modifier.size(glyphSize),
+                        tint = glyphTint
+                    )
+                    if (iconSpec.containerStyle == IconContainerStyle.PAPER) {
+                        Box(
+                            Modifier.align(Alignment.BottomCenter).padding(bottom = 5.dp)
+                                .size(width = containerSize * 0.28f, height = 2.dp)
+                                .clip(RoundedCornerShape(1.dp))
+                                .background(identityColor.copy(alpha = 0.84f))
+                        )
+                    }
+                }
             }
 
-            // Notification / Unread Badge — only fed with real state by the caller
             if (!badge.isNullOrEmpty()) {
                 Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
+                    modifier = Modifier.align(Alignment.TopEnd)
                         .offset(x = AppIconDefaults.BadgeOffsetX, y = AppIconDefaults.BadgeOffsetY)
                         .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                listOf(Color(0xFFE87A7A), Color(0xFFD45555))
-                            )
-                        )
+                        .background(Brush.linearGradient(listOf(Color(0xFFE87A7A), Color(0xFFD45555))))
                         .border(1.5.dp, Color.White.copy(alpha = 0.95f), CircleShape)
                         .padding(horizontal = 5.dp, vertical = 1.dp)
                 ) {
@@ -247,10 +299,15 @@ fun AppIconItem(
             Text(
                 text = name,
                 style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = AppIconDefaults.LabelSize,
-                    fontWeight = FontWeight.Medium
+                    fontSize = AppIconDefaults.LabelSize * theme.typography.labelSizeScale,
+                    fontWeight = theme.typography.labelWeight,
+                    fontFamily = when (theme.typography.family) {
+                        TypographyFamily.SERIF -> FontFamily.Serif
+                        TypographyFamily.MONO -> FontFamily.Monospace
+                        else -> FontFamily.SansSerif
+                    }
                 ),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                color = iconSpec.labelColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center
@@ -258,7 +315,6 @@ fun AppIconItem(
         }
     }
 }
-
 fun getAppVisuals(iconKey: String): Pair<ImageVector, List<Color>> {
     return when (iconKey) {
         "chat" -> Pair(

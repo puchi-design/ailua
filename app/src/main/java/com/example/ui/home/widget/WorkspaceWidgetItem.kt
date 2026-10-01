@@ -1,16 +1,13 @@
 package com.example.ui.home.widget
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +28,7 @@ import com.example.data.desktop.DesktopItem
 import com.example.ui.home.WidgetHostContext
 import com.example.ui.home.WidgetRegistry
 import com.example.ui.home.WidgetSize
+import com.example.ui.themeengine.LocalAiluaTheme
 import kotlin.math.abs
 
 @Composable
@@ -46,16 +44,14 @@ fun WorkspaceWidgetItem(
 ) {
     val spec = WidgetRegistry.resolve(item.sourceId)
     val size = WidgetSize(item.spanX, item.spanY)
-    val shape = RoundedCornerShape(18.dp)
-    BoxWithConstraints(
-        Modifier.fillMaxSize().padding(3.dp).clip(shape)
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.84f))
-            .border(if (selected) 2.dp else 1.dp,
-                if (selected) context.accent else context.accent.copy(alpha = 0.25f), shape)
+    val theme = LocalAiluaTheme.current
+    ThemeWidgetFrame(
+        selected = selected,
+        modifier = Modifier.fillMaxSize().padding(3.dp)
             .then(if (isEditing) Modifier.clickable { onSelect() } else Modifier)
-            .testTag("workspace_widget_${item.id}"),
+            .testTag("workspace_widget_" + item.id),
     ) {
-        Box(Modifier.fillMaxSize().padding(12.dp)) {
+        Box(Modifier.fillMaxSize().padding(theme.widgets.contentPaddingDp.dp)) {
             spec.content(context, size)
             if (isEditing) {
                 Box(Modifier.fillMaxSize().zIndex(1f).clickable { onSelect() })
@@ -76,7 +72,7 @@ fun WorkspaceWidgetItem(
             var candidate by remember(item.id) { mutableStateOf(size) }
             Box(
                 Modifier.align(Alignment.BottomEnd).zIndex(2f).padding(4.dp).size(30.dp)
-                    .clip(CircleShape).background(context.accent)
+                    .clip(CircleShape).background(theme.palette.accent)
                     .clickable {
                         val index = spec.supportedSizes.indexOf(size)
                         onResizeCommit(spec.supportedSizes[(index + 1) % spec.supportedSizes.size])
