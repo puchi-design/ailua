@@ -1,63 +1,102 @@
-# P5.V-UI0–UI4 交付与真机视觉复核
+# P5.V-UI0–UI6 实施与真机验证
 
-## 状态
+## 交付
 
-- 基线：`local-pass3c-ai-runtime` / `57e83641223cc72f1a29042497b33231176e2bed`，开工时已与远端一致，包含完成的 P5.5。
-- UI0–UI4 已实施，改动保留在工作区，尚未提交或推送，等待四页视觉方向确认。
-- 未迁移 UI5，未开始 P5.6，未修改角色人设或制作正式角色素材。
-- APK：`dist/AILUA-P5.V-UI0-4-debug.apk`。
-- APK SHA-256：`2b29db22355e1ef4d1c586e73bd6e8ee7c175cb64d78a98a03b810d7167060a5`。
+- 分支：`local-pass3c-ai-runtime`。
+- 基线：`57e83641223cc72f1a29042497b33231176e2bed`，含已完成的 P5.5。沿当前工作继续，没有回退或覆盖 P5.5。
+- UI0–UI4、UI5-A/B/C/D/E、UI6 全部完成。
+- 最终实现代码 HEAD：`cbf54895d9f1ccee5488237e90edf000c399afbe`。本报告为后续文档提交；包含报告的最终分支 HEAD 见交付消息或 `git rev-parse HEAD`。
+- APK：`dist/AILUA-P5.V-UI0-6-debug.apk`。
+- SHA-256：`28296c4697d361906d48376fcd6c88e816f1d560899dd91bef1a7ca756c3a484`。
 
 ## 实施内容
 
-1. 沿用 P5.5 已提升至 App Root 的唯一 Theme Runtime，扩展 surface、shape、layout、text 语义规格。完整映射 Material3 的颜色、字体与形状，包括菜单使用的 surfaceContainer 系列颜色。
-2. 字号统一为 30 / 20 / 17 / 15 / 13 / 11；主要圆角统一为 10 / 16 / 22 / pill。
-3. 新增七个公共组件：AiluaScreenScaffold、AiluaTopBar、AiluaSectionHeader、AiluaSurface、AiluaChip、AiluaMediaFrame、CharacterPortrait。Portrait 继续使用现有 AiluaAvatar，未引入新角色资产。
-4. Virtual Chrome 移除状态栏主题切换及品牌文字，保留时间、通知、网络、电量、Live Activity 与左右下拉入口。迁移页面顶部返回逐页返回，底部指示条返回主屏。
-5. LifeBento 改为角色主视觉、消息/生活/相册三个入口、纯列表今日动态；同步收敛 Home Widget、Dock 和编辑面板的表现。
-6. Chat 拆出五个 UI 文件；移除头部羁绊等级；气泡取消边框/阴影；复制、保存记忆、重新生成、收藏、回复分支放入长按菜单；使用统一 Composer。
-7. Living 保留 300dp Hero 与事件列表，主视图移除 RPG 指标；Profile 改为角色视觉、介绍、关系记忆、最近事件。Living 现有投影未提供事件日期，因此使用“最近动态”，避免把历史事件标成“今天”。
+| 阶段 | 完成内容 | Checkpoint |
+| --- | --- | --- |
+| UI0–UI4 | Runtime 语义规格、七个公共组件、Virtual Chrome、Home/LifeBento、Chat、Living、Profile | `3d6ae43` |
+| UI5-A | 动态、三列相册与媒体详情、消息、联系人、复用聊天组件的群聊 | `bcd9130` |
+| UI5-B | 日记列表与阅读、信箱与纸张阅读、日期分组记忆、沉浸剧场 | `0fb58d2` |
+| UI5-C | 他的手机、关系、地点、世界书、应用库 | `b7375e2` |
+| UI5-D | 来电、通话、通话记录、角色工坊、设置、隐私、现实连接 | `70d19ce` |
+| UI5-E | P5.5 锁屏、通知卡、控制中心、Live Activity 的视觉归一 | `ad273ae` |
+| UI6 | 公共弹层、Home 编辑/文件夹/主题预览、名称与字号清理、统一底部 Home、真机 smoke | `cbf5489` |
 
-Workspace 拖拽、Folder、Pager、Resize、持久化、App Drawer、ChatViewModel、Memory、World Runtime、Call Engine 未修改。
+沿用 P5.5 已在 App Root 建立的唯一 AiluaThemeProvider。所有页面共享 LocalAiluaTheme；Material3 的颜色（含 surfaceContainer）、字体与形状映射到该 Runtime。
 
-## 验证
+- Surface：screen / raised / inset / overlay / divider。
+- Shape：10 / 16 / 22 / pill；Text：30 / 20 / 17 / 15 / 13 / 11，锁屏大时钟保留专用字阶。
+- 七个公共组件：AiluaScreenScaffold、AiluaTopBar、AiluaSectionHeader、AiluaSurface、AiluaChip、AiluaMediaFrame、CharacterPortrait。
+- 角色视觉统一通过 CharacterPortrait，内部使用原 AiluaAvatar fallback。Moments/Gallery/Diary/CheckPhone/Theater 使用 AiluaMediaFrame。
+- 普通列表采用行、留白和分隔线；通知、控件、Hero、弹层保留独立容器。
+- UI6 源码扫描：迁移 Screen 无旧四色 import、手写 fontSize 或直接 AiluaAvatar 调用。旧色仅保留在主题兼容和 procedural fallback art 等明确例外中。
 
-设备：小米 M2007J22C，Android 10 / API 29，1080×2340。ADB 使用绝对路径正常连接。APK 使用 `install -r` 覆盖安装，没有清除应用数据。
+Workspace 拖拽、Folder drop、Pager、Resize、数据库语义、Chat/Memory/World/Call 引擎未修改。P5.5 的锁屏状态、通知 Repository、Heads-up 策略、专注/静音、亮度、SystemUI Controller 未改。底部 Home 统一返回已有主屏，顶部返回仍逐页返回。
 
-| 检查 | 结果与证据 |
+Chat 的生成/流式/分支/记忆/再生成/语音、群聊能力、日记喜欢、信件投递/回信、剧场选择/变量/历史/书签、世界书启用/模拟器、Creator JSON/SAF/校验/复制/保存均保留原状态和回调。开发时间入口仅在原 developer 设置启用时出现。应用库名称精简，搜索兼容新中文显示名与原名称/分类。
+
+## 构建与测试
+
+统一执行一次完整离线收口：
+
+```powershell
+.\gradlew.bat testDebugUnitTest assembleDebug assembleDebugAndroidTest --offline --no-configuration-cache --no-daemon --max-workers=1
+```
+
+- 单测 **451/451 PASS**：96 suites，0 failure/error/skip。
+- Debug APK 构建、覆盖安装 **PASS**。
+- 最终真机 instrumentation **2/2 PASS**。
+- 证据位于 `dist/qa/P5.V-UI/`：`ui6-build.log`、`ui6-unit-results.json`、`ui6-instrumentation.log`。
+
+首轮 smoke 错误地认为应用库“通话”直达记录页；既有路由实际直达通话页。已修正测试，改为真实挂断后验证记录页，未修改生产路由。随后只重编译测试 APK，再跑两项通过；未重复完整单测。首轮失败日志保留为 `ui6-instrumentation-first-run.log`。
+
+## 真机 smoke
+
+实际设备为 **小米 M2007J22C，Android 10 / API 29，1080×2340**，不是任务示例中的 realme。ADB：`D:\mandapi-chat-v1\android-sdk\platform-tools\adb.exe`。主 APK 和测试 APK 覆盖安装，未清数据。
+
+MIUI 曾提示允许 AILUA 打开测试 APK；授权后，宿主脚本用与 ActivityScenario 相同的 MAIN/LAUNCHER Intent 协助启动。未关闭系统安全功能。
+
+| 检查 | 结果 |
 | --- | --- |
-| 离线单测 | 451/451；96 suites，0 failure/error/skip；`build-final.log` |
-| 最终 Debug 构建 | PASS；`build-delivery.log` |
-| Chat 真机 instrumentation | 1/1 PASS；`instrumentation.log` |
-| 四页导航及绘制 | PASS；Home / Chat / Living / Profile 截图 |
-| Chat 气泡与长按 | PASS；显示复制、保存记忆、重新生成、收藏；未执行生成请求 |
-| 回复分支 | PASS；切换已有分支，UI 与数据库 activeVariantId 一致 |
-| Composer / IME | PASS；键盘打开后输入框和发送按钮可见；`chat-ime.png` |
-| 顶部返回 / 底部 Home | PASS；深层 Profile → Living 后点击底部指示条返回主屏 |
-| 通知 / 控制中心 | PASS；从 Living 状态栏左右下拉均正常 |
-| Milk / Glass 主题传播 | PASS；页面及菜单随全局 Runtime 更新，Glass 菜单文字可读 |
-| 覆盖安装与重启保留布局 | PASS；3 pages、18 items、folder 的完整行数据与安装前一致，含位置、Widget span 与 Hotseat rank |
-| 重启保留外观 | PASS；重启前后外观设置一致；`verification-summary.json` |
-| 应用日志 | 本次采集未发现 FATAL、ANR 或资源/文件/解析异常；`device-logcat.txt` |
+| Home/Chat/Living/Profile/Messages | PASS，真实入口导航、绘制、返回主屏 |
+| Moments/Gallery/Diary/Mailbox/CheckPhone/Theater | PASS，包含日记和信件阅读页 |
+| Milk → Home；Glass → Chat；Diary → Diary/Mailbox；Mono → Settings/Control Center | PASS，保留 Cream Palette override，验证组合 |
+| 来电 → 接听 → 通话 → 挂断 → 通话记录 | PASS，操作专门创建的 QA 虚拟来电 |
+| 状态栏下拉、通知中心、控制中心、锁屏/解锁 | PASS，通知为空时保留真实空态 |
+| Chat / IME | PASS，键盘弹出后 Composer 和发送按钮可见，未发送消息 |
+| Android 10 文件选择器 | PASS，相册导入打开 DocumentsUI，取消后返回相册，未导入个人照片 |
+| 覆盖安装和强制重启后的布局 | PASS，完整行数据不变：3 页、18 项、1 文件夹，含位置、Widget span、Hotseat rank |
+| 重启外观持久化 | PASS，主题与外观设置一致 |
+| Logcat | 本次应用 UID 日志未检出 FATAL/ANR、资源缺失、权限、文件、ZIP/XML 或 SQLite 异常 |
 
-真机检查修正了“全部消息可见时仍显示回到最新消息”的条件，并在最终 APK 上复测通过。还补回 Living 返回按钮原测试标识。
+证据：`ui6-verification-summary.json`、`ui6-device-logcat.txt`、安装前后 workspace JSON、重启前后 preferences JSON。数据库快照仅留本机 QA 目录。
 
 ## 截图
 
-目录：`dist/qa/P5.V-UI/`。
+目录：`dist/qa/P5.V-UI/`。总览：`ui6-all-pages-review.jpg`。
 
-- `core-pages-review.png`：Home LifeBento / Chat / Living / Profile 四页对照。
-- `home.png`：保留原布局的 Workspace 页。
-- `home-life-bento.png`、`chat.png`、`living.png`、`profile.png`：四页原始真机截图。
-- `profile-details.png`：关系记忆和最近事件。
-- `chat-ime.png`、`chat-glass-menu.png`：键盘与 Glass 菜单。
-- `instrumentation-artifacts/`：长按菜单、回复分支截图及创建数据 ID 清单。
+| 文件 | 内容 |
+| --- | --- |
+| `01-home.png` | Milk Home/LifeBento；原默认页另存 `01-home-default.png`，Widget 页另存 `01-home-workspace.png` |
+| `02-chat.png` | Glass 聊天 |
+| `03-living.png` / `04-profile.png` | 生活 / 资料 |
+| `05-messages.png` / `06-moments.png` | 消息 / 动态 |
+| `07-gallery.png` | 三列相册 |
+| `08-diary.png` / `08-diary-reader.png` | Diary 日记列表 / 阅读 |
+| `09-mailbox.png` / `09-mailbox-reader.png` | Diary 信箱 / 阅读；列表保留类别切换后的真实滚动位置 |
+| `10-checkphone.png` / `11-theater.png` | 他的手机 / 剧场 |
+| `12-lockscreen.png` / `13-notifications.png` / `14-control-center.png` | Mono 锁屏 / 通知 / 控制中心 |
+| `15-call.png` / `16-call-history.png` / `18-incoming-call.png` | 通话 / 记录 / 来电 |
+| `17-settings.png` | Mono 设置 |
 
-## 测试数据和范围
+补充：`ui6-chat-ime.png`、`ui6-saf-picker.png`、`ui6-saf-return.png`。总览不含个人桌面或系统授权提示。
 
-- 小米安装前聊天记录为空。本次通过原 SqlDelightChatRepository 写入 4 条明确标记“［UI QA］”的本地消息，并添加 1 个备选回复，用于视觉与交互检查。没有调用外部 AI，也没有清除会话。这些测试消息保留供查看，ID 已存档。
-- 四页交付截图使用 Milk + Cream。通过原主题中心调整了外观以便对照；原设置备份在 `before-install-preferences.json`，未删除已有导入主题。桌面图标大小、标签开关和布局没有重置。
-- 本轮验证范围是 UI 与对应交互，没有重新验证真实 AI Provider、语音生成或通话引擎。
-- 正式角色素材仍为后续工作；未迁移页面保留现有实现，仅共享全局 Theme Runtime。
+## 测试数据与视觉剩余
 
-下一步仅等待四页视觉确认。
+- UI0–UI4 时聊天为空，写入 4 条标记“［UI QA］”的本地消息和 1 个回复分支，仍保留供查看。UI6 未新增聊天或调用外部 AI。
+- 两轮 smoke 各创建并结束一通标记 `P5.V-UI6 QA` 的虚拟来电，正常记录保留。未结束既有用户通话或清理历史。
+- 最终为 Milk + Cream；图标缩放、标签设置、布局未重置，未删除原导入主题。
+- Canvas 头像、GalleryVisualCanvas、Living 占位表现按要求保留，相册仍有明显占位图观感。统一入口已就绪，未制作正式角色资产。
+- 故事、日记、信件、事件正文的人设、称谓和世界观保留。Living 使用“最近动态”，因为原 UI 投影没有事件日期。
+- 本轮是 UI 与对应交互 smoke；没有重跑真实 AI Provider、音频生成、完整外部主题导入或全部业务组合。
+
+本轮在 UI6 交付停止，未开始 P5.V-ART 或 P5.6。
