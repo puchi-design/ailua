@@ -1,80 +1,46 @@
 package com.example.ui.moments
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.data.mock.MockData
-import com.example.data.model.MomentComment
-import com.example.data.model.MomentPost
-import com.example.data.engine.WorldStateRepository
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.engine.WorldHeartbeatEngine
-import com.example.data.relationship.repository.RelationshipStateRepository
+import com.example.data.engine.WorldStateRepository
+import com.example.data.model.MomentPost
+import com.example.data.model.MomentComment
+import com.example.data.mock.MockData
 import com.example.data.projection.projectMoments
-import com.example.ui.components.AiluaAvatar
-import com.example.ui.components.VirtualPhoneHomeBar
-import com.example.ui.components.VirtualPhoneStatusBar
-import com.example.ui.theme.AiluaDustyRose
-import com.example.ui.theme.AiluaMistBlue
-import com.example.ui.theme.AiluaMoonGold
-import com.example.ui.theme.AiluaMutedLavender
+import com.example.data.relationship.repository.RelationshipStateRepository
+import com.example.ui.designsystem.*
+import com.example.ui.themeengine.LocalAiluaTheme
 
 @Composable
 fun MomentsScreen(
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
     onBackToHome: () -> Unit = {},
-    onOpenProfile: (String) -> Unit = {}
+    onOpenProfile: (String) -> Unit = {},
+    onGoHome: () -> Unit = onBackToHome,
 ) {
     val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
     val seedPosts = remember { MockData.getMomentsFromLifeEvents() }
@@ -98,442 +64,121 @@ fun MomentsScreen(
         else -> posts.filter { it.authorName == selectedFilter }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .testTag("moments_screen")
+    val theme = LocalAiluaTheme.current
+    AiluaScreenScaffold(
+        title = "动态", onBack = onBackToHome, onGoHome = onGoHome,
+        modifier = Modifier.imePadding().testTag("moments_screen"), backTestTag = "moments_back_btn",
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Virtual OS Status Bar
-            VirtualPhoneStatusBar(
-                isDarkTheme = isDarkTheme,
-                onToggleTheme = onToggleTheme
-            )
-
-            // Header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(
-                        0.5.dp,
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                    )
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(
-                        onClick = onBackToHome,
-                        modifier = Modifier.testTag("moments_back_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回AILUA主屏",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Column {
-                        Text(
-                            text = "瞬间 · Moments",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 17.sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "伴生生命的心境与生活写真",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.5.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            )
-                        )
-                    }
-                }
-
-                // Filter Pill (All / Characters)
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(3.dp)
-                ) {
-                    filterOptions.forEach { filter ->
-                        val isSelected = selectedFilter == filter
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent)
-                                .clickable { selectedFilter = filter }
-                                .padding(horizontal = 9.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = filter,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                    fontSize = 11.sp
-                                ),
-                                color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = theme.layout.screenHorizontalPadding.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        ) {
+            items(filterOptions) { filter ->
+                AiluaChip(filter, selected = selectedFilter == filter, onClick = { selectedFilter = filter })
             }
-
-            // Moments Feed
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                item { Spacer(modifier = Modifier.height(6.dp)) }
-
-                items(filteredPosts, key = { it.id }) { post ->
-                    MomentCard(
-                        post = post,
-                        onOpenProfile = onOpenProfile,
-                        onToggleLike = {
-                            val current = posts.firstOrNull { it.id == post.id }
-                            if (current != null) {
-                                val newLiked = !current.isLiked
-                                val newCount = if (newLiked) current.likesCount + 1 else current.likesCount - 1
-                                localEdits[current.id] = current.copy(isLiked = newLiked, likesCount = newCount)
-                            }
-                        },
-                        onAddComment = { newCommentText ->
-                            val current = posts.firstOrNull { it.id == post.id }
-                            if (current != null) {
-                                val newComment = MomentComment(
-                                    id = "c_${System.currentTimeMillis()}",
-                                    author = "你",
-                                    isUser = true,
-                                    content = newCommentText,
-                                    timestamp = "刚刚"
-                                )
-                                val worldClock = WorldHeartbeatEngine.worldClock.value
-                                RelationshipStateRepository.recordMomentComment(current.authorId, current.id, newComment.id, newCommentText, worldClock.dateLabel, worldClock.timeFormatted)
-                            }
+        }
+        LazyColumn(Modifier.weight(1f).fillMaxWidth().padding(horizontal = theme.layout.screenHorizontalPadding.dp)) {
+            items(filteredPosts, key = { it.id }) { post ->
+                MomentCard(post, onOpenProfile,
+                    onToggleLike = {
+                        val current = posts.firstOrNull { it.id == post.id }
+                        if (current != null) {
+                            val newLiked = !current.isLiked
+                            val newCount = if (newLiked) current.likesCount + 1 else current.likesCount - 1
+                            localEdits[current.id] = current.copy(isLiked = newLiked, likesCount = newCount)
                         }
-                    )
-                }
-
-                item { Spacer(modifier = Modifier.height(10.dp)) }
+                    },
+                    onAddComment = { newCommentText ->
+                        val current = posts.firstOrNull { it.id == post.id }
+                        if (current != null) {
+                            val newComment = MomentComment(id = "c_${System.currentTimeMillis()}", author = "你",
+                                isUser = true, content = newCommentText, timestamp = "刚刚")
+                            val worldClock = WorldHeartbeatEngine.worldClock.value
+                            RelationshipStateRepository.recordMomentComment(current.authorId, current.id, newComment.id,
+                                newCommentText, worldClock.dateLabel, worldClock.timeFormatted)
+                        }
+                    })
             }
-
-            // Virtual Home Indicator Bar
-            VirtualPhoneHomeBar(
-                canGoBack = true,
-                onBack = onBackToHome,
-                onGoHome = onBackToHome
-            )
         }
     }
 }
 
 @Composable
 private fun MomentCard(
-    post: MomentPost,
-    onOpenProfile: (String) -> Unit,
-    onToggleLike: () -> Unit,
-    onAddComment: (String) -> Unit
+    post: MomentPost, onOpenProfile: (String) -> Unit, onToggleLike: () -> Unit, onAddComment: (String) -> Unit,
 ) {
+    val theme = LocalAiluaTheme.current
     var showCommentInput by remember { mutableStateOf(false) }
     var commentText by remember { mutableStateOf("") }
-
-    val heartColor by animateColorAsState(
-        targetValue = if (post.isLiked) AiluaDustyRose else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-        animationSpec = spring(),
-        label = "heart_color"
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(
-                elevation = 3.dp,
-                shape = RoundedCornerShape(22.dp),
-                ambientColor = Color.Black.copy(alpha = 0.04f),
-                spotColor = Color.Black.copy(alpha = 0.07f)
-            )
-            .clip(RoundedCornerShape(22.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                RoundedCornerShape(22.dp)
-            )
-            .padding(16.dp)
-            .testTag("moment_card_${post.id}")
+    Column(
+        Modifier.fillMaxWidth().testTag("moment_card_${post.id}").padding(top = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Column {
-            // Header: Author Avatar + Name + Time + Location
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                AiluaAvatar(
-                    avatarId = post.authorId,
-                    size = 42.dp,
-                    showHalo = false,
-                    onClick = { onOpenProfile(post.authorId) }
-                )
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = post.authorName,
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.5.sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        if (post.moodTag.isNotBlank()) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = post.moodTag,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Medium
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                            }
-                        }
-                    }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = post.timestamp,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.5.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                            )
-                        )
-                        if (post.locationContext.isNotBlank()) {
-                            Text(
-                                text = "·",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                            )
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = null,
-                                modifier = Modifier.size(11.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                            )
-                            Text(
-                                text = post.locationContext,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 10.5.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                                )
-                            )
-                        }
-                    }
-                }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            CharacterPortrait(post.authorId, PortraitVariant.AVATAR, Modifier.size(40.dp),
+                onClick = { onOpenProfile(post.authorId) })
+            Column(Modifier.weight(1f).clickable { onOpenProfile(post.authorId) }) {
+                Text(post.authorName, style = theme.text.body, color = theme.palette.onSurface)
+                Text(listOf(post.locationContext, post.moodTag).filter { it.isNotBlank() }.joinToString(" · "),
+                    style = theme.text.caption, color = theme.palette.onSurfaceMuted,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Moment Content Text
-            Text(
-                text = post.content,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = 14.5.sp,
-                    lineHeight = 21.sp
-                ),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Visual Photo Card Placeholder with poetic graphic illustration
-            MomentVisualCard(imageType = post.imageType)
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Actions: Like, Comment, Share
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    // Like button
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .clickable { onToggleLike() }
-                            .padding(4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (post.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = "点赞",
-                            tint = heartColor,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = "${post.likesCount}",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = heartColor
-                        )
-                    }
-
-                    // Comment button
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .clickable { showCommentInput = !showCommentInput }
-                            .padding(4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ChatBubbleOutline,
-                            contentDescription = "评论",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            modifier = Modifier.size(17.dp)
-                        )
-                        Text(
-                            text = "${post.comments.size}",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-
-                // Small moon motif mark
-                Text(
-                    text = "AILUA Moments",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 9.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                    )
-                )
+            Text(post.timestamp, style = theme.text.caption, color = theme.palette.onSurfaceMuted)
+        }
+        Text(post.content, style = theme.text.body, color = theme.palette.onSurface)
+        if (post.imageType.isNotBlank()) MomentVisualCard(post.imageType)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            TextButton(onClick = onToggleLike) {
+                Icon(if (post.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder, "点赞",
+                    Modifier.size(18.dp), tint = if (post.isLiked) theme.palette.accent else theme.palette.onSurfaceMuted)
+                Spacer(Modifier.width(6.dp))
+                Text("喜欢 ${post.likesCount}", style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
             }
-
-            // Existing Comments List
-            if (post.comments.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
-                        .padding(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    post.comments.forEach { comment ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.Top
-                        ) {
-                            Row(
-                                modifier = Modifier.weight(1f),
-                                horizontalArrangement = Arrangement.spacedBy(5.dp)
-                            ) {
-                                Text(
-                                    text = "${comment.author}:",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 11.5.sp,
-                                        color = if (comment.isUser) AiluaMistBlue else AiluaMutedLavender
-                                    )
-                                )
-                                Text(
-                                    text = comment.content,
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontSize = 11.5.sp,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                )
-                            }
-                            Text(
-                                text = comment.timestamp,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 9.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                            )
-                        }
-                    }
-                }
+            TextButton(onClick = { showCommentInput = !showCommentInput }) {
+                Icon(Icons.Default.ChatBubbleOutline, "评论", Modifier.size(18.dp), tint = theme.palette.onSurfaceMuted)
+                Spacer(Modifier.width(6.dp))
+                Text("评论 ${post.comments.size}", style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
             }
-
-            // Inline Comment Input Bar
-            if (showCommentInput) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = commentText,
-                        onValueChange = { commentText = it },
-                        modifier = Modifier.fillMaxWidth().height(44.dp),
-                        placeholder = {
-                            Text(
-                                text = "写下对 ${post.authorName} 的回应…",
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                            )
-                        },
-                        shape = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-                            focusedBorderColor = AiluaMistBlue.copy(alpha = 0.6f),
-                            unfocusedBorderColor = Color.Transparent
-                        ),
-                        singleLine = true
-                    )
-                    TextButton(
-                        onClick = {
-                            if (commentText.isNotBlank()) {
-                                onAddComment(commentText.trim())
-                                commentText = ""
-                                showCommentInput = false
-                            }
-                        },
-                        modifier = Modifier.testTag("moment_send_comment")
-                    ) {
-                        Text("发送评论")
+        }
+        if (post.comments.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                post.comments.forEach { comment ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text("${comment.author}：${comment.content}", style = theme.text.secondary,
+                            color = theme.palette.onSurfaceMuted, modifier = Modifier.weight(1f))
+                        Text(comment.timestamp, style = theme.text.caption, color = theme.palette.onSurfaceMuted)
                     }
                 }
             }
         }
+        if (showCommentInput) {
+            TextField(
+                value = commentText, onValueChange = { commentText = it }, singleLine = true,
+                modifier = Modifier.fillMaxWidth(), textStyle = theme.text.body,
+                placeholder = { Text("写下对 ${post.authorName} 的回应…", style = theme.text.secondary) },
+                shape = RoundedCornerShape(theme.shapes.medium.dp),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = theme.surfaces.inset, unfocusedContainerColor = theme.surfaces.inset,
+                    focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
+                ),
+            )
+            TextButton(
+                onClick = {
+                    if (commentText.isNotBlank()) {
+                        onAddComment(commentText.trim())
+                        commentText = ""
+                        showCommentInput = false
+                    }
+                },
+                modifier = Modifier.testTag("moment_send_comment"),
+            ) { Text("发送评论", style = theme.text.secondary) }
+        }
+        HorizontalDivider(color = theme.surfaces.divider)
     }
 }
 
-/**
- * High-fidelity graphic representation for moment photos.
- */
+/** Existing procedural fallback artwork. Its paint colors are illustration data, not UI tokens. */
 @Composable
 private fun MomentVisualCard(imageType: String) {
     val gradientColors = when (imageType) {
@@ -541,17 +186,11 @@ private fun MomentVisualCard(imageType: String) {
         "flowers" -> listOf(Color(0xFFE4BCBC), Color(0xFFCCA2A2), Color(0xFFB08686))
         "night_book" -> listOf(Color(0xFF655F7A), Color(0xFF4C4760), Color(0xFF37324B))
         "pudding", "convenience_store", "dessert" -> listOf(Color(0xFFF6C279), Color(0xFFE59443), Color(0xFFB8591D))
-        else -> listOf(AiluaMistBlue, AiluaMutedLavender)
+        else -> listOf(Color(0xFF8BA5BE), Color(0xFF9E95B8))
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(148.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Brush.linearGradient(gradientColors))
-    ) {
-        // Artistic overlay
+    AiluaMediaFrame(Modifier.fillMaxWidth().aspectRatio(1.35f)) {
+        Box(Modifier.fillMaxSize().background(Brush.linearGradient(gradientColors))) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
@@ -593,7 +232,7 @@ private fun MomentVisualCard(imageType: String) {
                         radius = 22.dp.toPx()
                     )
                     drawCircle(
-                        color = AiluaMoonGold.copy(alpha = 0.7f),
+                        color = Color(0xFFD6B57E).copy(alpha = 0.7f),
                         center = Offset(w * 0.5f, h * 0.5f),
                         radius = 8.dp.toPx()
                     )
@@ -648,28 +287,7 @@ private fun MomentVisualCard(imageType: String) {
             }
         }
 
-        // Subtitle badge on the image
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(10.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color.Black.copy(alpha = 0.35f))
-                .padding(horizontal = 8.dp, vertical = 3.dp)
-        ) {
-            Text(
-                text = when (imageType) {
-                    "rain_window" -> "📷 窗边雨景留影"
-                    "flowers" -> "📷 白瓷花瓶与洋桔梗"
-                    "pudding", "convenience_store", "dessert" -> "🍮 便利店限定焦糖布丁"
-                    "night_book" -> "📷 月光下的一页书"
-                    else -> "📷 AILUA 心网图影"
-                },
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 10.sp,
-                    color = Color.White
-                )
-            )
+
         }
     }
 }

@@ -43,6 +43,12 @@ fun ChatComposer(
     onStop: () -> Unit,
     onAttachClick: () -> Unit,
     onMicClick: () -> Unit,
+    inputTestTag: String = "chat_text_input",
+    sendTestTag: String = "chat_send_btn",
+    maxLines: Int = 1,
+    showAttachments: Boolean = true,
+    showMicrophone: Boolean = true,
+    placeholder: String = "输入消息……",
 ) {
     val theme = LocalAiluaTheme.current
     Row(
@@ -54,23 +60,27 @@ fun ChatComposer(
             .padding(horizontal = 4.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onAttachClick) {
-            Icon(Icons.Default.Add, "添加交互", tint = theme.palette.onSurfaceMuted)
+        if (showAttachments) {
+            IconButton(onClick = onAttachClick) {
+                Icon(Icons.Default.Add, "添加交互", tint = theme.palette.onSurfaceMuted)
+            }
         }
         BasicTextField(
             value = inputText,
             onValueChange = onInputTextChange,
-            modifier = Modifier.weight(1f).defaultMinSize(minHeight = 44.dp).testTag("chat_text_input"),
+            modifier = Modifier.weight(1f).defaultMinSize(minHeight = 44.dp)
+                .padding(start = if (showAttachments) 0.dp else 12.dp).testTag(inputTestTag),
             textStyle = theme.text.body.copy(color = theme.palette.onSurface),
             cursorBrush = SolidColor(theme.palette.accent),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+            singleLine = maxLines == 1,
+            maxLines = maxLines,
+            keyboardOptions = KeyboardOptions(imeAction = if (maxLines == 1) ImeAction.Send else ImeAction.Default),
             keyboardActions = KeyboardActions(onSend = { if (!isGenerating) onSend() }),
             decorationBox = { field ->
                 Box(contentAlignment = Alignment.CenterStart) {
                     if (inputText.isEmpty()) {
                         Text(
-                            if (isGenerating) "正在回复…" else "输入消息……",
+                            if (isGenerating) "正在回复…" else placeholder,
                             style = theme.text.body,
                             color = theme.palette.onSurfaceMuted,
                             maxLines = 1,
@@ -80,8 +90,10 @@ fun ChatComposer(
                 }
             },
         )
-        IconButton(onClick = onMicClick) {
-            Icon(Icons.Default.Mic, "语音轻语", tint = theme.palette.onSurfaceMuted)
+        if (showMicrophone) {
+            IconButton(onClick = onMicClick) {
+                Icon(Icons.Default.Mic, "语音轻语", tint = theme.palette.onSurfaceMuted)
+            }
         }
         IconButton(
             onClick = { if (isGenerating) onStop() else onSend() },
@@ -89,7 +101,7 @@ fun ChatComposer(
             modifier = Modifier
                 .clip(CircleShape)
                 .background(theme.palette.accent.copy(alpha = if (isGenerating || inputText.isNotBlank()) 0.18f else 0.06f))
-                .testTag("chat_send_btn"),
+                .testTag(sendTestTag),
         ) {
             Icon(
                 if (isGenerating) Icons.Default.Close else Icons.Default.ArrowUpward,

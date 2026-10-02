@@ -70,6 +70,9 @@ fun ChatMessageItem(
     onRegenerate: () -> Unit,
     canRegenerate: Boolean,
     onSwitchVariant: (Int) -> Unit,
+    showSenderName: Boolean = false,
+    allowMemoryAndBookmark: Boolean = true,
+    actionsEnabled: Boolean = true,
 ) {
     val theme = LocalAiluaTheme.current
     if (message.sender == MessageSender.SYSTEM) {
@@ -102,6 +105,10 @@ fun ChatMessageItem(
             modifier = if (isUser) Modifier.fillMaxWidth(0.86f) else Modifier.weight(1f, fill = false),
             horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
         ) {
+            if (showSenderName && !isUser) {
+                Text(message.senderName, style = theme.text.caption, color = theme.palette.onSurfaceMuted,
+                    modifier = Modifier.padding(bottom = 4.dp))
+            }
             Box {
                 Column(
                     modifier = Modifier
@@ -110,7 +117,7 @@ fun ChatMessageItem(
                         .combinedClickable(
                             onClick = { if (isVoice) isPlaying = !isPlaying },
                             onLongClickLabel = "消息操作",
-                            onLongClick = { showActions = true },
+                            onLongClick = if (actionsEnabled) ({ showActions = true }) else null,
                         )
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -166,6 +173,7 @@ fun ChatMessageItem(
                     onToggleBookmark = onToggleBookmark,
                     onRegenerate = onRegenerate,
                     onSwitchVariant = onSwitchVariant,
+                    allowMemoryAndBookmark = allowMemoryAndBookmark,
                 )
             }
             if (!isUser && message.statusLabel != null) {
@@ -185,6 +193,10 @@ fun ChatMessageItem(
                     style = theme.text.caption,
                     color = theme.palette.onSurfaceMuted,
                 )
+            }
+            if (showSenderName && message.timestamp.isNotBlank()) {
+                Text(message.timestamp, style = theme.text.caption, color = theme.palette.onSurfaceMuted,
+                    modifier = Modifier.padding(top = 4.dp))
             }
         }
     }
