@@ -3,50 +3,27 @@ package com.example.ui.creator
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material.icons.filled.FileUpload
-import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -60,27 +37,22 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.data.codec.CharacterCardJsonCodec
 import com.example.data.codec.CharacterCardValidationResult
 import com.example.data.mock.WorldData
 import com.example.data.model.CharacterCard
 import com.example.data.model.CharacterCardData
 import com.example.data.registry.CharacterRegistry
-import com.example.ui.components.AiluaAvatar
-import com.example.ui.components.VirtualPhoneHomeBar
-import com.example.ui.components.VirtualPhoneStatusBar
-import com.example.ui.theme.AiluaDustyRose
-import com.example.ui.theme.AiluaMistBlue
-import com.example.ui.theme.AiluaMoonGold
+import com.example.ui.designsystem.AiluaChip
+import com.example.ui.designsystem.AiluaScreenScaffold
+import com.example.ui.designsystem.AiluaSectionHeader
+import com.example.ui.designsystem.AiluaSurface
+import com.example.ui.designsystem.CharacterPortrait
+import com.example.ui.designsystem.PortraitVariant
+import com.example.ui.themeengine.LocalAiluaTheme
 import kotlinx.coroutines.launch
 
 @Composable
@@ -88,8 +60,11 @@ fun CharacterCreatorScreen(
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
     onBack: () -> Unit = {},
-    onPreviewCharacter: (String) -> Unit = {}
+    onPreviewCharacter: (String) -> Unit = {},
+    onGoHome: () -> Unit = onBack
 ) {
+    val theme = LocalAiluaTheme.current
+    var showAdvanced by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -190,607 +165,270 @@ fun CharacterCreatorScreen(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .testTag("character_creator_screen")
+    AiluaScreenScaffold(
+        title = "角色工坊",
+        onBack = onBack,
+        onGoHome = onGoHome,
+        modifier = Modifier.testTag("character_creator_screen"),
+        backTestTag = "creator_back_btn",
+        bottomBar = { SnackbarHost(snackbarHostState) },
+        trailing = {
+            IconButton(
+                onClick = {
+                    val card = buildCurrentCard()
+                    CharacterRegistry.saveCharacterCard(card)
+                    coroutineScope.launch { snackbarHostState.showSnackbar("已成功保存并注册角色：${card.data.name}") }
+                },
+                modifier = Modifier.testTag("creator_save_btn")
+            ) { Icon(Icons.Default.Save, "保存", tint = theme.palette.onSurface) }
+            IconButton(
+                onClick = {
+                    val card = buildCurrentCard()
+                    CharacterRegistry.saveCharacterCard(card)
+                    onPreviewCharacter(card.data.id)
+                },
+                modifier = Modifier.testTag("creator_preview_btn")
+            ) { Icon(Icons.Default.Visibility, "预览", tint = theme.palette.onSurfaceMuted) }
+        }
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            VirtualPhoneStatusBar(
-                isDarkTheme = isDarkTheme,
-                onToggleTheme = onToggleTheme
-            )
-
-            // Top Header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBack, modifier = Modifier.testTag("creator_back_btn")) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Column {
-                        Text(
-                            text = "伴生工坊 · Character Creator",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "Character Card V2 规范生命塑造平台",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.5.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            )
-                        )
-                    }
-                }
-
-                // Quick Action Buttons (Document SAF Import & Export)
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    // Real Android SAF Import
-                    IconButton(
-                        onClick = {
-                            openDocumentLauncher.launch(arrayOf("application/json", "text/*", "*/*"))
-                        },
-                        modifier = Modifier.size(36.dp).testTag("creator_saf_import_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FolderOpen,
-                            contentDescription = "打开本地 JSON 文件",
-                            tint = AiluaMistBlue,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    // Template Import
-                    IconButton(
-                        onClick = { showImportTemplateDialog = true },
-                        modifier = Modifier.size(36.dp).testTag("creator_template_import_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FileDownload,
-                            contentDescription = "内置模版导入",
-                            tint = AiluaMoonGold,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    // Real Android SAF Export
-                    IconButton(
-                        onClick = {
-                            val defaultFileName = "${characterName.substringBefore(" ").ifBlank { "character" }}.json"
-                            createDocumentLauncher.launch(defaultFileName)
-                        },
-                        modifier = Modifier.size(36.dp).testTag("creator_saf_export_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FileUpload,
-                            contentDescription = "导出 JSON 文件",
-                            tint = AiluaMoonGold,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    // JSON Code Preview
-                    IconButton(
-                        onClick = { showJsonPreviewDialog = true },
-                        modifier = Modifier.size(36.dp).testTag("creator_preview_code_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Code,
-                            contentDescription = "预览 JSON",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = theme.layout.screenHorizontalPadding.dp),
+            verticalArrangement = Arrangement.spacedBy(theme.layout.sectionGap.dp)
+        ) {
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
+                    AiluaChip(label = "新建", onClick = {
+                        characterId = "custom_${System.currentTimeMillis() % 1000}"
+                        characterName = "新角色"
+                        description = ""
+                        personality = ""
+                        scenario = ""
+                        firstMessage = ""
+                        exampleMessages = ""
+                        tags.clear()
+                        coroutineScope.launch { snackbarHostState.showSnackbar("已创建全新角色草稿") }
+                    })
+                    AiluaChip(label = "复制", onClick = {
+                        val copy = CharacterRegistry.duplicateCharacter(characterId)
+                        characterId = copy.data.id
+                        characterName = copy.data.name
+                        coroutineScope.launch { snackbarHostState.showSnackbar("已复制角色副本并保存") }
+                    })
                 }
             }
-
-            // Action Toolbar (新建, 复制, 保存, 预览)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        onClick = {
-                            characterId = "custom_${System.currentTimeMillis() % 1000}"
-                            characterName = "新角色"
-                            description = ""
-                            personality = ""
-                            scenario = ""
-                            firstMessage = ""
-                            exampleMessages = ""
-                            tags.clear()
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar("已创建全新角色草稿")
-                            }
-                        },
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(15.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("新建", fontSize = 12.sp)
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            val copy = CharacterRegistry.duplicateCharacter(characterId)
-                            characterId = copy.data.id
-                            characterName = copy.data.name
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar("已复制角色副本并保存")
-                            }
-                        },
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(15.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("复制", fontSize = 12.sp)
-                    }
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Save into CharacterRegistry
-                    Button(
-                        onClick = {
-                            val card = buildCurrentCard()
-                            CharacterRegistry.saveCharacterCard(card)
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar("已成功保存并注册角色：${card.data.name}")
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = AiluaMoonGold),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.testTag("creator_save_btn")
-                    ) {
-                        Icon(Icons.Default.Save, contentDescription = null, tint = Color(0xFF2C2411), modifier = Modifier.size(15.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("保存", fontSize = 12.sp, color = Color(0xFF2C2411), fontWeight = FontWeight.Bold)
-                    }
-
-                    // Preview Profile
-                    Button(
-                        onClick = {
-                            val card = buildCurrentCard()
-                            CharacterRegistry.saveCharacterCard(card)
-                            onPreviewCharacter(card.data.id)
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = AiluaMistBlue),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.testTag("creator_preview_btn")
-                    ) {
-                        Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(15.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("预览", fontSize = 12.sp)
-                    }
-                }
-            }
-
-            // Form Content
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Section 1: 基本档案
-                item {
-                    CreatorSectionCard(title = "1. 基本档案 · Identity") {
-                        OutlinedTextField(
-                            value = characterId,
-                            onValueChange = { characterId = it },
-                            label = { Text("唯一标识符 (ID)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        OutlinedTextField(
-                            value = characterName,
-                            onValueChange = { characterName = it },
-                            label = { Text("角色名称 (Name)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        OutlinedTextField(
-                            value = description,
-                            onValueChange = { description = it },
-                            label = { Text("角色简述 (Description)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 2,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        // Avatar Selection
-                        Text("伴生头像标识：", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            avatarOptions.forEach { av ->
-                                val isSelected = avatarReference == av
-                                Box(
-                                    modifier = Modifier
-                                        .clip(CircleShape)
-                                        .border(
-                                            2.dp,
-                                            if (isSelected) AiluaMistBlue else Color.Transparent,
-                                            CircleShape
-                                        )
-                                        .clickable { avatarReference = av }
-                                        .padding(2.dp)
-                                ) {
-                                    AiluaAvatar(avatarId = av, size = 48.dp, showHalo = isSelected)
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Section 2: 性格与设定
-                item {
-                    CreatorSectionCard(title = "2. 性格设定 · Personality") {
-                        OutlinedTextField(
-                            value = personality,
-                            onValueChange = { personality = it },
-                            label = { Text("性格特征 (Personality)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 2,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        OutlinedTextField(
-                            value = scenario,
-                            onValueChange = { scenario = it },
-                            label = { Text("初识场景 (Scenario)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 2,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                    }
-                }
-
-                // Section 3: 初次见面与系统提示词
-                item {
-                    CreatorSectionCard(title = "3. 初见台词与提示词 · System Prompt") {
-                        OutlinedTextField(
-                            value = firstMessage,
-                            onValueChange = { firstMessage = it },
-                            label = { Text("初次见面台词 (First Message / first_mes)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 2,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        OutlinedTextField(
-                            value = systemPrompt,
-                            onValueChange = { systemPrompt = it },
-                            label = { Text("系统提示词 (System Prompt)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 3,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                    }
-                }
-
-                // Section 4: 示例对话
-                item {
-                    CreatorSectionCard(title = "4. 示例对话 · Examples") {
-                        OutlinedTextField(
-                            value = exampleMessages,
-                            onValueChange = { exampleMessages = it },
-                            label = { Text("对话范例 (mes_example)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 3,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                    }
-                }
-
-                // Section 5: 标签 Tags
-                item {
-                    CreatorSectionCard(title = "5. 标签 · Tags") {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(tags) { tag ->
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(AiluaMistBlue.copy(alpha = 0.2f))
-                                        .padding(horizontal = 10.dp, vertical = 4.dp)
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(text = tag, fontSize = 11.5.sp, color = AiluaMistBlue)
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = "删除",
-                                            modifier = Modifier
-                                                .size(14.dp)
-                                                .clickable { tags.remove(tag) },
-                                            tint = AiluaMistBlue
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            OutlinedTextField(
-                                value = newTagInput,
-                                onValueChange = { newTagInput = it },
-                                placeholder = { Text("添加新标签…", fontSize = 12.sp) },
-                                modifier = Modifier.weight(1f),
-                                singleLine = true,
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Button(
-                                onClick = {
-                                    if (newTagInput.isNotBlank()) {
-                                        tags.add(newTagInput.trim())
-                                        newTagInput = ""
-                                    }
-                                },
-                                shape = RoundedCornerShape(12.dp)
+            item {
+                CreatorSection(title = "基本信息") {
+                    CreatorField("角色名称", characterName, { characterName = it }, singleLine = true)
+                    CreatorField("简介", description, { description = it }, minLines = 2)
+                    Text("头像", style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
+                    Row(horizontalArrangement = Arrangement.spacedBy(theme.layout.sectionGap.dp)) {
+                        avatarOptions.forEach { avatar ->
+                            Column(
+                                modifier = Modifier.clickable { avatarReference = avatar },
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Text("添加")
+                                CharacterPortrait(avatar, PortraitVariant.AVATAR, modifier = Modifier.size(48.dp))
+                                if (avatarReference == avatar) {
+                                    Icon(Icons.Default.Check, "已选头像", Modifier.size(18.dp), tint = theme.palette.accent)
+                                } else Spacer(Modifier.height(18.dp))
                             }
                         }
                     }
                 }
-
-                // Section 6: 创作者信息
-                item {
-                    CreatorSectionCard(title = "6. 创作者署名 · Creator Info") {
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            OutlinedTextField(
-                                value = creatorName,
-                                onValueChange = { creatorName = it },
-                                label = { Text("创作者") },
-                                modifier = Modifier.weight(1f),
-                                singleLine = true,
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            OutlinedTextField(
-                                value = characterVersion,
-                                onValueChange = { characterVersion = it },
-                                label = { Text("版本") },
-                                modifier = Modifier.weight(1f),
-                                singleLine = true,
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(10.dp))
-                        OutlinedTextField(
-                            value = creatorNotes,
-                            onValueChange = { creatorNotes = it },
-                            label = { Text("创作者寄语 (Creator Notes)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 2,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                    }
-                }
-
-                item { Spacer(modifier = Modifier.height(18.dp)) }
             }
-
-            // Snackbar
-            SnackbarHost(hostState = snackbarHostState)
-
-            VirtualPhoneHomeBar(
-                canGoBack = true,
-                onBack = onBack,
-                onGoHome = onBack
-            )
-        }
-
-        // Dialog 1: Import SAF Validation & Confirmation Dialog
-        if (showImportConfirmDialog) {
-            val card = pendingImportCard
-            val validation = pendingImportValidation
-
-            AlertDialog(
-                onDismissRequest = { showImportConfirmDialog = false },
-                title = { Text("导入 Character Card V2 预览") },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (card != null) {
-                            Text("解析到角色：${card.data.name}", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            Text("初见台词：${card.data.firstMessage.take(60)}…", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("标签：${card.data.tags.joinToString(" · ")}", fontSize = 11.sp, color = AiluaMistBlue)
-
-                            if (validation != null && validation.warnings.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text("提示：${validation.warnings.joinToString("; ")}", fontSize = 11.sp, color = AiluaMoonGold)
+            item {
+                CreatorSection(title = "人设") {
+                    CreatorField("性格", personality, { personality = it }, minLines = 2)
+                    CreatorField("初识场景", scenario, { scenario = it }, minLines = 2)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
+                        items(tags) { tag -> AiluaChip(label = "$tag ×", onClick = { tags.remove(tag) }) }
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
+                        CreatorField("新标签", newTagInput, { newTagInput = it }, singleLine = true, modifier = Modifier.weight(1f))
+                        AiluaChip(label = "添加", onClick = {
+                            if (newTagInput.isNotBlank()) {
+                                tags.add(newTagInput.trim())
+                                newTagInput = ""
                             }
+                        })
+                    }
+                }
+            }
+            item {
+                CreatorSection(title = "对话") {
+                    CreatorField("初次见面台词", firstMessage, { firstMessage = it }, minLines = 3)
+                }
+            }
+            item {
+                AiluaSectionHeader("高级", actionLabel = if (showAdvanced) "收起" else "展开", onAction = { showAdvanced = !showAdvanced })
+            }
+            if (showAdvanced) {
+                item {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
+                        item {
+                            AiluaChip(label = "导入 JSON", modifier = Modifier.testTag("creator_saf_import_btn"),
+                                onClick = { openDocumentLauncher.launch(arrayOf("application/json", "text/*", "*/*")) })
+                        }
+                        item {
+                            AiluaChip(label = "内置模板", modifier = Modifier.testTag("creator_template_import_btn"),
+                                onClick = { showImportTemplateDialog = true })
+                        }
+                        item {
+                            AiluaChip(label = "导出 JSON", modifier = Modifier.testTag("creator_saf_export_btn"), onClick = {
+                                val defaultFileName = "${characterName.substringBefore(" ").ifBlank { "character" }}.json"
+                                createDocumentLauncher.launch(defaultFileName)
+                            })
+                        }
+                        item {
+                            AiluaChip(label = "预览 JSON", modifier = Modifier.testTag("creator_preview_code_btn"),
+                                onClick = { showJsonPreviewDialog = true })
                         }
                     }
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            card?.let { c ->
-                                characterId = c.data.id.ifBlank { "custom_" + c.data.name.lowercase().replace(" ", "_") }
-                                characterName = c.data.name
-                                description = c.data.description
-                                personality = c.data.personality
-                                scenario = c.data.scenario
-                                firstMessage = c.data.firstMessage
-                                exampleMessages = c.data.exampleMessages
-                                creatorNotes = c.data.creatorNotes
-                                systemPrompt = c.data.systemPrompt
-                                avatarReference = c.data.avatarReference.ifBlank { "mira" }
+                }
+                item {
+                    CreatorSection(title = "角色卡设置") {
+                        CreatorField("唯一标识符 (ID)", characterId, { characterId = it }, singleLine = true)
+                        CreatorField("System Prompt", systemPrompt, { systemPrompt = it }, minLines = 3)
+                        CreatorField("Example Messages", exampleMessages, { exampleMessages = it }, minLines = 3)
+                        CreatorField("创作者", creatorName, { creatorName = it }, singleLine = true)
+                        CreatorField("角色版本", characterVersion, { characterVersion = it }, singleLine = true)
+                        CreatorField("Creator Notes", creatorNotes, { creatorNotes = it }, minLines = 2)
+                    }
+                }
+            }
+            item { Spacer(Modifier.height(theme.layout.sectionGap.dp)) }
+        }
+    }
+
+    if (showImportConfirmDialog) {
+        val card = pendingImportCard
+        val validation = pendingImportValidation
+        AlertDialog(
+            onDismissRequest = { showImportConfirmDialog = false },
+            title = { Text("导入 Character Card V2", style = theme.text.title) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
+                    if (card != null) {
+                        Text("解析到角色：${card.data.name}", style = theme.text.section, color = theme.palette.onSurface)
+                        Text("初见台词：${card.data.firstMessage.take(60)}…", style = theme.text.body, color = theme.palette.onSurfaceMuted)
+                        Text("标签：${card.data.tags.joinToString(" · ")}", style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
+                        if (validation != null && validation.warnings.isNotEmpty()) {
+                            Text("提示：${validation.warnings.joinToString("; ")}", style = theme.text.secondary, color = theme.palette.onSurface)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    card?.let { c ->
+                        characterId = c.data.id.ifBlank { "custom_" + c.data.name.lowercase().replace(" ", "_") }
+                        characterName = c.data.name
+                        description = c.data.description
+                        personality = c.data.personality
+                        scenario = c.data.scenario
+                        firstMessage = c.data.firstMessage
+                        exampleMessages = c.data.exampleMessages
+                        creatorNotes = c.data.creatorNotes
+                        systemPrompt = c.data.systemPrompt
+                        avatarReference = c.data.avatarReference.ifBlank { "mira" }
+                        tags.clear()
+                        tags.addAll(c.data.tags)
+                        creatorName = c.data.creator
+                        characterVersion = c.data.characterVersion
+                        CharacterRegistry.saveCharacterCard(c)
+                        coroutineScope.launch { snackbarHostState.showSnackbar("已成功导入并注册角色：${c.data.name}") }
+                    }
+                    showImportConfirmDialog = false
+                }) { Text("确认导入并载入", style = theme.text.secondary) }
+            },
+            dismissButton = { TextButton(onClick = { showImportConfirmDialog = false }) { Text("取消", style = theme.text.secondary) } }
+        )
+    }
+    if (showImportTemplateDialog) {
+        AlertDialog(
+            onDismissRequest = { showImportTemplateDialog = false },
+            title = { Text("内置模板", style = theme.text.title) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
+                    WorldData.allCards.forEach { card ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                characterId = card.data.id
+                                characterName = card.data.name
+                                description = card.data.description
+                                personality = card.data.personality
+                                scenario = card.data.scenario
+                                firstMessage = card.data.firstMessage
+                                exampleMessages = card.data.exampleMessages
+                                creatorNotes = card.data.creatorNotes
+                                systemPrompt = card.data.systemPrompt
                                 tags.clear()
-                                tags.addAll(c.data.tags)
-                                creatorName = c.data.creator
-                                characterVersion = c.data.characterVersion
-
-                                // Register directly into CharacterRegistry
-                                CharacterRegistry.saveCharacterCard(c)
-
-                                coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("已成功导入并注册伴生者：${c.data.name}")
-                                }
-                            }
-                            showImportConfirmDialog = false
-                        }
-                    ) {
-                        Text("确认导入并载入")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showImportConfirmDialog = false }) {
-                        Text("取消")
-                    }
-                }
-            )
-        }
-
-        // Dialog 2: Preset Template Selection
-        if (showImportTemplateDialog) {
-            AlertDialog(
-                onDismissRequest = { showImportTemplateDialog = false },
-                title = { Text("载入内置模版 · Preset Card") },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        WorldData.allCards.forEach { card ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        characterId = card.data.id
-                                        characterName = card.data.name
-                                        description = card.data.description
-                                        personality = card.data.personality
-                                        scenario = card.data.scenario
-                                        firstMessage = card.data.firstMessage
-                                        exampleMessages = card.data.exampleMessages
-                                        creatorNotes = card.data.creatorNotes
-                                        systemPrompt = card.data.systemPrompt
-                                        tags.clear()
-                                        tags.addAll(card.data.tags)
-                                        creatorName = card.data.creator
-                                        characterVersion = card.data.characterVersion
-                                        avatarReference = card.data.avatarReference
-                                        showImportTemplateDialog = false
-                                        coroutineScope.launch {
-                                            snackbarHostState.showSnackbar("已载入 ${card.data.name} 模版")
-                                        }
-                                    },
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                )
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    AiluaAvatar(avatarId = card.data.avatarReference, size = 36.dp)
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Column {
-                                        Text(card.data.name, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                                        Text(card.data.tags.joinToString(" · "), fontSize = 10.5.sp, color = AiluaMistBlue)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { showImportTemplateDialog = false }) {
-                        Text("关闭")
-                    }
-                }
-            )
-        }
-
-        // Dialog 3: JSON Code Preview
-        if (showJsonPreviewDialog) {
-            val jsonPreview = CharacterCardJsonCodec.encode(buildCurrentCard())
-            AlertDialog(
-                onDismissRequest = { showJsonPreviewDialog = false },
-                title = { Text("Character Card V2 JSON 结构") },
-                text = {
-                    Column {
-                        Text("实时序列化输出 (kotlinx.serialization)：", fontSize = 12.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(260.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                .padding(8.dp)
+                                tags.addAll(card.data.tags)
+                                creatorName = card.data.creator
+                                characterVersion = card.data.characterVersion
+                                avatarReference = card.data.avatarReference
+                                showImportTemplateDialog = false
+                                coroutineScope.launch { snackbarHostState.showSnackbar("已载入 ${card.data.name} 模板") }
+                            }.padding(vertical = theme.layout.itemGap.dp),
+                            horizontalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            LazyColumn {
-                                item {
-                                    Text(
-                                        text = jsonPreview,
-                                        style = MaterialTheme.typography.bodySmall.copy(
-                                            fontFamily = FontFamily.Monospace,
-                                            fontSize = 11.sp
-                                        )
-                                    )
-                                }
+                            CharacterPortrait(card.data.avatarReference, PortraitVariant.AVATAR)
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(card.data.name, style = theme.text.body, color = theme.palette.onSurface)
+                                Text(card.data.tags.joinToString(" · "), style = theme.text.caption, color = theme.palette.onSurfaceMuted)
                             }
                         }
                     }
-                },
-                confirmButton = {
-                    Button(onClick = { showJsonPreviewDialog = false }) {
-                        Text("完成")
+                }
+            },
+            confirmButton = { TextButton(onClick = { showImportTemplateDialog = false }) { Text("关闭", style = theme.text.secondary) } }
+        )
+    }
+    if (showJsonPreviewDialog) {
+        val jsonPreview = CharacterCardJsonCodec.encode(buildCurrentCard())
+        AlertDialog(
+            onDismissRequest = { showJsonPreviewDialog = false },
+            title = { Text("Character Card V2 JSON", style = theme.text.title) },
+            text = {
+                AiluaSurface(modifier = Modifier.fillMaxWidth().height(300.dp)) {
+                    LazyColumn(modifier = Modifier.padding(theme.layout.itemGap.dp)) {
+                        item { Text(jsonPreview, style = theme.text.secondary, color = theme.palette.onSurface) }
                     }
                 }
-            )
-        }
+            },
+            confirmButton = { TextButton(onClick = { showJsonPreviewDialog = false }) { Text("完成", style = theme.text.secondary) } }
+        )
     }
 }
 
 @Composable
-private fun CreatorSectionCard(
-    title: String,
-    content: @Composable () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.5.sp
-                ),
-                color = AiluaMistBlue
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            content()
-        }
+private fun CreatorSection(title: String, content: @Composable () -> Unit) {
+    val theme = LocalAiluaTheme.current
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
+        AiluaSectionHeader(title)
+        content()
     }
+}
+
+@Composable
+private fun CreatorField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    singleLine: Boolean = false,
+    minLines: Int = 1
+) {
+    val theme = LocalAiluaTheme.current
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label, style = theme.text.secondary) },
+        textStyle = theme.text.body,
+        modifier = modifier.fillMaxWidth(),
+        singleLine = singleLine,
+        minLines = minLines,
+        shape = RoundedCornerShape(theme.shapes.medium.dp)
+    )
 }
