@@ -30,6 +30,9 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.data.model.CallSession
 import com.example.data.model.CallState
+import com.example.data.model.CallAction
+import com.example.data.engine.CallStateEngine
+import com.example.data.systemui.live.LiveActivityCenter
 import com.example.data.systemui.notification.VirtualNotification
 import com.example.data.systemui.notification.VirtualNotificationGraph
 import com.example.data.systemui.notification.NotificationHeadsUpPolicy
@@ -43,6 +46,9 @@ import com.example.ui.systemui.notification.NotificationShade
 import com.example.ui.systemui.notification.HeadsUpNotification
 import com.example.ui.systemui.control.ControlCenter
 import com.example.ui.systemui.control.QuickControlsRow
+import com.example.ui.systemui.live.LiveActivityChip
+import com.example.ui.systemui.live.LiveActivityHost
+import com.example.ui.systemui.live.LiveActivitySummary
 import kotlinx.coroutines.launch
 
 /** A single overlay owner above every app route. App navigation stays underneath. */
@@ -64,6 +70,8 @@ fun VirtualSystemUiHost(
     val notifications by notificationFlow.collectAsStateWithLifecycle(emptyList())
     val scope = rememberCoroutineScope()
     val controls by ControlCenterStore.state.collectAsStateWithLifecycle()
+    val activities by LiveActivityCenter.activities.collectAsStateWithLifecycle()
+    var liveExpanded by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var headsUp by remember { mutableStateOf<VirtualNotification?>(null) }
@@ -86,6 +94,9 @@ fun VirtualSystemUiHost(
     LaunchedEffect(state.surface, incoming, controls.focusMode) {
         if (state.surface != SystemUiSurface.NONE || incoming || controls.focusMode) headsUp = null
     }
+    LaunchedEffect(activities.map { it.id }, state.surface, incoming) {
+        liveExpanded = false
+    }
     LaunchedEffect(state.surface, notifications) {
         if (state.surface == SystemUiSurface.NOTIFICATION_SHADE && !incoming) {
             notifications.filterNot { it.seen }.forEach { repository.markSeen(it.id) }
@@ -102,6 +113,7 @@ fun VirtualSystemUiHost(
 
     fun launchUnlocked(route: String) {
         headsUp = null
+        liveExpanded = false
         controller.unlock()
         onLaunchRoute(route)
     }
@@ -113,7 +125,10 @@ fun VirtualSystemUiHost(
         notification.route?.let(onLaunchRoute)
     }
 
-    VirtualSystemUiProvider(controller, unseenCount = notifications.count { !it.seen }) {
+    val activityContent: (@Composable () -> Unit)? = if (activities.isEmpty()) null else {
+        { LiveActivityChip(activities, onClick = { liveExpanded = !liveExpanded }) }
+    }
+    VirtualSystemUiProvider(controller, unseenCount = notifications.count { !it.seen }, activityContent = activityContent) {
         Box(Modifier.fillMaxSize()) {
             content()
             headsUp?.let { notification ->
@@ -141,9 +156,14 @@ fun VirtualSystemUiHost(
                             onOpenAll = controller::openNotifications,
                         )
                     },
+                    liveActivityContent = {
+                        activities.firstOrNull()?.let { activity ->
+                            LiveActivitySummary(activity, onClick = { liveExpanded = true })
+                        }
+                    },
                 )
             }
-            if (!priorityCallVisible && state.surface == SystemUiSurface.NOTIFICATION_SHADE) {
+            if (!incoming && state.surface == SystemUiSurface.NOTIFICATION_SHADE) {
                 NotificationShade(
                     notifications = notifications,
                     onOpen = ::openNotification,
@@ -162,9 +182,26 @@ fun VirtualSystemUiHost(
                             onExpand = controller::openControlCenter,
                         )
                     },
+                    ongoingContent = {
+                        activities.firstOrNull()?.let { activity ->
+                            LiveActivitySummary(activity, onClick = { liveExpanded = true })
+                        }
+                    },
                 )
             }
-            if (!priorityCallVisible && state.surface == SystemUiSurface.CONTROL_CENTER) {
+            if (!incoming) {
+                LiveActivityHost(
+                    activities = activities, expanded = liveExpanded,
+                    onDismiss = { liveExpanded = false },
+                    onLaunchRoute = ::launchUnlocked,
+                    onEnd = {
+                        liveExpanded = false
+                        CallStateEngine.handleAction(CallAction.END)
+                        if (currentRoute == "call/{characterId}") onLaunchRoute(AiluaDestinations.CALL_HISTORY)
+                    },
+                )
+            }
+            if (!incoming && state.surface == SystemUiSurface.CONTROL_CENTER) {
                 ControlCenter(
                     state = controls, isDarkTheme = isDarkTheme,
                     onToggleDarkMode = onToggleDarkMode,
@@ -184,8 +221,9 @@ fun VirtualSystemUiHost(
             if (controls.virtualDimAlpha > 0f) {
                 Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = controls.virtualDimAlpha)))
             }
-            BackHandler(enabled = !priorityCallVisible && (showLock || state.surface != SystemUiSurface.NONE)) {
-                controller.closeSystemSurface()
+            BackHandler(enabled = !incoming && (liveExpanded || showLock ||
+                state.surface == SystemUiSurface.NOTIFICATION_SHADE || state.surface == SystemUiSurface.CONTROL_CENTER)) {
+                if (liveExpanded) liveExpanded = false else controller.closeSystemSurface()
             }
         }
     }

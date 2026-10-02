@@ -585,6 +585,8 @@ fun AiluaAppRoot() {
                     })
                 ) {
                     CallScreen(
+                        isDarkTheme = isDarkTheme,
+                        onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onCallEnded = {
                             navController.navigate(AiluaDestinations.CALL_HISTORY) {
                                 popUpTo(AiluaDestinations.HOME)
