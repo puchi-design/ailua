@@ -1,6 +1,5 @@
 package com.example.ui.systemui.live
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.data.systemui.live.LiveActivityType
 import com.example.data.systemui.live.VirtualLiveActivity
 import com.example.ui.themeengine.LocalAiluaTheme
@@ -36,23 +34,22 @@ fun LiveActivityExpanded(
     val spec = LocalAiluaTheme.current.liveActivity
     Surface(
         color = spec.backgroundColor, contentColor = spec.foregroundColor,
-        shape = RoundedCornerShape(spec.expandedCornerRadiusDp.dp),
-        border = BorderStroke(spec.border.widthDp.dp, spec.border.color),
-        shadowElevation = spec.shadow.elevationDp.dp,
+        shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.large.dp),
+        shadowElevation = 0.dp,
         modifier = modifier.fillMaxWidth().testTag("live_activity_expanded"),
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(activity.title, fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
-                    activity.subtitle?.let { Text(it, fontSize = 12.sp,
+                    Text(activity.title, style = LocalAiluaTheme.current.text.title, fontWeight = FontWeight.SemiBold)
+                    activity.subtitle?.let { Text(it, style = LocalAiluaTheme.current.text.secondary,
                         color = spec.foregroundColor.copy(alpha = 0.72f)) }
                 }
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, "收起心动胶囊", tint = spec.foregroundColor)
+                    Icon(Icons.Default.Close, "收起通话状态", tint = spec.foregroundColor)
                 }
             }
-            Text(liveActivityDuration(activity), fontSize = 38.sp, fontWeight = FontWeight.Light,
+            Text(liveActivityDuration(activity), style = LocalAiluaTheme.current.text.display, fontWeight = FontWeight.Light,
                 modifier = Modifier.align(Alignment.CenterHorizontally).padding(vertical = 18.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 TextButton(onClick = onReturnToCall, enabled = activity.route != null,

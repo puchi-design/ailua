@@ -1,13 +1,11 @@
 package com.example.ui.systemui.notification
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -17,10 +15,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.data.systemui.notification.VirtualNotification
 import com.example.ui.components.AppIconItem
 import com.example.ui.themeengine.LocalAiluaTheme
+import com.example.ui.designsystem.AiluaSurface
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -33,18 +31,12 @@ fun NotificationCard(
     compact: Boolean = false,
 ) {
     val theme = LocalAiluaTheme.current
-    val style = theme.shade.cardStyle
     val timeLabel = remember(notification.timestampEpochMs) {
         SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(notification.timestampEpochMs))
     }
-    Surface(
-        onClick = { onOpen(notification) },
-        modifier = modifier.fillMaxWidth().testTag("notification_${notification.id}"),
-        shape = RoundedCornerShape(theme.shade.cardCornerRadiusDp.dp),
-        color = style.backgroundColor.copy(alpha = theme.shade.cardAlpha),
-        contentColor = style.foregroundColor,
-        shadowElevation = style.shadow.elevationDp.dp,
-        border = BorderStroke(style.border.widthDp.dp, style.border.color),
+    AiluaSurface(
+        modifier = modifier.fillMaxWidth().testTag("notification_${notification.id}")
+            .clickable { onOpen(notification) },
     ) {
         Row(
             modifier = Modifier.padding(if (compact) 13.dp else 16.dp),
@@ -63,20 +55,20 @@ fun NotificationCard(
                     Text(
                         notification.title,
                         modifier = Modifier.weight(1f),
-                        fontSize = 14.sp,
+                        style = LocalAiluaTheme.current.text.body,
+                        color = theme.palette.onSurface,
                         fontWeight = if (notification.seen) FontWeight.Medium else FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text(timeLabel, fontSize = 10.sp, color = style.foregroundColor.copy(alpha = 0.65f))
+                    Text(timeLabel, style = theme.text.caption, color = theme.palette.onSurfaceMuted)
                 }
                 Text(
                     notification.body,
-                    fontSize = 13.sp,
-                    lineHeight = 19.sp,
+                    style = LocalAiluaTheme.current.text.secondary,
                     maxLines = if (compact) 2 else 4,
                     overflow = TextOverflow.Ellipsis,
-                    color = style.foregroundColor.copy(alpha = 0.85f),
+                    color = theme.palette.onSurfaceMuted,
                 )
             }
         }

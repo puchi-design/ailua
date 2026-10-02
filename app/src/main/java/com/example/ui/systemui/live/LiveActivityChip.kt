@@ -1,6 +1,5 @@
 package com.example.ui.systemui.live
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -23,7 +22,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.data.systemui.live.LiveActivityProjection
 import com.example.data.systemui.live.VirtualLiveActivity
 import com.example.ui.themeengine.LocalAiluaTheme
@@ -53,19 +51,18 @@ fun LiveActivityChip(
     val duration = liveActivityDuration(primary)
     Surface(
         color = spec.backgroundColor, contentColor = spec.foregroundColor,
-        shape = RoundedCornerShape(spec.compactCornerRadiusDp.dp),
-        border = BorderStroke(spec.border.widthDp.dp, spec.border.color),
-        shadowElevation = spec.shadow.elevationDp.dp,
+        shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.pill.dp),
+        shadowElevation = 0.dp,
         modifier = modifier.widthIn(max = 185.dp).testTag("live_activity_chip")
             .clickable(role = Role.Button, onClick = onClick),
     ) {
         Row(Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Icon(Icons.Default.Call, null, modifier = Modifier.size(12.dp))
-            Text(primary.title, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
+            Text(primary.title, style = LocalAiluaTheme.current.text.caption, fontWeight = FontWeight.SemiBold,
                 maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-            Text(duration, fontSize = 10.sp, maxLines = 1)
-            if (ordered.size > 1) Text("+${ordered.size - 1}", fontSize = 9.sp)
+            Text(duration, style = LocalAiluaTheme.current.text.caption, maxLines = 1)
+            if (ordered.size > 1) Text("+${ordered.size - 1}", style = LocalAiluaTheme.current.text.caption)
         }
     }
 }
@@ -80,17 +77,16 @@ fun LiveActivitySummary(
     val spec = LocalAiluaTheme.current.liveActivity
     Surface(
         color = spec.backgroundColor, contentColor = spec.foregroundColor,
-        shape = RoundedCornerShape(spec.compactCornerRadiusDp.dp),
-        border = BorderStroke(spec.border.widthDp.dp, spec.border.color),
-        shadowElevation = spec.shadow.elevationDp.dp,
+        shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.pill.dp),
+        shadowElevation = 0.dp,
         modifier = modifier.testTag("live_activity_summary").clickable(role = Role.Button, onClick = onClick),
     ) {
         Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(Icons.Default.Call, null, modifier = Modifier.size(18.dp))
-            Text("与${activity.title}通话中", fontSize = 13.sp, maxLines = 1,
+            Text("与${activity.title}通话中", style = LocalAiluaTheme.current.text.secondary, maxLines = 1,
                 overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-            Text(liveActivityDuration(activity), fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            Text(liveActivityDuration(activity), style = LocalAiluaTheme.current.text.secondary, fontWeight = FontWeight.Medium)
         }
     }
 }

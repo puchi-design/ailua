@@ -22,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.data.systemui.notification.VirtualNotification
 import com.example.ui.themeengine.LocalAiluaTheme
 import java.text.SimpleDateFormat
@@ -41,10 +40,10 @@ fun NotificationStack(
     val sections = remember(notifications) {
         notifications.groupBy { notificationDateLabel(it.timestampEpochMs) }
     }
-    LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(theme.shade.spacingDp.dp)) {
+    LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
         sections.forEach { (date, entries) ->
             item(key = "date_$date") {
-                Text(date, Modifier.padding(horizontal = 4.dp, vertical = 4.dp), color = theme.palette.onSurfaceMuted, fontSize = 12.sp)
+                Text(date, Modifier.padding(horizontal = 4.dp, vertical = 4.dp), color = theme.palette.onSurfaceMuted, style = LocalAiluaTheme.current.text.secondary)
             }
             items(entries, key = { it.id }) { notification ->
                 DismissibleNotification(notification, onOpen, onDismiss)
@@ -71,7 +70,7 @@ private fun DismissibleNotification(
             Box(
                 Modifier.fillMaxSize().background(
                     theme.palette.accent.copy(alpha = 0.18f),
-                    RoundedCornerShape(theme.shade.cardCornerRadiusDp.dp),
+                    RoundedCornerShape(theme.shapes.large.dp),
                 ).padding(horizontal = 24.dp),
                 contentAlignment = if (state.dismissDirection == SwipeToDismissBoxValue.StartToEnd) Alignment.CenterStart else Alignment.CenterEnd,
             ) {

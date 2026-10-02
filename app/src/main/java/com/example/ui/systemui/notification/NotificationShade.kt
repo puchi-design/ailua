@@ -14,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.data.systemui.notification.VirtualNotification
 import com.example.ui.themeengine.LocalAiluaTheme
 
@@ -34,7 +33,7 @@ fun NotificationShade(
     Column(
         modifier.fillMaxSize().testTag("notification_shade")
             .background(theme.palette.backgroundPrimary.copy(alpha = theme.shade.backgroundAlpha))
-            .padding(horizontal = 20.dp, vertical = 18.dp),
+            .padding(horizontal = theme.layout.screenHorizontalPadding.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         NotificationShadeHeader(onClose)
@@ -42,7 +41,7 @@ fun NotificationShade(
         ongoingContent()
         if (notifications.isEmpty()) {
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Text("没有新通知", color = theme.palette.onSurfaceMuted, fontSize = 14.sp)
+                Text("没有新通知", color = theme.palette.onSurfaceMuted, style = LocalAiluaTheme.current.text.body)
             }
         } else {
             NotificationStack(notifications, onOpen, onDismiss, Modifier.weight(1f).fillMaxWidth())

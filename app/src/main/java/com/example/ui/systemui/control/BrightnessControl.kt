@@ -17,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.ui.themeengine.LocalAiluaTheme
 import kotlin.math.roundToInt
 
@@ -28,9 +27,9 @@ fun BrightnessControl(value: Float, onValueChange: (Float) -> Unit, modifier: Mo
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.Brightness6, null, tint = palette.onSurface)
             Spacer(Modifier.width(10.dp))
-            Text("屏幕亮度", color = palette.onSurface, fontSize = 14.sp)
+            Text("屏幕亮度", color = palette.onSurface, style = LocalAiluaTheme.current.text.body)
             Spacer(Modifier.weight(1f))
-            Text("${(value * 100).roundToInt()}%", color = palette.onSurfaceMuted, fontSize = 12.sp)
+            Text("${(value * 100).roundToInt()}%", color = palette.onSurfaceMuted, style = LocalAiluaTheme.current.text.secondary)
         }
         Slider(
             value = value.coerceIn(0.5f, 1f), onValueChange = onValueChange, valueRange = 0.5f..1f,

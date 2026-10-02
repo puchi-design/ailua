@@ -14,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.ui.components.LocalOsChromeState
 import com.example.ui.themeengine.LocalAiluaTheme
 import java.text.SimpleDateFormat
@@ -27,10 +26,10 @@ fun NotificationShadeHeader(onClose: () -> Unit, modifier: Modifier = Modifier) 
     val palette = LocalAiluaTheme.current.palette
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(chrome.timeLabel, color = palette.onSurface, fontSize = 34.sp, fontWeight = FontWeight.Light)
+            Text(chrome.timeLabel, color = palette.onSurface, style = LocalAiluaTheme.current.text.display, fontWeight = FontWeight.Light)
             Text(
                 SimpleDateFormat("M月d日 · EEEE", Locale.CHINA).format(Date()),
-                color = palette.onSurfaceMuted, fontSize = 12.sp,
+                color = palette.onSurfaceMuted, style = LocalAiluaTheme.current.text.secondary,
             )
         }
         IconButton(onClick = onClose) {

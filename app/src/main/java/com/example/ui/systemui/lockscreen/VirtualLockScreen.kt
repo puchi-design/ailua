@@ -15,6 +15,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import com.example.ui.designsystem.CharacterPortrait
+import com.example.ui.designsystem.PortraitVariant
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -38,7 +41,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.context.CharacterContext
 import com.example.data.engine.WorldHeartbeatEngine
@@ -115,7 +117,7 @@ fun VirtualLockScreen(
                                     } else dragOffset = 0f
                                 }
                             )
-                        }.padding(horizontal = 28.dp),
+                        }.padding(horizontal = runtime.layout.screenHorizontalPadding.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Spacer(Modifier.height(if (compact) 12.dp else 28.dp))
@@ -123,10 +125,12 @@ fun VirtualLockScreen(
                     Spacer(Modifier.height(8.dp))
                     LockScreenClock(compact = compact)
                     Spacer(Modifier.height(if (compact) 16.dp else 24.dp))
+                    CharacterPortrait(character.id, PortraitVariant.AVATAR, Modifier.size(40.dp))
+                    Spacer(Modifier.height(8.dp))
                     Text("${character.name} · ${presence.currentActivity}", color = runtime.lockscreen.foregroundColor,
-                        fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text("AILUA · ${worldClock.timeFormatted} · ${worldClock.weather.label}",
-                        modifier = Modifier.padding(top = 5.dp), color = runtime.lockscreen.foregroundColor.copy(alpha = 0.68f), fontSize = 12.sp)
+                        style = LocalAiluaTheme.current.text.body, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text("${worldClock.timeFormatted} · ${worldClock.weather.label}",
+                        modifier = Modifier.padding(top = 5.dp), color = runtime.lockscreen.foregroundColor.copy(alpha = 0.68f), style = LocalAiluaTheme.current.text.secondary)
                     Spacer(Modifier.height(if (compact) 18.dp else 28.dp))
                     Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -139,7 +143,7 @@ fun VirtualLockScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Icon(Icons.Default.KeyboardArrowUp, null, tint = runtime.lockscreen.foregroundColor.copy(alpha = 0.7f))
-                        Text("上滑解锁", fontSize = 12.sp, color = runtime.lockscreen.foregroundColor.copy(alpha = 0.8f))
+                        Text("上滑解锁", style = LocalAiluaTheme.current.text.secondary, color = runtime.lockscreen.foregroundColor.copy(alpha = 0.8f))
                     }
                 }
             }

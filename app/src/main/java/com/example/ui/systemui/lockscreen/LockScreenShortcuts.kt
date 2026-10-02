@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.ui.themeengine.LocalAiluaTheme
 
 @Composable
@@ -37,13 +36,13 @@ private fun LockShortcut(label: String, icon: ImageVector, onClick: () -> Unit, 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Surface(
             onClick = onClick, modifier = Modifier.size(54.dp).testTag(tag),
-            shape = RoundedCornerShape(style.cornerRadiusDp.dp),
+            shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.large.dp),
             color = style.backgroundColor.copy(alpha = style.surfaceAlpha), contentColor = style.foregroundColor,
-            border = BorderStroke(style.border.widthDp.dp, style.border.color), shadowElevation = style.shadow.elevationDp.dp
+            border = BorderStroke(style.border.widthDp.dp, style.border.color), shadowElevation = 0.dp
         ) {
             Icon(icon, label, Modifier.padding(16.dp))
         }
         Text(label, modifier = Modifier.padding(top = 7.dp), color = LocalAiluaTheme.current.lockscreen.foregroundColor,
-            fontSize = 12.sp)
+            style = LocalAiluaTheme.current.text.secondary)
     }
 }

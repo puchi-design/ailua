@@ -28,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.data.systemui.control.ControlCenterState
 import com.example.ui.components.LocalOsChromeState
 import com.example.ui.themeengine.LocalAiluaTheme
@@ -51,17 +50,17 @@ fun ControlCenter(
     val chrome = LocalOsChromeState.current
     Column(
         modifier.fillMaxSize().background(theme.palette.backgroundPrimary.copy(alpha = theme.controlCenter.panelAlpha))
-            .verticalScroll(rememberScrollState()).padding(horizontal = 22.dp, vertical = 18.dp)
+            .verticalScroll(rememberScrollState()).padding(horizontal = theme.layout.screenHorizontalPadding.dp, vertical = 18.dp)
             .testTag("control_center"),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(chrome.timeLabel, color = theme.palette.onSurface,
-                    fontSize = 30.sp, fontWeight = FontWeight.Light)
-                Text("控制中心", color = theme.palette.onSurfaceMuted, fontSize = 12.sp)
+                    style = LocalAiluaTheme.current.text.display, fontWeight = FontWeight.Light)
+                Text("控制中心", color = theme.palette.onSurfaceMuted, style = LocalAiluaTheme.current.text.secondary)
             }
-            Text("电量 ${chrome.batteryLabel}", color = theme.palette.onSurfaceMuted, fontSize = 12.sp,
+            Text("电量 ${chrome.batteryLabel}", color = theme.palette.onSurfaceMuted, style = LocalAiluaTheme.current.text.secondary,
                 modifier = Modifier.testTag("control_battery"))
             IconButton(onClick = onClose, modifier = Modifier.testTag("control_close")) {
                 Icon(Icons.Default.Close, "收起控制中心", tint = theme.palette.onSurface)

@@ -1,6 +1,5 @@
 package com.example.ui.systemui.control
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,7 +21,6 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.ui.themeengine.LocalAiluaTheme
 
 @Composable
@@ -39,7 +37,7 @@ fun ControlTile(
     val theme = LocalAiluaTheme.current
     val spec = theme.controlCenter
     val card = spec.tileStyle
-    val shape = RoundedCornerShape(spec.tileCornerRadiusDp.dp)
+    val shape = RoundedCornerShape(theme.shapes.large.dp)
     val base = if (active) theme.palette.accent.copy(alpha = 0.20f).compositeOver(card.backgroundColor)
         else card.backgroundColor
     val color = base.copy(alpha = if (active) spec.activeAlpha else spec.inactiveAlpha)
@@ -49,9 +47,7 @@ fun ControlTile(
         color = color,
         contentColor = foreground,
         shape = shape,
-        shadowElevation = card.shadow.elevationDp.dp,
-        border = BorderStroke(card.border.widthDp.dp,
-            if (active) theme.palette.accent.copy(alpha = 0.7f) else card.border.color),
+        shadowElevation = 0.dp,
         modifier = modifier.testTag(tag)
             .semantics { stateDescription = subtitle }
             .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier),
@@ -62,9 +58,9 @@ fun ControlTile(
             verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 7.dp),
         ) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(if (compact) 19.dp else 25.dp))
-            Text(title, fontSize = if (compact) 11.sp else 15.sp,
+            Text(title, style = if (compact) theme.text.caption else theme.text.body,
                 fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (!compact) Text(subtitle, fontSize = 11.sp, color = foreground.copy(alpha = 0.76f),
+            if (!compact) Text(subtitle, style = LocalAiluaTheme.current.text.caption, color = foreground.copy(alpha = 0.76f),
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
