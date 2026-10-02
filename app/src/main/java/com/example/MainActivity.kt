@@ -82,6 +82,7 @@ import com.example.ui.theme.AiluaTheme
 import com.example.ui.world.WorldPlacesScreen
 import com.example.data.systemui.lock.VirtualLockStore
 import com.example.data.systemui.notification.VirtualNotificationGraph
+import com.example.data.systemui.control.ControlCenterStore
 import com.example.ui.systemui.VirtualSystemUiSession
 import com.example.ui.systemui.VirtualSystemUiHost
 import com.example.ui.themeengine.AiluaThemeProvider
@@ -99,6 +100,7 @@ class MainActivity : ComponentActivity() {
         CharacterContext.init(applicationContext)
         FirstSessionStore.init(applicationContext)
         VirtualLockStore.initialize(applicationContext)
+        ControlCenterStore.initialize(applicationContext)
         VirtualSystemUiSession.controller.initializeColdStart(
             FirstSessionStore.state.value.onboardingComplete,
             VirtualLockStore.lockOnColdStart.value

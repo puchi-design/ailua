@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -19,6 +20,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -29,6 +33,7 @@ import com.example.data.model.CallState
 import com.example.data.systemui.notification.VirtualNotification
 import com.example.data.systemui.notification.VirtualNotificationGraph
 import com.example.data.systemui.notification.NotificationHeadsUpPolicy
+import com.example.data.systemui.control.ControlCenterStore
 import com.example.navigation.AiluaDestinations
 import com.example.ui.components.VirtualPhoneStatusBar
 import com.example.ui.systemui.lockscreen.VirtualLockScreen
@@ -36,6 +41,8 @@ import com.example.ui.systemui.lockscreen.LockScreenNotificationItem
 import com.example.ui.systemui.lockscreen.LockScreenNotificationPreview
 import com.example.ui.systemui.notification.NotificationShade
 import com.example.ui.systemui.notification.HeadsUpNotification
+import com.example.ui.systemui.control.ControlCenter
+import com.example.ui.systemui.control.QuickControlsRow
 import kotlinx.coroutines.launch
 
 /** A single overlay owner above every app route. App navigation stays underneath. */
@@ -56,6 +63,8 @@ fun VirtualSystemUiHost(
     val notificationFlow = remember(repository) { repository.observeActive() }
     val notifications by notificationFlow.collectAsStateWithLifecycle(emptyList())
     val scope = rememberCoroutineScope()
+    val controls by ControlCenterStore.state.collectAsStateWithLifecycle()
+    val haptic = LocalHapticFeedback.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var headsUp by remember { mutableStateOf<VirtualNotification?>(null) }
     val currentIncoming by androidx.compose.runtime.rememberUpdatedState(incoming)
@@ -64,14 +73,18 @@ fun VirtualSystemUiHost(
             repository.newNotifications.collect { notification ->
                 val current = controller.state.value
                 if (NotificationHeadsUpPolicy.shouldShow(notification, current.isLocked,
-                        current.surface != SystemUiSurface.NONE, focusMode = false, isIncomingCall = currentIncoming)) {
+                        current.surface != SystemUiSurface.NONE,
+                        focusMode = ControlCenterStore.state.value.focusMode, isIncomingCall = currentIncoming)) {
                     headsUp = notification
+                    if (!ControlCenterStore.state.value.quietMode) {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    }
                 }
             }
         }
     }
-    LaunchedEffect(state.surface, incoming) {
-        if (state.surface != SystemUiSurface.NONE || incoming) headsUp = null
+    LaunchedEffect(state.surface, incoming, controls.focusMode) {
+        if (state.surface != SystemUiSurface.NONE || incoming || controls.focusMode) headsUp = null
     }
     LaunchedEffect(state.surface, notifications) {
         if (state.surface == SystemUiSurface.NOTIFICATION_SHADE && !incoming) {
@@ -140,7 +153,36 @@ fun VirtualSystemUiHost(
                     modifier = Modifier.clickable(
                         interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = {}
                     ),
+                    quickControls = {
+                        QuickControlsRow(
+                            state = controls, isDarkTheme = isDarkTheme,
+                            onToggleDarkMode = onToggleDarkMode,
+                            onFocusModeChange = ControlCenterStore::setFocusMode,
+                            onLock = controller::lock,
+                            onExpand = controller::openControlCenter,
+                        )
+                    },
                 )
+            }
+            if (!priorityCallVisible && state.surface == SystemUiSurface.CONTROL_CENTER) {
+                ControlCenter(
+                    state = controls, isDarkTheme = isDarkTheme,
+                    onToggleDarkMode = onToggleDarkMode,
+                    onFocusModeChange = ControlCenterStore::setFocusMode,
+                    onQuietModeChange = ControlCenterStore::setQuietMode,
+                    onBrightnessChange = ControlCenterStore::setVirtualBrightness,
+                    onLock = controller::lock,
+                    onTheme = { launchUnlocked(AiluaDestinations.HOME) },
+                    onLaunchRoute = ::launchUnlocked,
+                    onClose = controller::closeSystemSurface,
+                    modifier = Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = {}
+                    ),
+                )
+            }
+            // Draw-only layer: virtual dimming never intercepts controls or changes Android brightness.
+            if (controls.virtualDimAlpha > 0f) {
+                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = controls.virtualDimAlpha)))
             }
             BackHandler(enabled = !priorityCallVisible && (showLock || state.surface != SystemUiSurface.NONE)) {
                 controller.closeSystemSurface()
