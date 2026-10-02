@@ -2,473 +2,218 @@ package com.example.ui.world
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.Explore
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.engine.UserActivityRecorder
 import com.example.data.engine.WorldHeartbeatEngine
 import com.example.data.mock.WorldData
 import com.example.data.model.VirtualPlace
-import com.example.ui.components.AiluaAvatar
-import com.example.ui.components.VirtualPhoneHomeBar
-import com.example.ui.components.VirtualPhoneStatusBar
-import com.example.ui.theme.AiluaDustyRose
-import com.example.ui.theme.AiluaMistBlue
-import com.example.ui.theme.AiluaMoonGold
-import com.example.ui.theme.AiluaMutedLavender
+import com.example.data.registry.CharacterRegistry
+import com.example.ui.designsystem.AiluaChip
+import com.example.ui.designsystem.AiluaMediaFrame
+import com.example.ui.designsystem.AiluaScreenScaffold
+import com.example.ui.designsystem.AiluaSectionHeader
+import com.example.ui.designsystem.CharacterPortrait
+import com.example.ui.designsystem.PortraitVariant
+import com.example.ui.themeengine.LocalAiluaTheme
 
 @Composable
 fun WorldPlacesScreen(
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
     onBack: () -> Unit = {},
-    onVisitPlaceChat: (String) -> Unit = {}
+    onVisitPlaceChat: (String) -> Unit = {},
+    onGoHome: () -> Unit = onBack,
 ) {
+    val theme = LocalAiluaTheme.current
     val places = WorldData.virtualPlaces
     var selectedPlace by remember { mutableStateOf(places.first()) }
     val heartbeatState by WorldHeartbeatEngine.heartbeatState.collectAsStateWithLifecycle()
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .testTag("world_places_screen")
+    AiluaScreenScaffold(
+        title = "地点",
+        onBack = onBack,
+        onGoHome = onGoHome,
+        backTestTag = "places_back_btn",
+        modifier = Modifier.testTag("world_places_screen"),
+        trailing = {
+            AiluaChip(
+                label = heartbeatState.currentPhase.label,
+                onClick = { WorldHeartbeatEngine.cycleTimePhase() },
+            )
+        },
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Status bar
-            VirtualPhoneStatusBar(isDarkTheme = isDarkTheme, onToggleTheme = onToggleTheme)
-
-            // Header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBack, modifier = Modifier.testTag("places_back_btn")) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                horizontal = theme.layout.screenHorizontalPadding.dp,
+                vertical = theme.layout.itemGap.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp),
+        ) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
+                    AiluaMediaFrame(Modifier.fillMaxWidth().height(120.dp)) {
+                        PlaceMapFallback(places = places, selectedPlaceId = selectedPlace.id)
                     }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Column {
-                        Text(
-                            text = "心网世界 · World Map",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "AILUA 伴生生命体栖居空间与地理脉络",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.5.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            )
-                        )
-                    }
-                }
-
-                // Heartbeat Phase Cycler
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(AiluaMoonGold.copy(alpha = 0.18f))
-                        .clickable { WorldHeartbeatEngine.cycleTimePhase() }
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(heartbeatState.currentPhase.icon, fontSize = 12.sp)
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = heartbeatState.currentPhase.label,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = AiluaMoonGold
-                        )
-                    }
-                }
-            }
-
-            // Atmosphere Banner
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Schedule,
-                    contentDescription = null,
-                    modifier = Modifier.size(13.dp),
-                    tint = AiluaMistBlue
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "${heartbeatState.currentPhase.atmosphere} (点击右上角可切换时辰)",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            // Fictional Interactive World Map Canvas & Nodes
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .padding(14.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(
-                        Brush.linearGradient(
-                            listOf(
-                                Color(0xFF2C3140),
-                                Color(0xFF1E222D),
-                                Color(0xFF161922)
-                            )
-                        )
+                    Text(
+                        heartbeatState.currentPhase.atmosphere,
+                        style = theme.text.secondary,
+                        color = theme.palette.onSurfaceMuted,
                     )
-            ) {
-                // Background constellation / grid routes
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val w = size.width
-                    val h = size.height
-
-                    // Draw connecting pathways between places
-                    places.forEach { place ->
-                        val startX = place.coordinateX * w
-                        val startY = place.coordinateY * h
-
-                        place.connectedPlaceIds.forEach { targetId ->
-                            val target = places.firstOrNull { it.id == targetId }
-                            if (target != null) {
-                                val endX = target.coordinateX * w
-                                val endY = target.coordinateY * h
-                                drawLine(
-                                    color = Color.White.copy(alpha = 0.15f),
-                                    start = Offset(startX, startY),
-                                    end = Offset(endX, endY),
-                                    strokeWidth = 2f
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Place Interactive Nodes
-                places.forEach { place ->
-                    val isSelected = selectedPlace.id == place.id
-                    val hasCurrentChar = place.currentCharacterIds.isNotEmpty()
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 12.dp, vertical = 12.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .align(
-                                    when {
-                                        place.coordinateX < 0.35f && place.coordinateY < 0.4f -> Alignment.TopStart
-                                        place.coordinateX > 0.65f && place.coordinateY < 0.4f -> Alignment.TopEnd
-                                        place.coordinateX < 0.35f -> Alignment.BottomStart
-                                        place.coordinateX > 0.65f -> Alignment.BottomEnd
-                                        place.coordinateY < 0.45f -> Alignment.TopCenter
-                                        else -> Alignment.Center
-                                    }
-                                )
-                                .clickable { selectedPlace = place },
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(if (isSelected) 36.dp else 28.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (isSelected) AiluaMistBlue
-                                        else if (hasCurrentChar) AiluaMoonGold
-                                        else Color.White.copy(alpha = 0.2f)
-                                    )
-                                    .border(
-                                        2.dp,
-                                        if (isSelected) Color.White else Color.Transparent,
-                                        CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (hasCurrentChar) {
-                                    AiluaAvatar(avatarId = place.currentCharacterIds.first(), size = 26.dp)
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.Default.LocationOn,
-                                        contentDescription = null,
-                                        tint = if (isSelected) Color.White else Color.White.copy(alpha = 0.7f),
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = place.name,
-                                fontSize = 9.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) AiluaMoonGold else Color.White.copy(alpha = 0.85f)
-                            )
-                        }
-                    }
+                    Text("点击右上角切换时段", style = theme.text.caption, color = theme.palette.onSurfaceMuted)
+                    AiluaSectionHeader("附近地点", modifier = Modifier.padding(top = theme.layout.itemGap.dp))
                 }
             }
-
-            // Places Horizontal Selector
-            LazyRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(places) { place ->
-                    val isSelected = selectedPlace.id == place.id
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (isSelected) AiluaMistBlue.copy(alpha = 0.2f)
-                                else MaterialTheme.colorScheme.surface
-                            )
-                            .border(
-                                1.dp,
-                                if (isSelected) AiluaMistBlue else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                                RoundedCornerShape(12.dp)
-                            )
+            items(places, key = { it.id }) { place ->
+                val isSelected = selectedPlace.id == place.id
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth()
                             .clickable { selectedPlace = place }
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                            .padding(vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp),
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
-                                text = place.name,
-                                fontSize = 11.5.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) AiluaMistBlue else MaterialTheme.colorScheme.onSurface
+                                place.name,
+                                style = theme.text.section,
+                                color = if (isSelected) theme.palette.accent else theme.palette.onSurface,
                             )
-                            if (place.currentCharacterIds.isNotEmpty()) {
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(AiluaMoonGold)
-                                )
-                            }
+                            Text("${place.type} · ${place.mood}", style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
                         }
+                        Icon(
+                            if (isSelected) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = if (isSelected) "已展开" else "查看地点",
+                            tint = theme.palette.onSurfaceMuted,
+                        )
+                    }
+                    AnimatedVisibility(isSelected) {
+                        PlaceDetails(place = place, onVisitPlaceChat = onVisitPlaceChat)
+                    }
+                    HorizontalDivider(color = theme.surfaces.divider)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlaceDetails(place: VirtualPlace, onVisitPlaceChat: (String) -> Unit) {
+    val theme = LocalAiluaTheme.current
+    Column(
+        modifier = Modifier.padding(bottom = theme.layout.sectionGap.dp),
+        verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp),
+    ) {
+        Text(place.description, style = theme.text.body, color = theme.palette.onSurface)
+        if (place.currentCharacterIds.isNotEmpty()) {
+            Text("当前在这里", style = theme.text.caption, color = theme.palette.onSurfaceMuted)
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                items(place.currentCharacterIds) { characterId ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        CharacterPortrait(characterId, PortraitVariant.AVATAR, Modifier.size(40.dp))
+                        Text(CharacterRegistry.getCharacter(characterId).name, style = theme.text.secondary, color = theme.palette.onSurface)
                     }
                 }
             }
-
-            // Selected Place Detailed Info Sheet
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            text = selectedPlace.name,
-                                            style = MaterialTheme.typography.titleLarge.copy(
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 17.sp
-                                            ),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(AiluaMistBlue.copy(alpha = 0.15f))
-                                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                                        ) {
-                                            Text(selectedPlace.type, fontSize = 10.sp, color = AiluaMistBlue)
-                                        }
-                                    }
-                                    Text(
-                                        text = "氛围: ${selectedPlace.mood}",
-                                        fontSize = 11.sp,
-                                        color = AiluaMoonGold
-                                    )
-                                }
-
-                                if (selectedPlace.currentCharacterIds.isNotEmpty()) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Text("当前在此:", fontSize = 10.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        selectedPlace.currentCharacterIds.forEach { cid ->
-                                            AiluaAvatar(avatarId = cid, size = 32.dp)
-                                        }
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Text(
-                                text = selectedPlace.description,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontSize = 12.5.sp,
-                                    lineHeight = 18.sp
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
-                            )
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            // Environmental sound
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.VolumeUp,
-                                    contentDescription = null,
-                                    tint = AiluaDustyRose,
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "空间音景: ${selectedPlace.ambientAudioNote}",
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            // Recent events in this place
-                            Text(
-                                text = "近期空间痕迹:",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            selectedPlace.recentEvents.forEach { ev ->
-                                Text(
-                                    text = "• $ev",
-                                    fontSize = 11.5.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                    modifier = Modifier.padding(vertical = 1.dp)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            // Action: Visit & Chat with present character
-                            Button(
-                                onClick = {
-                                    val targetChar = selectedPlace.currentCharacterIds.firstOrNull()
-                                        ?: selectedPlace.residentCharacterIds.firstOrNull()
-                                        ?: "mira"
-                                    // P3D-3: visiting a place is a LOCATION_CHANGE fact.
-                                    UserActivityRecorder.recordPlaceVisit(
-                                        characterId = targetChar,
-                                        placeName = selectedPlace.name,
-                                    )
-                                    onVisitPlaceChat(targetChar)
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = AiluaMistBlue),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Icon(Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = if (selectedPlace.currentCharacterIds.isNotEmpty())
-                                        "拜访此地 · 与角色开启交谈"
-                                    else "漫步驻足 · 感受静谧空间",
-                                    fontSize = 12.5.sp
-                                )
-                            }
-                        }
-                    }
-                }
-
-                item { Spacer(modifier = Modifier.height(14.dp)) }
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(Icons.Default.VolumeUp, contentDescription = null, tint = theme.palette.onSurfaceMuted, modifier = Modifier.size(18.dp))
+            Text(place.ambientAudioNote, style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
+        }
+        if (place.recentEvents.isNotEmpty()) {
+            Text("最近发生的事", style = theme.text.caption, color = theme.palette.onSurfaceMuted)
+            place.recentEvents.forEach { event ->
+                Text(event, style = theme.text.body, color = theme.palette.onSurface)
             }
+        }
+        Button(
+            onClick = {
+                val targetChar = place.currentCharacterIds.firstOrNull()
+                    ?: place.residentCharacterIds.firstOrNull()
+                    ?: "mira"
+                UserActivityRecorder.recordPlaceVisit(
+                    characterId = targetChar,
+                    placeName = place.name,
+                )
+                onVisitPlaceChat(targetChar)
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text(
+                if (place.currentCharacterIds.isNotEmpty()) "拜访并聊天" else "去这里走走",
+                style = theme.text.body,
+                modifier = Modifier.padding(start = 8.dp),
+            )
+        }
+    }
+}
 
-            // Home bar
-            VirtualPhoneHomeBar(canGoBack = true, onBack = onBack, onGoHome = onBack)
+/** Lightweight existing map geometry, kept separate from place selection and details. */
+@Composable
+private fun PlaceMapFallback(places: List<VirtualPlace>, selectedPlaceId: String) {
+    val theme = LocalAiluaTheme.current
+    val routeColor = theme.palette.onSurfaceMuted.copy(alpha = 0.18f)
+    val nodeColor = theme.palette.onSurfaceMuted.copy(alpha = 0.45f)
+    val selectedColor = theme.palette.accent
+    Canvas(Modifier.fillMaxSize().padding(16.dp)) {
+        places.forEach { place ->
+            val start = Offset(place.coordinateX * size.width, place.coordinateY * size.height)
+            place.connectedPlaceIds.forEach { targetId ->
+                places.firstOrNull { it.id == targetId }?.let { target ->
+                    drawLine(
+                        color = routeColor,
+                        start = start,
+                        end = Offset(target.coordinateX * size.width, target.coordinateY * size.height),
+                        strokeWidth = 1.dp.toPx(),
+                    )
+                }
+            }
+            val isSelected = selectedPlaceId == place.id
+            drawCircle(
+                color = if (isSelected) selectedColor else nodeColor,
+                radius = if (isSelected) 5.dp.toPx() else 3.dp.toPx(),
+                center = start,
+            )
         }
     }
 }
