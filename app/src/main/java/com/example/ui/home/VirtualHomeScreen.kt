@@ -3,7 +3,6 @@ package com.example.ui.home
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,10 +20,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.FastForward
@@ -59,9 +55,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.data.engine.WorldHeartbeatEngine
 import com.example.data.firstsession.FirstSessionStore
 import com.example.data.projection.projectPresence
@@ -112,7 +106,8 @@ import com.example.data.model.CharacterProfile
 import com.example.data.model.LetterDeliveryState
 import com.example.data.model.isRead
 import com.example.data.repository.MailboxRepository
-import com.example.ui.components.AiluaAvatar
+import com.example.ui.designsystem.CharacterPortrait
+import com.example.ui.designsystem.PortraitVariant
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
 import com.example.ui.components.WorldTimeDevSheet
@@ -122,7 +117,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
 import com.example.ui.themecenter.ThemeCenterSheet
 import com.example.ui.themecenter.ThemeCenterSection
-import com.example.ui.theme.AiluaMistBlue
 import androidx.compose.ui.unit.IntOffset
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -666,23 +660,24 @@ fun VirtualHomeScreen(
 
             if (!firstSession.journeyComplete) {
                 val guideText = if (!firstSession.receivedFirstReply) {
-                    "${character.name}好像在等你 · 去聊聊"
+                    "给${character.name}发一条消息"
                 } else {
-                    "她离开聊天后还在生活 · 看看现在"
+                    "看看${character.name}的近况"
                 }
                 Text(
                     text = guideText,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
+                    modifier = Modifier.fillMaxWidth()
+                        .padding(horizontal = themeRuntime.layout.screenHorizontalPadding.dp, vertical = 4.dp)
+                        .clip(RoundedCornerShape(themeRuntime.shapes.small.dp))
+                        .background(themeRuntime.surfaces.raised)
                         .clickable { if (firstSession.receivedFirstReply) onNavigateToLiving() else onNavigateToChat() }
                         .padding(12.dp).testTag("first_session_guide"),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    style = themeRuntime.text.secondary,
+                    color = themeRuntime.palette.onSurface,
                 )
             }
 
-            // Persistent Virtual Phone Dock (system launcher style, translucent + theme tinted)
+            // Persistent five-slot dock; appearance does not change workspace placement.
             HomeHotseat(
                 items = workspace.hotseatItems(), snapshot = workspace, labels = labels,
                 accent = themeRuntime.palette.accent,
@@ -850,97 +845,25 @@ internal fun DesktopWorldClock(
     accent: Color,
     onOpenDevTime: () -> Unit
 ) {
+    val theme = LocalAiluaTheme.current
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onOpenDevTime() }
-            .testTag("desktop_world_clock"),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenDevTime).testTag("desktop_world_clock"),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = worldClock.timeFormatted,
-                    style = MaterialTheme.typography.displaySmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 34.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(accent.copy(alpha = 0.18f))
-                        .padding(horizontal = 7.dp, vertical = 3.dp)
-                ) {
-                    Text(
-                        text = "${worldClock.dayPhase.label} · ${worldClock.weather.label}",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Medium
-                        ),
-                        color = accent
-                    )
-                }
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(worldClock.timeFormatted, style = theme.text.display, color = theme.palette.onSurface)
+                Text(worldClock.weather.label, style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
             }
-
-            Spacer(modifier = Modifier.height(3.dp))
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = worldClock.dateLabel,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-                Box(
-                    modifier = Modifier
-                        .size(3.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
-                )
-                Text(
-                    text = heartbeatState.currentPhase.atmosphere,
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                )
-            }
+            Text("${worldClock.dateLabel} · ${worldClock.dayPhase.label}",
+                style = theme.text.caption, color = theme.palette.onSurfaceMuted)
         }
-
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(12.dp))
-                .background(AiluaMistBlue.copy(alpha = 0.16f))
-                .clickable { onOpenDevTime() }
-                .padding(horizontal = 9.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = "跃迁",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = AiluaMistBlue
-            )
-            Icon(
-                imageVector = Icons.Default.FastForward,
-                contentDescription = "时间跃迁",
-                tint = AiluaMistBlue,
-                modifier = Modifier.size(14.dp)
-            )
+        Box(Modifier.size(36.dp).clip(RoundedCornerShape(theme.shapes.small.dp))
+            .background(theme.surfaces.inset).clickable(onClick = onOpenDevTime),
+            contentAlignment = Alignment.Center) {
+            Icon(Icons.Default.FastForward, contentDescription = "调整世界时间",
+                tint = accent, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -952,129 +875,38 @@ internal fun LivingPresenceStrip(
     onOpenLiving: () -> Unit,
     onOpenProfile: () -> Unit
 ) {
+    val theme = LocalAiluaTheme.current
     val events by WorldStateRepository.events.collectAsStateWithLifecycle()
     val presence = projectPresence(character, events)
     val latest = events.filter { it.characterId == character.id && !it.isUserActivity() }
         .sortedChronologically().lastOrNull()
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onOpenLiving() }
-            .testTag("living_character_widget"),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenLiving).testTag("living_character_widget"),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        AiluaAvatar(
-            size = 58.dp,
-            showHalo = true,
-            showLivingStatus = true,
-            onClick = onOpenProfile
+        CharacterPortrait(
+            characterId = character.id,
+            variant = PortraitVariant.AVATAR,
+            modifier = Modifier.size(58.dp),
+            onClick = onOpenProfile,
         )
-
-        Column(modifier = Modifier.weight(1f)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = character.name,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 17.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "· ${character.englishName}",
-                    style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.5.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                    maxLines = 1
-                )
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(7.dp))
-                        .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = character.mood,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Medium
-                        ),
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f))
-                        .padding(horizontal = 8.dp, vertical = 3.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF6EC6A1))
-                    )
-                    Text(
-                        text = presence.currentActivity,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.Medium
-                        ),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-                Text(
-                    text = presence.currentLocation,
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(5.dp))
-
-            Text(
-                text = "“${latest?.description ?: character.contextualQuote}”",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = 12.5.sp,
-                    lineHeight = 17.sp
-                ),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                maxLines = 2,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-            )
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text(character.name, style = theme.text.section, color = theme.palette.onSurface,
+                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            Text(presence.currentActivity, style = theme.text.secondary, color = theme.palette.onSurface,
+                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            Text(latest?.description ?: character.contextualQuote,
+                style = theme.text.secondary, color = theme.palette.onSurfaceMuted,
+                maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
-
         Box(
-            modifier = Modifier
-                .size(38.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f))
-                .clickable { onOpenChat() }
-                .testTag("home_quick_chat"),
-            contentAlignment = Alignment.Center
+            modifier = Modifier.size(38.dp).clip(RoundedCornerShape(theme.shapes.small.dp))
+                .background(theme.surfaces.inset).clickable(onClick = onOpenChat).testTag("home_quick_chat"),
+            contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = Icons.Default.ChatBubbleOutline,
-                contentDescription = "找她聊天",
-                modifier = Modifier.size(17.dp),
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
-            )
+            Icon(Icons.Default.ChatBubbleOutline, contentDescription = "发消息",
+                modifier = Modifier.size(18.dp), tint = theme.palette.accent)
         }
     }
 }

@@ -14,9 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -51,44 +49,20 @@ fun HomeHotseat(
 ) {
     val runtime = LocalAiluaTheme.current
     val dock = runtime.dock
-    val shape = RoundedCornerShape(dock.cornerRadiusDp.dp)
+    val shape = RoundedCornerShape(runtime.shapes.large.dp)
     val hasContainer = dock.containerMode != DockContainerMode.NONE
-    val tint = if (dock.containerMode == DockContainerMode.ISLAND) runtime.palette.accent.copy(alpha = dock.tintAlpha)
-        else Color.Transparent
-    val background = when (dock.containerMode) {
-        DockContainerMode.ISLAND -> Brush.verticalGradient(listOf(
-            Color.White.copy(alpha = 0.25f),
-            dock.backgroundColor.copy(alpha = dock.surfaceAlpha)
-        ))
-        DockContainerMode.PAPER_STRIP -> Brush.verticalGradient(listOf(
-            Color.White.copy(alpha = 0.18f),
-            dock.backgroundColor.copy(alpha = dock.surfaceAlpha)
-        ))
-        else -> Brush.verticalGradient(listOf(
-            dock.backgroundColor.copy(alpha = dock.surfaceAlpha),
-            dock.backgroundColor.copy(alpha = dock.surfaceAlpha)
-        ))
-    }
     val containerModifier = if (hasContainer) {
         Modifier
-            .then(if (dock.shadow.elevationDp > 0f)
-                Modifier.shadow(dock.shadow.elevationDp.dp, shape,
-                    ambientColor = Color.Black.copy(alpha = 0.10f),
-                    spotColor = Color.Black.copy(alpha = 0.16f))
-            else Modifier)
             .clip(shape)
-            .background(background)
-            .background(tint)
-            .then(if (dock.border.widthDp > 0f)
-                Modifier.border(dock.border.widthDp.dp, dock.border.color, shape)
-            else Modifier)
+            .background(runtime.surfaces.raised.copy(alpha = dock.surfaceAlpha.coerceIn(0.78f, 0.96f)))
     } else Modifier
 
-    Box(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 6.dp)) {
+    Box(Modifier.fillMaxWidth().padding(horizontal = runtime.layout.screenHorizontalPadding.dp, vertical = 8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth()
                 .then(containerModifier)
-                .padding(horizontal = dock.horizontalPaddingDp.dp, vertical = dock.verticalPaddingDp.dp)
+                .padding(horizontal = dock.horizontalPaddingDp.coerceIn(6f, 10f).dp,
+                    vertical = dock.verticalPaddingDp.coerceIn(8f, 10f).dp)
                 .onGloballyPositioned { onBounds(it.boundsInRoot()) }
                 .testTag("virtual_phone_dock"),
             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -116,14 +90,14 @@ fun HomeHotseat(
                                 DesktopItemType.APP -> if (label != null) AppIconItem(
                                     name = label.name, iconKey = label.iconKey, badge = label.badge,
                                     showLabel = false, editMode = isEditing,
-                                    size = com.example.ui.components.AppIconDefaults.ContainerSize * dock.iconScale * iconScale,
+                                    size = com.example.ui.components.AppIconDefaults.ContainerSize * dock.iconScale * iconScale * 0.94f,
                                     onClick = if (isEditing) ({}) else ({ onAppClick(item.sourceId) }),
                                 )
                                 DesktopItemType.FOLDER -> WorkspaceFolderItem(
                                     folder = snapshot.folder(item.id) ?: DesktopFolder(item.id, "文件夹"),
                                     children = snapshot.folderItems(item.id), labels = labels,
                                     isEditing = isEditing, showLabel = false,
-                                    size = com.example.ui.components.AppIconDefaults.ContainerSize * dock.iconScale * iconScale,
+                                    size = com.example.ui.components.AppIconDefaults.ContainerSize * dock.iconScale * iconScale * 0.94f,
                                     onClick = { onFolderClick(item.id) },
                                     modifier = Modifier.then(if (folderHoverTargetId == item.id)
                                         Modifier.border(2.dp, accent, RoundedCornerShape(18.dp)) else Modifier),

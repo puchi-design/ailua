@@ -6,6 +6,12 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.material3.Shapes
+import androidx.compose.material3.Typography
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.unit.dp
 import com.example.ui.components.AppVisualIdentity
 import com.example.ui.components.getAppIdentity
 
@@ -48,6 +54,37 @@ data class PaletteSpec(
 )
 
 data class PalettePair(val light: PaletteSpec, val dark: PaletteSpec)
+
+/** App surfaces share the launcher palette; screens do not own a second theme. */
+data class SurfaceVisualSpec(
+    val screen: Color,
+    val raised: Color,
+    val inset: Color,
+    val overlay: Color,
+    val divider: Color,
+)
+
+data class ShapeVisualSpec(
+    val small: Float = 10f,
+    val medium: Float = 16f,
+    val large: Float = 22f,
+    val pill: Float = 999f,
+)
+
+data class LayoutSpec(
+    val screenHorizontalPadding: Float = 24f,
+    val sectionGap: Float = 28f,
+    val itemGap: Float = 12f,
+)
+
+data class UiTextSpec(
+    val display: TextStyle,
+    val title: TextStyle,
+    val section: TextStyle,
+    val body: TextStyle,
+    val secondary: TextStyle,
+    val caption: TextStyle,
+)
 
 data class WallpaperSpec(val key: String, val colors: List<Color>)
 
@@ -173,6 +210,10 @@ data class MotionSpec(
 data class AiluaThemeRuntime(
     val id: String,
     val palette: PaletteSpec,
+    val surfaces: SurfaceVisualSpec,
+    val shapes: ShapeVisualSpec,
+    val layout: LayoutSpec,
+    val text: UiTextSpec,
     val wallpaper: WallpaperSpec,
     val icons: IconVisualSpec,
     val widgets: WidgetVisualSpec,
@@ -190,16 +231,53 @@ val LocalAiluaTheme = staticCompositionLocalOf<AiluaThemeRuntime> { ThemeCatalog
 
 @Composable
 fun AiluaThemeProvider(runtime: AiluaThemeRuntime, content: @Composable () -> Unit) {
+    val palette = runtime.palette
+    val onAccent = if (palette.accent.luminance() > 0.20f) Color(0xFF191919) else Color.White
     MaterialTheme(
         colorScheme = MaterialTheme.colorScheme.copy(
-            primary = runtime.palette.accent,
-            surface = runtime.palette.surface,
-            surfaceVariant = runtime.palette.surfaceVariant,
-            onSurface = runtime.palette.onSurface,
-            onSurfaceVariant = runtime.palette.onSurfaceMuted,
-            outline = runtime.palette.border,
-            outlineVariant = runtime.palette.border
-        )
+            primary = palette.accent,
+            onPrimary = onAccent,
+            primaryContainer = runtime.surfaces.inset,
+            onPrimaryContainer = palette.onSurface,
+            secondary = palette.accent,
+            onSecondary = onAccent,
+            secondaryContainer = runtime.surfaces.inset,
+            onSecondaryContainer = palette.onSurface,
+            tertiary = palette.accent,
+            onTertiary = onAccent,
+            tertiaryContainer = runtime.surfaces.inset,
+            onTertiaryContainer = palette.onSurface,
+            background = runtime.surfaces.screen,
+            onBackground = palette.onSurface,
+            surface = runtime.surfaces.raised,
+            surfaceDim = runtime.surfaces.screen,
+            surfaceBright = runtime.surfaces.raised,
+            surfaceContainerLowest = runtime.surfaces.screen,
+            surfaceContainerLow = runtime.surfaces.raised,
+            surfaceContainer = runtime.surfaces.raised,
+            surfaceContainerHigh = runtime.surfaces.overlay,
+            surfaceContainerHighest = runtime.surfaces.inset,
+            surfaceVariant = runtime.surfaces.inset,
+            onSurface = palette.onSurface,
+            onSurfaceVariant = palette.onSurfaceMuted,
+            outline = palette.border,
+            outlineVariant = runtime.surfaces.divider,
+            surfaceTint = Color.Transparent,
+        ),
+        typography = Typography(
+            displayLarge = runtime.text.display, displayMedium = runtime.text.display, displaySmall = runtime.text.display,
+            headlineLarge = runtime.text.display, headlineMedium = runtime.text.title, headlineSmall = runtime.text.title,
+            titleLarge = runtime.text.title, titleMedium = runtime.text.section, titleSmall = runtime.text.body,
+            bodyLarge = runtime.text.body, bodyMedium = runtime.text.body, bodySmall = runtime.text.secondary,
+            labelLarge = runtime.text.secondary, labelMedium = runtime.text.caption, labelSmall = runtime.text.caption,
+        ),
+        shapes = Shapes(
+            extraSmall = RoundedCornerShape(runtime.shapes.small.dp),
+            small = RoundedCornerShape(runtime.shapes.small.dp),
+            medium = RoundedCornerShape(runtime.shapes.medium.dp),
+            large = RoundedCornerShape(runtime.shapes.large.dp),
+            extraLarge = RoundedCornerShape(runtime.shapes.large.dp),
+        ),
     ) {
         CompositionLocalProvider(LocalAiluaTheme provides runtime, content = content)
     }

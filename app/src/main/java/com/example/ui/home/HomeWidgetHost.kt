@@ -6,26 +6,36 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.engine.WorldHeartbeatState
+import com.example.data.engine.WorldStateRepository
 import com.example.data.model.CharacterProfile
 import com.example.data.model.WorldClock
+import com.example.data.model.isUserActivity
+import com.example.data.model.sortedChronologically
+import com.example.data.projection.projectPresence
 import com.example.data.desktop.WidgetPlacement
 import com.example.ui.components.BondProgressWidget
 import com.example.ui.components.MemorySnippetWidget
+import com.example.ui.themeengine.LocalAiluaTheme
 
 /**
  * Stable widget identity for the Home widget host.
@@ -88,59 +98,60 @@ object WidgetRegistry {
     private val specs: Map<String, WidgetSpec> = listOf(
         WidgetSpec(HomeWidgetId.CHARACTER_LIVING, "小弥状态", WidgetSize(4, 2),
             sizes(HomeWidgetId.CHARACTER_LIVING)) { context, size ->
+            val theme = LocalAiluaTheme.current
             if (size.spanX == 2) {
-                Column(Modifier.fillMaxWidth().clickable { context.onOpenLiving() }) {
-                    Text(context.character.name, style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(5.dp))
-                    Text(context.character.mood, style = MaterialTheme.typography.labelMedium)
-                    Text(context.character.contextualQuote, style = MaterialTheme.typography.bodySmall,
-                        maxLines = 2)
-                    Spacer(Modifier.height(5.dp))
-                    Text("聊天 ›", color = context.accent, modifier = Modifier.clickable { context.onOpenChat() })
+                val events by WorldStateRepository.events.collectAsStateWithLifecycle()
+                val presence = remember(context.character, events) { projectPresence(context.character, events) }
+                val latest = remember(context.character.id, events) {
+                    events.filter { it.characterId == context.character.id && !it.isUserActivity() }
+                        .sortedChronologically().lastOrNull()
+                }
+                Column(Modifier.fillMaxWidth().clickable { context.onOpenLiving() },
+                    verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(context.character.name, style = theme.text.section, color = theme.palette.onSurface,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(presence.currentActivity, style = theme.text.secondary,
+                        color = theme.palette.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(latest?.description ?: context.character.contextualQuote, style = theme.text.secondary,
+                        color = theme.palette.onSurfaceMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text("发消息", style = theme.text.caption, color = context.accent,
+                        modifier = Modifier.clickable { context.onOpenChat() })
                 }
             } else {
-                Column {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.CenterStart) {
                     LivingPresenceStrip(context.character, context.onOpenChat,
                         context.onOpenLiving, context.onOpenProfile)
-                    if (size.spanY == 2) {
-                        Spacer(Modifier.height(10.dp))
-                        Text("生活轨迹 · ${context.character.contextualQuote}",
-                            style = MaterialTheme.typography.bodySmall, maxLines = 2,
-                            modifier = Modifier.clickable { context.onOpenLiving() })
-                    }
                 }
             }
         },
         WidgetSpec(HomeWidgetId.WORLD_CLOCK, "世界时钟", WidgetSize(4, 1),
             sizes(HomeWidgetId.WORLD_CLOCK)) { context, size ->
+            val theme = LocalAiluaTheme.current
             if (size.spanX == 4) {
                 Row(Modifier.fillMaxWidth().clickable { context.onOpenDevTime() },
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(context.worldClock.timeFormatted,
-                        style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                    Column(Modifier.weight(1f)) {
+                        style = theme.text.display, color = theme.palette.onSurface)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Text(context.worldClock.dateLabel,
-                            style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                            style = theme.text.secondary, color = theme.palette.onSurface, maxLines = 1)
                         Text("${context.worldClock.dayPhase.label} · ${context.worldClock.weather.label}",
-                            style = MaterialTheme.typography.labelSmall, color = context.accent,
-                            maxLines = 1)
+                            style = theme.text.caption, color = theme.palette.onSurfaceMuted,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                    Text("跃迁 ›", style = MaterialTheme.typography.labelSmall,
-                        color = context.accent)
+                    Icon(Icons.Default.ChevronRight, contentDescription = "调整世界时间", tint = context.accent)
                 }
             } else {
                 Column(Modifier.clickable { context.onOpenDevTime() }) {
                     Text(context.worldClock.timeFormatted,
-                        style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                    Text(context.worldClock.weather.label, style = MaterialTheme.typography.labelSmall,
-                        color = context.accent)
+                        style = theme.text.display, color = theme.palette.onSurface)
+                    Text(context.worldClock.weather.label, style = theme.text.secondary,
+                        color = theme.palette.onSurfaceMuted)
                     if (size.spanY == 2) {
                         Spacer(Modifier.height(8.dp))
-                        Text(context.worldClock.dateLabel, style = MaterialTheme.typography.bodySmall)
-                        Text(context.heartbeatState.currentPhase.atmosphere,
-                            style = MaterialTheme.typography.bodySmall, maxLines = 2)
+                        Text(context.worldClock.dateLabel, style = theme.text.caption,
+                            color = theme.palette.onSurfaceMuted)
                     }
                 }
             }

@@ -1,7 +1,6 @@
 package com.example.ui.home.edit
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,9 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.ui.themeengine.LocalAiluaTheme
 
 @Composable
@@ -43,28 +40,25 @@ fun HomeEditPanel(
     modifier: Modifier = Modifier,
 ) {
     val theme = LocalAiluaTheme.current
-    val shape = RoundedCornerShape(theme.widgets.cornerRadiusDp.dp)
+    val shape = RoundedCornerShape(theme.shapes.medium.dp)
     Column(
-        modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)
+        modifier.fillMaxWidth().padding(horizontal = theme.layout.screenHorizontalPadding.dp, vertical = 6.dp)
             .clip(shape)
-            .background(theme.palette.surface.copy(alpha = 0.94f))
-            .border(theme.widgets.border.widthDp.dp, theme.palette.border, shape)
-            .padding(horizontal = 10.dp, vertical = 8.dp)
+            .background(theme.surfaces.overlay)
+            .padding(horizontal = 14.dp, vertical = 12.dp)
             .testTag("home_edit_panel"),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("编辑桌面", color = theme.palette.onSurface,
-                fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text("编辑桌面", color = theme.palette.onSurface, style = theme.text.section)
             Spacer(Modifier.weight(1f))
-            Row(Modifier.clip(RoundedCornerShape(12.dp))
-                .background(theme.palette.accent.copy(alpha = 0.16f))
+            Row(Modifier.clip(RoundedCornerShape(theme.shapes.small.dp))
+                .background(theme.surfaces.inset)
                 .clickable(onClick = onDone)
                 .padding(horizontal = 11.dp, vertical = 6.dp)
                 .testTag("home_edit_done"), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Check, null, tint = theme.palette.accent, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(3.dp))
-                Text("完成", color = theme.palette.accent, fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold)
+                Text("完成", color = theme.palette.accent, style = theme.text.secondary)
             }
         }
         Row(Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -87,11 +81,10 @@ private fun EditAction(
     modifier: Modifier = Modifier,
 ) {
     val theme = LocalAiluaTheme.current
-    Column(modifier.clip(RoundedCornerShape(11.dp))
+    Column(modifier.clip(RoundedCornerShape(theme.shapes.small.dp))
         .clickable(onClick = onClick).padding(vertical = 7.dp)
         .testTag(tag), horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(icon, null, tint = theme.palette.accent, modifier = Modifier.size(22.dp))
-        Text(label, color = theme.palette.onSurface, fontSize = 11.sp,
-            fontWeight = FontWeight.Medium)
+        Icon(icon, null, tint = theme.palette.onSurfaceMuted, modifier = Modifier.size(22.dp))
+        Text(label, color = theme.palette.onSurface, style = theme.text.caption)
     }
 }

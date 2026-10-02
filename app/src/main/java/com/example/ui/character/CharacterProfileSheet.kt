@@ -1,13 +1,7 @@
 package com.example.ui.character
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,49 +11,33 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChatBubbleOutline
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.PhotoAlbum
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.data.engine.WorldHeartbeatEngine
+import com.example.data.engine.WorldStateRepository
 import com.example.data.mock.MockData
 import com.example.data.model.CharacterProfile
-import com.example.ui.components.AiluaAvatar
-import com.example.ui.components.VirtualPhoneHomeBar
-import com.example.ui.components.VirtualPhoneStatusBar
-import com.example.ui.theme.AiluaDustyRose
-import com.example.ui.theme.AiluaMistBlue
-import com.example.ui.theme.AiluaMoonGold
-import com.example.ui.theme.AiluaMutedLavender
+import com.example.data.projection.projectLiving
+import com.example.ui.designsystem.AiluaChip
+import com.example.ui.designsystem.AiluaMediaFrame
+import com.example.ui.designsystem.AiluaScreenScaffold
+import com.example.ui.designsystem.AiluaSectionHeader
+import com.example.ui.designsystem.CharacterPortrait
+import com.example.ui.designsystem.PortraitVariant
+import com.example.ui.living.groupLivingTimeline
+import com.example.ui.themeengine.LocalAiluaTheme
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CharacterProfileScreen(
     character: CharacterProfile = MockData.sampleCharacter,
@@ -67,351 +45,148 @@ fun CharacterProfileScreen(
     onToggleTheme: () -> Unit = {},
     onClose: () -> Unit = {},
     onStartChat: () -> Unit = {},
-    onOpenLiving: () -> Unit = {}
+    onOpenLiving: () -> Unit = {},
+    onGoHome: () -> Unit = onClose
 ) {
+    val theme = LocalAiluaTheme.current
     val scrollState = rememberScrollState()
+    val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
+    val worldClock by WorldHeartbeatEngine.worldClock.collectAsStateWithLifecycle()
+    val projection = remember(character.id, worldEvents) {
+        projectLiving(
+            character = character,
+            seedTimeline = MockData.getTimelineForCharacter(character.id).ifEmpty { character.timeline },
+            runtimeEvents = worldEvents,
+            seedEventIds = MockData.unifiedLifeEvents.mapTo(HashSet()) { it.id }
+        )
+    }
+    val recentEvents = remember(projection.timeline, worldClock.minutesOfDay) {
+        groupLivingTimeline(projection.timeline, worldClock.minutesOfDay)
+            .flatMap { it.events }
+            .take(3)
+    }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .testTag("character_profile_screen")
+    AiluaScreenScaffold(
+        title = "资料",
+        onBack = onClose,
+        onGoHome = onGoHome,
+        modifier = Modifier.testTag("character_profile_screen")
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Virtual OS Status Bar
-            VirtualPhoneStatusBar(
-                isDarkTheme = isDarkTheme,
-                onToggleTheme = onToggleTheme
-            )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(scrollState)
+                .padding(horizontal = theme.layout.screenHorizontalPadding.dp),
+            verticalArrangement = Arrangement.spacedBy(theme.layout.sectionGap.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
+                AiluaMediaFrame(modifier = Modifier.fillMaxWidth().height(240.dp)) {
+                    CharacterPortrait(
+                        characterId = character.id,
+                        variant = PortraitVariant.PROFILE,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                Text(text = character.name, style = theme.text.display, color = theme.palette.onSurface)
+                Text(text = character.title, style = theme.text.body, color = theme.palette.onSurfaceMuted)
+                Text(
+                    text = listOf(projection.currentActivity, projection.currentLocation)
+                        .filter { it.isNotBlank() }
+                        .joinToString(" · "),
+                    style = theme.text.secondary,
+                    color = theme.palette.onSurfaceMuted
+                )
+            }
 
-            // Header
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)
             ) {
-                IconButton(onClick = onClose) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "返回",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                Text(
-                    text = "心契档案 · Soul Profile",
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 15.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
+                AiluaChip(
+                    label = "发消息",
+                    onClick = onStartChat,
+                    selected = true,
+                    modifier = Modifier.weight(1f),
+                    leading = {
+                        Icon(Icons.Default.ChatBubbleOutline, contentDescription = null, tint = theme.palette.onSurface, modifier = Modifier.size(18.dp))
+                    }
                 )
-                IconButton(onClick = onClose) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "关闭",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                AiluaChip(
+                    label = "生活",
+                    onClick = onOpenLiving,
+                    modifier = Modifier.weight(1f),
+                    leading = {
+                        Icon(Icons.Default.Schedule, contentDescription = null, tint = theme.palette.onSurfaceMuted, modifier = Modifier.size(18.dp))
+                    }
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
+                AiluaSectionHeader(title = "关于${character.name}")
+                Text(text = character.bio, style = theme.text.body, color = theme.palette.onSurface)
+                if (character.personalityTags.isNotEmpty()) {
+                    Text(
+                        text = character.personalityTags.joinToString(" · "),
+                        style = theme.text.secondary,
+                        color = theme.palette.onSurfaceMuted
                     )
                 }
             }
 
-            // Scrollable Profile Details
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 18.dp)
-            ) {
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Avatar and Persona Identity Banner
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(
-                            elevation = 3.dp,
-                            shape = RoundedCornerShape(24.dp),
-                            ambientColor = Color.Black.copy(alpha = 0.04f),
-                            spotColor = Color.Black.copy(alpha = 0.08f)
-                        )
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
-                            RoundedCornerShape(24.dp)
-                        )
-                        .padding(20.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        AiluaAvatar(
-                            size = 88.dp,
-                            showHalo = true,
-                            showLivingStatus = true
-                        )
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        Text(
-                            text = "${character.name} (${character.englishName})",
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 21.sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-
-                        Text(
-                            text = character.title,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 11.5.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                            )
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        // Bio
-                        Text(
-                            text = character.bio,
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = 13.5.sp,
-                                lineHeight = 19.sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f)
-                        )
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        // Personality Tags
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            character.personalityTags.forEach { tag ->
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f))
-                                        .padding(horizontal = 9.dp, vertical = 4.dp)
-                                ) {
-                                    Text(
-                                        text = "# $tag",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Medium
-                                        ),
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                                    )
-                                }
-                            }
-                        }
-                    }
+            Column(verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
+                AiluaSectionHeader(title = "你们之间")
+                if (character.relationshipType.isNotBlank()) {
+                    Text(
+                        text = character.relationshipType,
+                        style = theme.text.secondary,
+                        color = theme.palette.onSurfaceMuted
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Relationship & Bond Status Card
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(
-                            elevation = 2.dp,
-                            shape = RoundedCornerShape(20.dp),
-                            ambientColor = Color.Black.copy(alpha = 0.03f),
-                            spotColor = Color.Black.copy(alpha = 0.06f)
-                        )
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            RoundedCornerShape(20.dp)
-                        )
-                        .padding(16.dp)
-                ) {
-                    Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Favorite,
-                                    contentDescription = null,
-                                    tint = AiluaDustyRose,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Text(
-                                    text = "羁绊等级：${character.bondName}",
-                                    style = MaterialTheme.typography.titleSmall.copy(
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 13.5.sp
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                            Text(
-                                text = "心网共存 ${character.daysTogether} 天",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 11.sp,
-                                    color = AiluaMoonGold,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        LinearProgressIndicator(
-                            progress = { character.bondProgress / 100f },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp)),
-                            color = AiluaDustyRose,
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Text(
-                            text = "心契进度 ${character.bondProgress}% · 达成Lv.5将解锁「梦境深潜连通」与「全天候私密耳语」",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.5.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
-                            )
-                        )
-                    }
+                if (character.memories.isEmpty()) {
+                    Text("还没有留下共同记忆", style = theme.text.body, color = theme.palette.onSurfaceMuted)
                 }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Important Memories Section
-                Text(
-                    text = "宝贵记忆凝华 · Memories",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.5.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    character.memories.forEach { memory ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surface)
-                                .border(
-                                    0.8.dp,
-                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                    RoundedCornerShape(16.dp)
-                                )
-                                .padding(12.dp)
-                        ) {
-                            Column {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.AutoAwesome,
-                                            contentDescription = null,
-                                            tint = AiluaMoonGold,
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                        Text(
-                                            text = memory.title,
-                                            style = MaterialTheme.typography.titleSmall.copy(
-                                                fontWeight = FontWeight.SemiBold,
-                                                fontSize = 12.5.sp
-                                            ),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                                    Text(
-                                        text = memory.date,
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 10.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                        )
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = memory.snippet,
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontSize = 12.sp,
-                                        lineHeight = 16.sp
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Bottom Direct Action Buttons
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Button(
-                        onClick = onStartChat,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = AiluaMistBlue),
-                        shape = RoundedCornerShape(16.dp)
+                character.memories.forEach { memory ->
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = theme.layout.itemGap.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ChatBubbleOutline,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = "发起对话")
-                    }
-
-                    OutlinedButton(
-                        onClick = onOpenLiving,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Schedule,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = "生活作息")
+                        Text(text = memory.date, style = theme.text.caption, color = theme.palette.onSurfaceMuted)
+                        Text(text = memory.title, style = theme.text.section, color = theme.palette.onSurface)
+                        Text(text = memory.snippet, style = theme.text.body, color = theme.palette.onSurfaceMuted)
                     }
                 }
-
-                Spacer(modifier = Modifier.height(20.dp))
             }
 
-            // Virtual Home Indicator Bar
-            VirtualPhoneHomeBar(
-                canGoBack = true,
-                onBack = onClose,
-                onGoHome = onClose
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
+                AiluaSectionHeader(title = "最近的事", actionLabel = "查看生活", onAction = onOpenLiving)
+                if (recentEvents.isEmpty()) {
+                    Text("还没有新的动态", style = theme.text.body, color = theme.palette.onSurfaceMuted)
+                }
+                recentEvents.forEach { event ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = theme.layout.itemGap.dp),
+                        horizontalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)
+                    ) {
+                        Text(
+                            text = event.time,
+                            style = theme.text.secondary,
+                            color = theme.palette.onSurfaceMuted,
+                            modifier = Modifier.width(48.dp)
+                        )
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(text = event.title, style = theme.text.body, color = theme.palette.onSurface)
+                            if (event.description.isNotBlank() && event.description != event.title) {
+                                Text(
+                                    text = event.description,
+                                    style = theme.text.secondary,
+                                    color = theme.palette.onSurfaceMuted
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(theme.layout.itemGap.dp))
         }
     }
 }

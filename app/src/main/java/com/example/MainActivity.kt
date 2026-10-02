@@ -345,6 +345,7 @@ fun AiluaAppRoot() {
                     val character = CharacterRegistry.getCharacter(charId)
                     ChatScreen(
                         character = character,
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBackToHome = { navController.popBackStack() },
@@ -427,6 +428,7 @@ fun AiluaAppRoot() {
                 composable(AiluaDestinations.LIVING) {
                     LivingScreen(
                         character = selectedCharacter,
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBackToHome = { navController.popBackStack() },
@@ -488,6 +490,7 @@ fun AiluaAppRoot() {
                     val character = CharacterRegistry.getCharacter(charId)
                     CharacterProfileScreen(
                         character = character,
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onClose = { navController.popBackStack() },

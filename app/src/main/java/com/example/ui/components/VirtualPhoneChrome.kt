@@ -7,6 +7,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
 import com.example.ui.systemui.LocalVirtualSystemUiController
 import com.example.ui.systemui.LocalUnseenNotificationCount
 import com.example.ui.systemui.LocalStatusBarActivityContent
@@ -26,29 +28,27 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.SignalCellular4Bar
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.ui.theme.AiluaMoonGold
-import com.example.ui.theme.AiluaMutedLavender
+
+
 import com.example.ui.themeengine.LocalAiluaTheme
 
 /** Virtual phone chrome follows the global theme and owns the two pull-down regions. */
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun VirtualPhoneStatusBar(
     modifier: Modifier = Modifier,
     isDarkTheme: Boolean = false,
@@ -58,12 +58,11 @@ fun VirtualPhoneStatusBar(
     val runtime = LocalAiluaTheme.current
     val spec = runtime.statusBar
     val textColor = spec.foregroundColor
-    val subtleColor = textColor.copy(alpha = 0.72f)
     val controller = LocalVirtualSystemUiController.current
     val unseenCount = LocalUnseenNotificationCount.current
     val activityContent = LocalStatusBarActivityContent.current
     Row(
-        modifier = modifier.fillMaxWidth().heightIn(min = 40.dp)
+        modifier = modifier.fillMaxWidth().heightIn(min = 36.dp)
             .background(runtime.palette.surface.copy(alpha = spec.backgroundAlpha))
             .pointerInput(controller) {
                 var startX = 0f
@@ -89,30 +88,24 @@ fun VirtualPhoneStatusBar(
             .padding(horizontal = 16.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(state.timeLabel, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+        Text(state.timeLabel, style = runtime.text.secondary, fontWeight = FontWeight.SemiBold,
             color = textColor, modifier = Modifier.testTag("virtual_status_time"))
         Box(Modifier.weight(1f).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
             when {
                 activityContent != null -> activityContent()
-                unseenCount > 0 -> Text("● $unseenCount", fontSize = 11.sp, color = textColor,
+                unseenCount > 0 -> Text("● $unseenCount", style = runtime.text.caption, color = textColor,
                     modifier = Modifier.testTag("notification_unseen_count"))
-                !spec.minimal -> Text("AILUA OS", fontSize = 10.sp, fontWeight = FontWeight.Medium, color = subtleColor)
+
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(Icons.Default.Wifi, state.networkLabel, Modifier.size(13.dp), tint = textColor)
-            if (activityContent == null && !spec.minimal) {
-                Text(state.networkLabel, fontSize = 10.sp, color = subtleColor)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val networkIcon = when {
+                state.networkLabel.contains("WiFi") -> Icons.Default.Wifi
+                state.networkLabel.contains("5G") -> Icons.Default.SignalCellular4Bar
+                else -> Icons.Default.WifiOff
             }
-            Text(state.batteryLabel, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = textColor)
-            Box(
-                modifier = Modifier.size(24.dp).clip(CircleShape).clickable(
-                    interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onToggleTheme
-                ), contentAlignment = Alignment.Center
-            ) {
-                Icon(if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
-                    "切换虚拟世界心境主题", Modifier.size(14.dp), tint = textColor)
-            }
+            Icon(networkIcon, state.networkLabel, Modifier.size(15.dp), tint = textColor)
+            Text(state.batteryLabel, style = runtime.text.caption, fontWeight = FontWeight.Medium, color = textColor)
         }
     }
 }
@@ -150,16 +143,19 @@ fun VirtualPhoneHomeBar(
                 Spacer(modifier = Modifier.size(36.dp))
             }
             Box(
-                modifier = Modifier.width(72.dp).height(5.dp)
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(color.copy(alpha = 0.28f))
+                modifier = Modifier.width(120.dp).height(36.dp)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
+                        role = Role.Button,
                         onClick = onGoHome
                     )
+                    .semantics { contentDescription = "返回主屏" }
                     .testTag("virtual_phone_home_indicator")
-            )
+                , contentAlignment = Alignment.Center
+            ) {
+                Box(Modifier.width(64.dp).height(4.dp).clip(CircleShape).background(color.copy(alpha = 0.24f)))
+            }
             Spacer(modifier = Modifier.size(36.dp))
         }
     }

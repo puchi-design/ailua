@@ -2,6 +2,8 @@ package com.example.ui.themeengine
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
+import com.example.ui.theme.AiluaTypography
 import com.example.data.model.DayPhase
 import com.example.data.model.WeatherState
 import com.example.ui.components.wallpaperPalette
@@ -52,6 +54,16 @@ object ThemeResolver {
         return AiluaThemeRuntime(
             id = preset.id,
             palette = palette,
+            surfaces = SurfaceVisualSpec(
+                screen = palette.backgroundPrimary,
+                raised = palette.surface,
+                inset = palette.surfaceVariant,
+                overlay = palette.surface,
+                divider = palette.border.copy(alpha = 0.45f),
+            ),
+            shapes = ShapeVisualSpec(),
+            layout = LayoutSpec(),
+            text = uiTextSpec(preset.typographyId),
             wallpaper = wallpaper,
             icons = iconSpec(iconStyleId, palette),
             widgets = widgetSpec(preset.widgetStyleId, palette),
@@ -63,6 +75,22 @@ object ThemeResolver {
             controlCenter = controlCenterSpec(preset.id, palette),
             liveActivity = liveActivitySpec(preset.id, palette),
             motion = motionSpec(preset.motionStyleId)
+        )
+    }
+
+    private fun uiTextSpec(id: String): UiTextSpec {
+        val headingFamily = when (id) {
+            "diary" -> FontFamily.Serif
+            "mono" -> FontFamily.Monospace
+            else -> FontFamily.SansSerif
+        }
+        return UiTextSpec(
+            display = AiluaTypography.headlineLarge.copy(fontFamily = headingFamily),
+            title = AiluaTypography.titleLarge.copy(fontFamily = headingFamily),
+            section = AiluaTypography.titleMedium.copy(fontFamily = headingFamily),
+            body = AiluaTypography.bodyLarge,
+            secondary = AiluaTypography.bodySmall,
+            caption = AiluaTypography.labelSmall,
         )
     }
 
