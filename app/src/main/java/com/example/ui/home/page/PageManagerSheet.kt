@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.desktop.DesktopPage
 import com.example.data.desktop.WorkspaceSnapshot
+import com.example.ui.components.HideDialogStatusBar
 import com.example.ui.themeengine.LocalAiluaTheme
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -67,6 +68,7 @@ fun PageManagerSheet(
         containerColor = theme.palette.surface,
         modifier = Modifier.testTag("page_manager_sheet"),
     ) {
+        HideDialogStatusBar()
         Column(Modifier.fillMaxWidth().padding(bottom = 28.dp)) {
             Text("管理桌面", color = theme.palette.onSurface,
                 fontSize = 21.sp, fontWeight = FontWeight.Bold,

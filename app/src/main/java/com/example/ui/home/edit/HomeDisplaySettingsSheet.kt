@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.components.HideDialogStatusBar
 import com.example.ui.themeengine.LocalAiluaTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,6 +42,7 @@ fun HomeDisplaySettingsSheet(
         containerColor = theme.palette.surface,
         modifier = Modifier.testTag("home_display_settings_sheet"),
     ) {
+        HideDialogStatusBar()
         Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 28.dp)) {
             Text("桌面设置", color = theme.palette.onSurface,
                 fontSize = 21.sp, fontWeight = FontWeight.Bold)

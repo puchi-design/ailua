@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.DayPhase
 import com.example.data.model.WeatherState
+import com.example.ui.components.HideDialogStatusBar
 import com.example.ui.themeengine.*
 
 enum class ThemeCenterSection(val title: String) {
@@ -49,6 +50,7 @@ fun ThemeCenterSheet(
         containerColor = MaterialTheme.colorScheme.surface,
         modifier = Modifier.testTag("theme_center_sheet"),
     ) {
+        HideDialogStatusBar()
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
             Text("主题中心", style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold, modifier = Modifier.testTag("theme_center_title"))

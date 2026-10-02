@@ -44,6 +44,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.data.desktop.DesktopFolder
 import com.example.data.desktop.DesktopItem
 import com.example.ui.components.AppIconItem
+import com.example.ui.components.HideDialogStatusBar
 import com.example.ui.design.launcher.WorkspaceAppLabel
 import com.example.ui.themeengine.LocalAiluaTheme
 import sh.calvin.reorderable.ReorderableItem
@@ -74,6 +75,7 @@ fun FolderOverlay(
     }
     fun saveTitle() { onRename(title.ifBlank { "文件夹" }) }
     Dialog(onDismissRequest = { saveTitle(); onDismiss() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        HideDialogStatusBar()
         val shape = RoundedCornerShape(theme.widgets.cornerRadiusDp.dp)
         Column(
             Modifier.padding(24.dp).widthIn(max = 390.dp).fillMaxWidth()
