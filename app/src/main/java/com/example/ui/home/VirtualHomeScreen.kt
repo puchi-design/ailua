@@ -102,6 +102,7 @@ import com.example.ui.home.folder.WorkspaceFolderItem
 import com.example.ui.home.edit.HomeEditPanel
 import com.example.ui.home.edit.HomeDisplayPreferencesStore
 import com.example.ui.home.edit.HomeDisplaySettingsSheet
+import com.example.ui.home.page.PageManagerSheet
 import com.example.ui.home.special.LifeBentoPage
 import com.example.ui.home.widget.WidgetPickerSheet
 import com.example.ui.home.widget.WorkspaceWidgetItem
@@ -139,6 +140,7 @@ import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
+private const val LIFE_BENTO_PAGE_ID = "life_bento"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -171,10 +173,13 @@ fun VirtualHomeScreen(
     val haptic = LocalHapticFeedback.current
     val workspaceViewModel: WorkspaceViewModel = viewModel(factory = WorkspaceViewModel.factory(context))
     val workspace by workspaceViewModel.workspace.collectAsStateWithLifecycle()
+    val workspaceLoaded by workspaceViewModel.isLoaded.collectAsStateWithLifecycle()
     var temporaryPage by remember { mutableStateOf<DesktopPage?>(null) }
     val workspacePages = workspace.pages.sortedBy { it.rank } +
         listOfNotNull(temporaryPage?.takeUnless { transient -> workspace.pages.any { it.id == transient.id } })
     val pagerState = rememberPagerState(pageCount = { workspacePages.size + 1 })
+    var initialHomeApplied by remember { mutableStateOf(false) }
+    var currentPageId by remember { mutableStateOf<String?>(null) }
     val workspaceError by workspaceViewModel.error.collectAsStateWithLifecycle()
     val worldClock by WorldHeartbeatEngine.worldClock.collectAsStateWithLifecycle()
     val heartbeatState by WorldHeartbeatEngine.heartbeatState.collectAsStateWithLifecycle()
@@ -185,6 +190,7 @@ fun VirtualHomeScreen(
     var showThemeSheet by remember { mutableStateOf(false) }
     var themeInitialSection by remember { mutableStateOf(ThemeCenterSection.THEMES) }
     var showWidgetPicker by remember { mutableStateOf(false) }
+    var showPageManager by remember { mutableStateOf(false) }
     var showDisplaySettings by remember { mutableStateOf(false) }
     var widgetMessage by remember { mutableStateOf<String?>(null) }
     var selectedWidgetId by remember { mutableStateOf<String?>(null) }
@@ -234,6 +240,32 @@ fun VirtualHomeScreen(
     val latestDrag by rememberUpdatedState(dragState)
     val latestDropPlan by rememberUpdatedState(dropPlan)
     val latestFolderIntent by rememberUpdatedState(activeFolderIntent)
+
+    LaunchedEffect(pagerState.settledPage) {
+        if (initialHomeApplied) currentPageId = workspacePages.getOrNull(pagerState.settledPage)?.id
+            ?: LIFE_BENTO_PAGE_ID
+    }
+    LaunchedEffect(workspaceLoaded, workspacePages.map { it.id }, currentPageId,
+        dragState.isDragging) {
+        if (!workspaceLoaded || dragState.isDragging) return@LaunchedEffect
+        if (!initialHomeApplied) {
+            val homePage = workspacePages.firstOrNull { it.isHome } ?: workspacePages.firstOrNull()
+            currentPageId = homePage?.id
+            val homeIndex = workspacePages.indexOfFirst { it.id == homePage?.id }
+            if (homeIndex >= 0) pagerState.scrollToPage(homeIndex)
+            initialHomeApplied = true
+        } else {
+            val selected = currentPageId?.takeIf { id ->
+                id == LIFE_BENTO_PAGE_ID || workspacePages.any { it.id == id }
+            }
+                ?: workspacePages.firstOrNull { it.isHome }?.id
+                ?: workspacePages.firstOrNull()?.id
+            currentPageId = selected
+            val newIndex = if (selected == LIFE_BENTO_PAGE_ID) workspacePages.size
+                else workspacePages.indexOfFirst { it.id == selected }
+            if (newIndex >= 0 && pagerState.currentPage != newIndex) pagerState.scrollToPage(newIndex)
+        }
+    }
 
     val widgetContext = WidgetHostContext(
         character = character, accent = themeRuntime.palette.accent, worldClock = worldClock,
@@ -555,6 +587,7 @@ fun VirtualHomeScreen(
             // Paged Workspace (ARK Launcher Reference: multi-page workspace)
             HorizontalPager(
                 state = pagerState,
+                key = { index -> workspacePages.getOrNull(index)?.id ?: LIFE_BENTO_PAGE_ID },
                 userScrollEnabled = !dragState.isDragging,
                 modifier = Modifier
                     .weight(1f)
@@ -649,7 +682,7 @@ fun VirtualHomeScreen(
                     themeInitialSection = ThemeCenterSection.THEMES
                     showThemeSheet = true
                 },
-                onPages = {},
+                onPages = { showPageManager = true },
                 onSettings = { showDisplaySettings = true },
             )
 
@@ -780,6 +813,20 @@ fun VirtualHomeScreen(
             preferences = homeDisplayPreferences,
             onChange = HomeDisplayPreferencesStore::update,
             onDismiss = { showDisplaySettings = false },
+        )
+        if (showPageManager) PageManagerSheet(
+            snapshot = workspace,
+            currentPageId = currentPageId,
+            onDismiss = { showPageManager = false },
+            onCreatePage = {
+                scope.launch {
+                    val page = workspaceViewModel.createPage()
+                    if (page != null) currentPageId = page.id
+                }
+            },
+            onDeletePage = { id -> scope.launch { workspaceViewModel.deletePage(id) } },
+            onReorderPages = { ids -> scope.launch { workspaceViewModel.reorderPages(ids) } },
+            onSetHomePage = { id -> scope.launch { workspaceViewModel.setHomePage(id) } },
         )
         val folderId = openFolderId
         val folder = folderId?.let(workspace::folder)

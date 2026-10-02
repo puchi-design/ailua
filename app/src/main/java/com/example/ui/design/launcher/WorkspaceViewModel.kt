@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.data.desktop.DesktopPlacement
+import com.example.data.desktop.DesktopPage
 import com.example.data.desktop.WorkspaceCommit
 import com.example.data.desktop.WorkspaceGraph
 import com.example.data.desktop.WorkspaceRepository
@@ -24,6 +25,8 @@ class WorkspaceViewModel(context: Context) : ViewModel() {
     private val ready = CompletableDeferred<WorkspaceRepository>()
     private val mutableWorkspace = MutableStateFlow(WorkspaceSeed.fromLegacyOrder(AiluaLocalStore.getHomeAppOrder()))
     val workspace = mutableWorkspace.asStateFlow()
+    private val mutableIsLoaded = MutableStateFlow(false)
+    val isLoaded = mutableIsLoaded.asStateFlow()
     private val mutableError = MutableStateFlow<String?>(null)
     val error = mutableError.asStateFlow()
 
@@ -36,7 +39,10 @@ class WorkspaceViewModel(context: Context) : ViewModel() {
                     WorkspaceGraph.repository
                 }
                 ready.complete(repository)
-                repository.observeWorkspace().collect { mutableWorkspace.value = it }
+                repository.observeWorkspace().collect {
+                    mutableWorkspace.value = it
+                    mutableIsLoaded.value = true
+                }
             } catch (e: CancellationException) {
                 ready.cancel()
                 throw e
@@ -125,6 +131,47 @@ class WorkspaceViewModel(context: Context) : ViewModel() {
         updateWorkspace("文件夹名称未保存，请重试") {
             renameFolder(folderId, title)
         }
+
+    suspend fun createPage(): DesktopPage? = try {
+        val repository = ready.await()
+        val page = repository.createPage()
+        mutableWorkspace.value = withContext(Dispatchers.IO) { repository.snapshot() }
+        mutableError.value = null
+        page
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        mutableError.value = "页面未创建，请重试"
+        null
+    }
+
+    suspend fun deletePage(pageId: String): Boolean = updatePages("仅能删除空白的非主屏页面") {
+        this.deletePage(pageId)
+    }
+
+    suspend fun reorderPages(pageIds: List<String>): Boolean = updatePages("页面顺序未保存，请重试") {
+        this.reorderPages(pageIds)
+    }
+
+    suspend fun setHomePage(pageId: String): Boolean = updatePages("主屏未设置，请重试") {
+        this.setHomePage(pageId)
+    }
+
+    private suspend fun updatePages(
+        message: String,
+        operation: suspend WorkspaceRepository.() -> Unit,
+    ): Boolean = try {
+        val repository = ready.await()
+        repository.operation()
+        mutableWorkspace.value = withContext(Dispatchers.IO) { repository.snapshot() }
+        mutableError.value = null
+        true
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        mutableError.value = message
+        false
+    }
 
     private suspend fun updateWorkspace(
         message: String,

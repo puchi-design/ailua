@@ -150,15 +150,7 @@ class SqlDelightWorkspaceRepository(private val database: ChatDatabase) : Worksp
                 items.updatePlacement(item.container.name, item.pageId, item.parentFolderId, item.cellX.toLong(),
                     item.cellY.toLong(), item.spanX.toLong(), item.spanY.toLong(), item.rank.toLong(), item.id)
             }
-            // Only trailing empty ordinary pages are reclaimed; the home page and one-page minimum survive.
-            var current = snapshot()
-            while (current.pages.size > 1) {
-                val last = current.pages.last()
-                if (last.isHome || current.itemsFor(last.id).isNotEmpty()) break
-                pages.deletePage(last.id)
-                current = snapshot()
-            }
-            current
+            reclaimTrailingEmptyPages()
         }
     }
 
@@ -229,14 +221,7 @@ class SqlDelightWorkspaceRepository(private val database: ChatDatabase) : Worksp
             val before = snapshot()
             require(before.items.any { it.id == itemId && it.type == DesktopItemType.AILUA_WIDGET })
             items.deleteItem(itemId)
-            var current = snapshot()
-            while (current.pages.size > 1) {
-                val last = current.pages.last()
-                if (last.isHome || current.itemsFor(last.id).isNotEmpty()) break
-                pages.deletePage(last.id)
-                current = snapshot()
-            }
-            current
+            reclaimTrailingEmptyPages()
         }
     }
 
@@ -245,7 +230,7 @@ class SqlDelightWorkspaceRepository(private val database: ChatDatabase) : Worksp
         targetItemId: String,
         suggestedTitle: String?,
     ): WorkspaceSnapshot =
-        mutateFolders { before ->
+        mutateFolders(reclaimEmptyPages = true) { before ->
             require(draggedItemId != targetItemId)
             val dragged = before.items.first { it.id == draggedItemId }
             val target = before.items.first { it.id == targetItemId }
@@ -270,7 +255,7 @@ class SqlDelightWorkspaceRepository(private val database: ChatDatabase) : Worksp
         }
 
     override suspend fun addItemToFolder(itemId: String, folderId: String): WorkspaceSnapshot =
-        mutateFolders { before ->
+        mutateFolders(reclaimEmptyPages = true) { before ->
             val item = before.items.first { it.id == itemId }
             require(item.type == DesktopItemType.APP && !item.locked)
             require(item.container != DesktopContainer.FOLDER)
@@ -327,6 +312,7 @@ class SqlDelightWorkspaceRepository(private val database: ChatDatabase) : Worksp
         mutateFolders { before -> dissolveInMemory(before, folderId) }
 
     private suspend fun mutateFolders(
+        reclaimEmptyPages: Boolean = false,
         change: (WorkspaceSnapshot) -> WorkspaceSnapshot,
     ): WorkspaceSnapshot = withContext(Dispatchers.IO) {
         database.transactionWithResult {
@@ -334,8 +320,20 @@ class SqlDelightWorkspaceRepository(private val database: ChatDatabase) : Worksp
             val after = change(before)
             validate(after)
             persistFolderTransition(before, after)
-            snapshot()
+            if (reclaimEmptyPages) reclaimTrailingEmptyPages() else snapshot()
         }
+    }
+
+    /** Run only after placement changes; creating an empty page alone keeps it visible. */
+    private fun reclaimTrailingEmptyPages(): WorkspaceSnapshot {
+        var current = snapshot()
+        while (current.pages.size > 1) {
+            val last = current.pages.last()
+            if (last.isHome || current.itemsFor(last.id).isNotEmpty()) break
+            pages.deletePage(last.id)
+            current = snapshot()
+        }
+        return current
     }
 
     private fun dissolveInMemory(state: WorkspaceSnapshot, folderId: String): WorkspaceSnapshot {
