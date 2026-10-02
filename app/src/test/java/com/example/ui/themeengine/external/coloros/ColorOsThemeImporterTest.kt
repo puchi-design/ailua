@@ -70,6 +70,8 @@ class ColorOsThemeImporterTest {
         val icon = preview.theme.icons?.mappings?.get("com.android.settings")
         assertNotNull(icon)
         assertTrue((icon as ThemeAssetRef.LocalFile).relativePath.endsWith(".webp"))
+        assertEquals(icon, preview.theme.icons?.mappings?.get(
+            "com.android.settings/com.android.settings.Settings"))
         assertFalse(preview.theme.icons!!.allIcons.isEmpty())
     }
 
@@ -81,6 +83,7 @@ class ColorOsThemeImporterTest {
             normalizeColorOsIconName("com.android.contacts.MainActivity.png")?.activityName)
         assertEquals("com.android.settings.Settings",
             normalizeColorOsIconName("ComponentInfo{com.android.settings/.Settings}.png")?.activityName)
+        assertEquals(null, normalizeColorOsIconName("ComponentInfo{com.android.settings/.Settings.png"))
     }
 
     private fun zip(vararg entries: Pair<String, ByteArray>): ByteArray {

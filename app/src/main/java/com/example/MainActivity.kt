@@ -119,14 +119,24 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         // Virtual OS status bar replaces the system status bar; hide the native
         // one so the two no longer overlap (swipe down reveals it transiently).
-        WindowCompat.getInsetsController(window, window.decorView).apply {
-            hide(WindowInsetsCompat.Type.statusBars())
-            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        }
+        hideNativeStatusBar()
         setContent {
             CompositionLocalProvider(LocalOsChromeState provides rememberOsChromeState()) {
                 AiluaAppRoot()
             }
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // System pickers can restore the native bar when this window regains focus.
+        if (hasFocus) hideNativeStatusBar()
+    }
+
+    private fun hideNativeStatusBar() {
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.statusBars())
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
     }
 }

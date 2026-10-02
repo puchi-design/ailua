@@ -211,7 +211,8 @@ data class NormalizedColorOsIconName(val packageName: String, val activityName: 
 
 /** Normalizes package icons and ComponentInfo{package/activity} names. */
 fun normalizeColorOsIconName(filename: String): NormalizedColorOsIconName? {
-    val component = Regex("(?i)ComponentInfo\\{\\s*([a-z0-9_]+(?:\\.[a-z0-9_]+)+)(?:/([^}]+))?\\s*}")
+    // Android's regex engine treats an unescaped closing brace as a quantifier error.
+    val component = Regex("(?i)ComponentInfo\\{\\s*([a-z0-9_]+(?:\\.[a-z0-9_]+)+)(?:/([^}]+))?\\s*\\}")
         .find(filename)
     if (component != null) {
         val pkg = component.groupValues[1].lowercase(Locale.ROOT)
