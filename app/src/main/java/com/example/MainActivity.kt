@@ -315,6 +315,7 @@ fun AiluaAppRoot() {
                 // Screen 2: Conversation List
                 composable(AiluaDestinations.MESSAGES) {
                     ConversationListScreen(
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBackToHome = { navController.popBackStack() },
@@ -358,6 +359,7 @@ fun AiluaAppRoot() {
                 // Screen 4: Group Chat Screen
                 composable(AiluaDestinations.GROUP_CHAT) {
                     GroupChatScreen(
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBack = { navController.popBackStack() },
@@ -368,6 +370,7 @@ fun AiluaAppRoot() {
                 // Screen 5: Contacts List Screen
                 composable(AiluaDestinations.CONTACTS) {
                     ContactsScreen(
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBackToHome = { navController.popBackStack() },
@@ -384,6 +387,7 @@ fun AiluaAppRoot() {
                 // Screen 6: Check Phone Screen
                 composable(AiluaDestinations.CHECK_PHONE) {
                     CheckPhoneScreen(
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBackToHome = { navController.popBackStack() },
@@ -395,6 +399,7 @@ fun AiluaAppRoot() {
                 // Screen 7: Diary Screen
                 composable(AiluaDestinations.DIARY) {
                     DiaryScreen(
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBackToHome = { navController.popBackStack() },
@@ -406,6 +411,7 @@ fun AiluaAppRoot() {
                 // Screen 8: Social Graph / Relations Screen
                 composable(AiluaDestinations.RELATIONS) {
                     RelationsScreen(
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBack = { navController.popBackStack() }
@@ -415,6 +421,7 @@ fun AiluaAppRoot() {
                 // Screen 9: Moments Screen
                 composable(AiluaDestinations.MOMENTS) {
                     MomentsScreen(
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBackToHome = { navController.popBackStack() },
@@ -449,6 +456,7 @@ fun AiluaAppRoot() {
                     })
                 ) { backStackEntry ->
                     AppLibraryScreen(
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         preferredPageId = backStackEntry.arguments?.getString("preferredPageId"),
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
@@ -461,10 +469,11 @@ fun AiluaAppRoot() {
                     )
                 }
                 composable(AiluaDestinations.REALITY) {
-                    RealityBridgeScreen(onBack = { navController.popBackStack() }, isDarkTheme = isDarkTheme, onToggleTheme = { isDarkTheme = !isDarkTheme })
+                    RealityBridgeScreen(onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) }, onBack = { navController.popBackStack() }, isDarkTheme = isDarkTheme, onToggleTheme = { isDarkTheme = !isDarkTheme })
                 }
                 composable(AiluaDestinations.SETTINGS) {
                     SettingsScreen(
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         onBack = { navController.popBackStack() },
                         onReality = { navController.navigate(AiluaDestinations.REALITY) },
                         onPrivacy = { navController.navigate(AiluaDestinations.PRIVACY) },
@@ -474,7 +483,7 @@ fun AiluaAppRoot() {
                     )
                 }
                 composable(AiluaDestinations.PRIVACY) {
-                    PrivacyScreen(onBack = { navController.popBackStack() }, isDarkTheme = isDarkTheme,
+                    PrivacyScreen(onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) }, onBack = { navController.popBackStack() }, isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme })
                 }
 
@@ -510,6 +519,7 @@ fun AiluaAppRoot() {
                 // Screen 13: Memories
                 composable(AiluaDestinations.MEMORIES) {
                     MemoriesScreen(
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBackToHome = { navController.popBackStack() },
@@ -520,6 +530,7 @@ fun AiluaAppRoot() {
                 // Screen 14: Character Creator
                 composable(AiluaDestinations.CHARACTER_CREATOR) {
                     CharacterCreatorScreen(
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBack = { navController.popBackStack() },
@@ -533,6 +544,7 @@ fun AiluaAppRoot() {
                 // Screen 15: World Book / Lore
                 composable(AiluaDestinations.WORLD_BOOK) {
                     WorldBookScreen(
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBack = { navController.popBackStack() }
@@ -542,6 +554,7 @@ fun AiluaAppRoot() {
                 // Screen 16: World Places / Map
                 composable(AiluaDestinations.WORLD_MAP) {
                     WorldPlacesScreen(
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBack = { navController.popBackStack() },
@@ -554,6 +567,7 @@ fun AiluaAppRoot() {
                 // Screen 17: Theater / Branching Narrative
                 composable(AiluaDestinations.THEATER) {
                     TheaterScreen(
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBack = { navController.popBackStack() }
@@ -563,6 +577,7 @@ fun AiluaAppRoot() {
                 // Screen 18: Mailbox / Letters & Postcards
                 composable(AiluaDestinations.MAILBOX) {
                     MailboxScreen(
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBack = { navController.popBackStack() },
@@ -575,6 +590,7 @@ fun AiluaAppRoot() {
                 // Screen 19: Call History / Companion Voice Logs
                 composable(AiluaDestinations.CALL_HISTORY) {
                     CallHistoryScreen(
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBack = { navController.popBackStack() },
@@ -636,6 +652,7 @@ fun AiluaAppRoot() {
                 // Screen 22: Gallery / Visual Companion Moments
                 composable(AiluaDestinations.GALLERY) {
                     GalleryScreen(
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBack = { navController.popBackStack() }

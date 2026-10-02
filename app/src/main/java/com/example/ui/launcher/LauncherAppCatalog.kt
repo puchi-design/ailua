@@ -25,11 +25,19 @@ object LauncherAppCatalog {
         "world_book" to "lore_books",
     )
 
+    // Navigation labels only; persisted IDs, routes and original search aliases stay intact.
+    private val displayLabels = mapOf(
+        "chat" to "消息", "gallery" to "相册", "check_phone" to "他的手机",
+        "relations" to "关系", "companion_call" to "通话", "world_map" to "地点",
+        "lore_books" to "世界书", "character_creation" to "角色工坊", "theater" to "剧场",
+        "reality_bridge" to "现实连接",
+    )
+
     private val libraryApps: List<AiluaApp> = MockData.appLibraryList
     private val libraryEntries: List<LauncherAppEntry> = libraryApps.map { app ->
         LauncherAppEntry(
             id = app.id,
-            displayName = app.name.substringBefore('·').trim().ifEmpty { app.name },
+            displayName = displayLabels[app.id] ?: app.name.substringBefore('·').trim().ifEmpty { app.name },
             iconKey = app.iconKey,
             category = app.category,
             route = app.route,
@@ -39,7 +47,7 @@ object LauncherAppCatalog {
     private val systemEntries = listOf(
         LauncherAppEntry("apps", "应用", "apps", null, "apps", AppStatus.AVAILABLE),
         LauncherAppEntry("group_chat", "群聊", "chat", null, "group_chat", AppStatus.AVAILABLE),
-        LauncherAppEntry("reality", "现实感知", "bridge", null, "reality", AppStatus.AVAILABLE),
+        LauncherAppEntry("reality", "现实连接", "bridge", null, "reality", AppStatus.AVAILABLE),
         LauncherAppEntry("settings", "设置", "settings", null, "settings", AppStatus.AVAILABLE),
     )
     private val entriesById = (libraryEntries + systemEntries).associateBy { it.id }
@@ -51,7 +59,7 @@ object LauncherAppCatalog {
 
     fun label(id: String): String = when (id) {
         "messages" -> "消息"
-        "call_history" -> "通话记录"
+        "call_history" -> "通话"
         else -> get(id)?.displayName ?: id
     }
 

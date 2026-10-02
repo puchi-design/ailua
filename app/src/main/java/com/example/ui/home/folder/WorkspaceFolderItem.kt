@@ -19,7 +19,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.data.desktop.DesktopFolder
 import com.example.data.desktop.DesktopItem
 import com.example.ui.components.AppIconItem
@@ -40,7 +39,7 @@ fun WorkspaceFolderItem(
     size: Dp = AppIconDefaults.ContainerSize,
 ) {
     val theme = LocalAiluaTheme.current
-    val shape = RoundedCornerShape(theme.widgets.cornerRadiusDp.dp)
+    val shape = RoundedCornerShape(theme.shapes.medium.dp)
     val preview = children.take(4)
     Column(
         modifier = modifier.clickable { if (!isEditing) onClick() }
@@ -49,7 +48,7 @@ fun WorkspaceFolderItem(
     ) {
         Box(
             modifier = Modifier.size(size).clip(shape)
-                .background(theme.palette.surface.copy(alpha = theme.widgets.surfaceAlpha.coerceAtLeast(0.55f)))
+                .background(theme.surfaces.raised.copy(alpha = theme.widgets.surfaceAlpha.coerceAtLeast(0.55f)))
                 .border(1.dp, theme.palette.border, shape),
             contentAlignment = Alignment.Center,
         ) {
@@ -78,7 +77,7 @@ fun WorkspaceFolderItem(
         if (showLabel) {
             Text(
                 folder.title, color = theme.icons.labelColor,
-                fontSize = (11f * theme.typography.labelSizeScale).sp,
+                style = theme.text.caption.copy(fontSize = theme.text.caption.fontSize * theme.typography.labelSizeScale),
                 maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
         }

@@ -24,7 +24,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.ui.components.HideDialogStatusBar
 import com.example.ui.themeengine.LocalAiluaTheme
 
@@ -39,30 +38,30 @@ fun HomeDisplaySettingsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = theme.palette.surface,
+        containerColor = theme.surfaces.raised,
         modifier = Modifier.testTag("home_display_settings_sheet"),
     ) {
         HideDialogStatusBar()
         Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 28.dp)) {
             Text("桌面设置", color = theme.palette.onSurface,
-                fontSize = 21.sp, fontWeight = FontWeight.Bold)
-            Text("调整图标显示，不改变桌面排布", color = theme.palette.onSurfaceMuted,
-                fontSize = 12.sp, modifier = Modifier.padding(top = 3.dp, bottom = 14.dp))
+                style = theme.text.title, fontWeight = FontWeight.Bold)
+            Text("图标与页面显示", color = theme.palette.onSurfaceMuted,
+                style = theme.text.secondary, modifier = Modifier.padding(top = 3.dp, bottom = 14.dp))
             SettingSwitch("显示应用名称", preferences.showLabels, "home_setting_labels") {
                 onChange(preferences.copy(showLabels = it))
             }
             Text("图标大小", color = theme.palette.onSurface,
-                fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                style = theme.text.body, fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(top = 16.dp, bottom = 8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(0.9f to "小", 1f to "标准", 1.1f to "大").forEach { (scale, label) ->
                     val selected = preferences.iconScale == scale
-                    val shape = RoundedCornerShape(12.dp)
+                    val shape = RoundedCornerShape(theme.shapes.small.dp)
                     Text(label, color = if (selected) theme.palette.accent else theme.palette.onSurface,
-                        fontSize = 13.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                        style = theme.text.secondary, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                         modifier = Modifier.weight(1f).clip(shape)
                             .background(if (selected) theme.palette.accent.copy(alpha = 0.14f)
-                                else theme.palette.surfaceVariant.copy(alpha = 0.45f))
+                                else theme.surfaces.inset)
                             .border(1.dp, if (selected) theme.palette.accent else theme.palette.border, shape)
                             .clickable { onChange(preferences.copy(iconScale = scale)) }
                             .padding(vertical = 11.dp)
@@ -81,11 +80,11 @@ fun HomeDisplaySettingsSheet(
 @Composable
 private fun SettingSwitch(label: String, checked: Boolean, tag: String, onChecked: (Boolean) -> Unit) {
     val theme = LocalAiluaTheme.current
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-        .background(theme.palette.surfaceVariant.copy(alpha = 0.45f))
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(theme.shapes.medium.dp))
+        .background(theme.surfaces.inset)
         .clickable { onChecked(!checked) }.padding(horizontal = 14.dp, vertical = 5.dp)
         .testTag(tag), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, color = theme.palette.onSurface, fontSize = 14.sp,
+        Text(label, color = theme.palette.onSurface, style = theme.text.body,
             modifier = Modifier.weight(1f))
         Spacer(Modifier.width(12.dp))
         Switch(checked = checked, onCheckedChange = onChecked)

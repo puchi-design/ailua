@@ -45,7 +45,7 @@ fun WelcomeScreen(onFinish: (String, Boolean) -> Unit) {
         Spacer(Modifier.height(20.dp))
         when (step) {
             0 -> {
-                Text("她会聊天，也会在自己的世界里继续生活。", style = MaterialTheme.typography.bodyLarge)
+                Text("角色会与你聊天，也会在自己的世界里继续生活。", style = MaterialTheme.typography.bodyLarge)
                 Spacer(Modifier.height(20.dp))
                 Button(onClick = { step = 1 }) { Text("开始") }
             }
@@ -69,10 +69,10 @@ fun WelcomeScreen(onFinish: (String, Boolean) -> Unit) {
                 Button(onClick = { step = 3 }) { Text("继续") }
             }
             else -> {
-                Text("她已经搬进来了。", style = MaterialTheme.typography.headlineSmall)
-                Text(if (connected) "去和她打个招呼吧。" else "你可以先看看她的世界，之后再连接 AI。")
+                Text("新的陪伴已经搬进来了。", style = MaterialTheme.typography.headlineSmall)
+                Text(if (connected) "去打个招呼吧。" else "你可以先看看这里，之后再连接 AI。")
                 Spacer(Modifier.height(16.dp))
-                Button(onClick = { onFinish(selectedId, false) }) { Text(if (connected) "去找她" else "进入 AILUA") }
+                Button(onClick = { onFinish(selectedId, false) }) { Text(if (connected) "开始聊天" else "进入 AILUA") }
             }
         }
     }

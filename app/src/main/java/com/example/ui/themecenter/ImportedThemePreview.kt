@@ -19,7 +19,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.ui.themeengine.AiluaThemeRuntime
 import com.example.ui.themeengine.external.ExternalThemePackage
 import com.example.ui.themeengine.external.ExternalThemeRepository
@@ -48,7 +47,7 @@ fun ImportedThemePreview(
     val apps = listOf("chat" to "消息", "gallery" to "相册",
         "moments" to "动态", "living" to "生活")
     val wallpaper = theme.wallpapers.firstOrNull()
-    Box(modifier.clip(RoundedCornerShape(15.dp))
+    Box(modifier.clip(RoundedCornerShape(runtime.shapes.medium.dp))
         .background(Brush.verticalGradient(colors))) {
         if (wallpaper != null) {
             ExternalAssetImage(wallpaper, draftAssets, 640,
@@ -56,11 +55,11 @@ fun ImportedThemePreview(
         }
         Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("9:41", color = labels, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                Text("●  ▰", color = labels, fontSize = 9.sp)
+                Text("9:41", color = labels, style = runtime.text.caption, fontWeight = FontWeight.Bold)
+                Text("●  ▰", color = labels, style = runtime.text.caption)
             }
             Spacer(Modifier.height(8.dp))
-            Text("今天也和你一起", color = labels, fontSize = 10.sp,
+            Text("今天也和你一起", color = labels, style = runtime.text.caption,
                 fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -71,13 +70,13 @@ fun ImportedThemePreview(
             Spacer(Modifier.weight(1f))
             val widget = runtime.widgets
             val widgetShape = RoundedCornerShape(widget.cornerRadiusDp.dp.coerceAtLeast(0.dp))
-            Column(Modifier.fillMaxWidth().height(40.dp).clip(widgetShape)
+            Column(Modifier.fillMaxWidth().height(44.dp).clip(widgetShape)
                 .background(widget.backgroundColor.copy(alpha = widget.surfaceAlpha))
                 .border(widget.border.widthDp.dp, widget.border.color, widgetShape)
                 .padding(horizontal = 9.dp, vertical = 4.dp)) {
                 Text("10月 · AILUA", color = widget.foregroundColor,
-                    fontSize = 7.sp, fontWeight = FontWeight.SemiBold)
-                Text("把喜欢的日子收进这里 ✦", color = widget.foregroundColor, fontSize = 8.sp)
+                    style = runtime.text.caption, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                Text("把喜欢的日子收进这里 ✦", color = widget.foregroundColor, style = runtime.text.caption, maxLines = 1)
             }
             Spacer(Modifier.height(6.dp))
             val dock = runtime.dock
@@ -105,7 +104,7 @@ private fun PreviewExternalApp(
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         PreviewExternalIcon(theme, runtime, draftAssets, key, index, sizeDp)
         Spacer(Modifier.height(2.dp))
-        Text(name, color = runtime.icons.labelColor, fontSize = 7.sp, maxLines = 1)
+        Text(name, color = runtime.icons.labelColor, style = runtime.text.caption, maxLines = 1)
     }
 }
 

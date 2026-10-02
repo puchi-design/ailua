@@ -31,7 +31,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.data.desktop.DesktopPage
 import com.example.data.desktop.WorkspaceSnapshot
 import com.example.ui.components.HideDialogStatusBar
@@ -65,16 +64,16 @@ fun PageManagerSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = theme.palette.surface,
+        containerColor = theme.surfaces.raised,
         modifier = Modifier.testTag("page_manager_sheet"),
     ) {
         HideDialogStatusBar()
         Column(Modifier.fillMaxWidth().padding(bottom = 28.dp)) {
             Text("管理桌面", color = theme.palette.onSurface,
-                fontSize = 21.sp, fontWeight = FontWeight.Bold,
+                style = theme.text.title, fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 20.dp))
             Text("长按页面预览拖动排序 · 点击星标设为主屏",
-                color = theme.palette.onSurfaceMuted, fontSize = 12.sp,
+                color = theme.palette.onSurfaceMuted, style = theme.text.secondary,
                 modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 3.dp, bottom = 16.dp))
             LazyRow(state = listState, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -107,27 +106,27 @@ fun PageManagerSheet(
                 }
             }
             Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 14.dp)
-                .clip(RoundedCornerShape(13.dp))
+                .clip(RoundedCornerShape(theme.shapes.medium.dp))
                 .background(theme.palette.accent.copy(alpha = 0.12f))
-                .border(1.dp, theme.palette.accent.copy(alpha = 0.5f), RoundedCornerShape(13.dp))
+                .border(1.dp, theme.palette.accent.copy(alpha = 0.5f), RoundedCornerShape(theme.shapes.medium.dp))
                 .testTag("page_create"), verticalAlignment = Alignment.CenterVertically) {
                 androidx.compose.material3.TextButton(onClick = { notice = null; onCreatePage() },
                     modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Default.Add, null, tint = theme.palette.accent)
-                    Text("新建页面", color = theme.palette.accent,
+                    Text("新建页面", color = theme.palette.accent, style = theme.text.body,
                         modifier = Modifier.padding(start = 6.dp))
                 }
             }
             if (notice != null) {
                 Text(notice.orEmpty(), color = MaterialTheme.colorScheme.error,
-                    fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 9.dp)
+                    style = theme.text.secondary, modifier = Modifier.padding(horizontal = 20.dp, vertical = 9.dp)
                         .testTag("page_manager_notice"))
             }
             Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically) {
-                Text("Life Bento · 特殊页", color = theme.palette.onSurface,
-                    fontSize = 13.sp, modifier = Modifier.weight(1f))
-                Text("固定", color = theme.palette.onSurfaceMuted, fontSize = 12.sp)
+                Text("生活页", color = theme.palette.onSurface,
+                    style = theme.text.secondary, modifier = Modifier.weight(1f))
+                Text("固定", color = theme.palette.onSurfaceMuted, style = theme.text.secondary)
             }
         }
     }

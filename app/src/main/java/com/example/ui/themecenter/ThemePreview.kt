@@ -24,7 +24,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.ui.themeengine.*
 
 /** Mini desktop drawn from the resolved runtime, so palette overrides update its visuals live. */
@@ -34,14 +33,14 @@ fun ThemePreview(theme: AiluaThemeRuntime, modifier: Modifier = Modifier) {
     val wallpaper = theme.wallpaper.colors.ifEmpty {
         listOf(theme.palette.backgroundPrimary, theme.palette.backgroundSecondary)
     }
-    Box(modifier.clip(RoundedCornerShape(15.dp)).background(Brush.verticalGradient(wallpaper))) {
+    Box(modifier.clip(RoundedCornerShape(theme.shapes.medium.dp)).background(Brush.verticalGradient(wallpaper))) {
         Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 7.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("9:41", color = label, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                Text("●  ▰", color = label, fontSize = 9.sp)
+                Text("9:41", color = label, style = theme.text.caption, fontWeight = FontWeight.Bold)
+                Text("●  ▰", color = label, style = theme.text.caption)
             }
             Spacer(Modifier.height(6.dp))
-            Text("今天也和你一起", color = label, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+            Text("今天也和你一起", color = label, style = theme.text.caption, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(7.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 PreviewApp(theme, "chat", "聊天")
@@ -65,7 +64,7 @@ private fun PreviewApp(theme: AiluaThemeRuntime, key: String, name: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         ThemePreviewIcon(theme, key, 27.dp)
         Spacer(Modifier.height(2.dp))
-        Text(name, color = theme.icons.labelColor, fontSize = 7.sp, maxLines = 1)
+        Text(name, color = theme.icons.labelColor, style = theme.text.caption, maxLines = 1)
     }
 }
 
@@ -122,13 +121,13 @@ fun ThemePreviewIcon(theme: AiluaThemeRuntime, key: String, size: Dp) {
 private fun ThemePreviewWidget(theme: AiluaThemeRuntime) {
     val spec = theme.widgets
     val shape = RoundedCornerShape(spec.cornerRadiusDp.dp.coerceAtLeast(0.dp))
-    Column(Modifier.fillMaxWidth().height(39.dp)
+    Column(Modifier.fillMaxWidth().height(44.dp)
         .then(if (spec.shadow.elevationDp > 0f) Modifier.shadow(spec.shadow.elevationDp.dp, shape) else Modifier)
         .clip(shape).background(spec.backgroundColor.copy(alpha = spec.surfaceAlpha))
         .border(spec.border.widthDp.dp, spec.border.color, shape)
         .padding(horizontal = 9.dp, vertical = 4.dp)) {
-        Text("10月 · AILUA", color = spec.foregroundColor, fontSize = 7.sp, fontWeight = FontWeight.SemiBold)
-        Text("把喜欢的日子收进这里 ✦", color = spec.foregroundColor, fontSize = 8.sp)
+        Text("10月 · AILUA", color = spec.foregroundColor, style = theme.text.caption, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        Text("把喜欢的日子收进这里 ✦", color = spec.foregroundColor, style = theme.text.caption, maxLines = 1)
     }
 }
 

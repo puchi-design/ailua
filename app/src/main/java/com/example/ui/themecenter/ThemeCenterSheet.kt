@@ -20,7 +20,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.data.model.DayPhase
 import com.example.data.model.WeatherState
 import com.example.ui.components.HideDialogStatusBar
@@ -47,21 +46,21 @@ fun ThemeCenterSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = runtime.surfaces.raised,
         modifier = Modifier.testTag("theme_center_sheet"),
     ) {
         HideDialogStatusBar()
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-            Text("主题中心", style = MaterialTheme.typography.titleLarge,
+            Text("主题中心", style = LocalAiluaTheme.current.text.title,
                 fontWeight = FontWeight.Bold, modifier = Modifier.testTag("theme_center_title"))
-            Text("打造你的虚拟手机 · 所有更改即时生效",
-                style = MaterialTheme.typography.bodySmall,
+            Text("选择主题、壁纸和图标",
+                style = LocalAiluaTheme.current.text.secondary,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(14.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 ThemeCenterSection.entries.take(4).forEach { item ->
                     val selected = tab == item
-                    val shape = RoundedCornerShape(13.dp)
+                    val shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.medium.dp)
                     Box(Modifier.weight(1f).clip(shape)
                         .background(if (selected) runtime.palette.accent.copy(alpha = 0.18f) else Color.Transparent)
                         .border(1.dp, if (selected) runtime.palette.accent.copy(alpha = 0.48f) else Color.Transparent, shape)
@@ -70,7 +69,7 @@ fun ThemeCenterSheet(
                         contentAlignment = Alignment.Center) {
                         Text(item.title,
                             color = if (selected) runtime.palette.accent else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, fontSize = 13.sp)
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, style = LocalAiluaTheme.current.text.secondary)
                     }
                 }
             }
@@ -78,22 +77,22 @@ fun ThemeCenterSheet(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 ThemeCenterSection.entries.drop(4).forEach { item ->
                     val selected = tab == item
-                    val shape = RoundedCornerShape(10.dp)
+                    val shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.small.dp)
                     Box(Modifier.weight(1f).clip(shape)
-                        .background(if (selected) runtime.palette.accent.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                        .background(if (selected) runtime.palette.accent.copy(alpha = 0.18f) else LocalAiluaTheme.current.surfaces.inset)
                         .clickable { tab = item }.padding(vertical = 6.dp)
                         .testTag("theme_center_tab_" + item.name.lowercase()),
                         contentAlignment = Alignment.Center) {
                         Text(item.title,
                             color = if (selected) runtime.palette.accent else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 11.sp)
+                            style = LocalAiluaTheme.current.text.caption)
                     }
                 }
             }
             Spacer(Modifier.height(12.dp))
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 if (tab in setOf(ThemeCenterSection.PALETTES, ThemeCenterSection.WALLPAPERS, ThemeCenterSection.ICONS)) {
-                    ThemePreview(runtime, Modifier.fillMaxWidth().height(190.dp))
+                    ThemePreview(runtime, Modifier.fillMaxWidth().height(200.dp))
                     Spacer(Modifier.height(14.dp))
                 }
                 when (tab) {
@@ -103,18 +102,18 @@ fun ThemeCenterSheet(
                                 val candidate = selection.copy(themePresetId = preset.id)
                                 val preview = ThemeResolver.resolve(candidate, isDarkTheme, dayPhase, weather)
                                 val selected = selection.themePresetId == preset.id
-                                val shape = RoundedCornerShape(17.dp)
+                                val shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.medium.dp)
                                 Column(Modifier.weight(1f).clip(shape)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                                    .background(LocalAiluaTheme.current.surfaces.inset)
                                     .border(1.5.dp, if (selected) preview.palette.accent else Color.Transparent, shape)
                                     .clickable { ThemeStore.update(candidate) }.padding(7.dp)
                                     .testTag("theme_option_" + preset.id)) {
-                                    ThemePreview(preview, Modifier.fillMaxWidth().height(162.dp))
+                                    ThemePreview(preview, Modifier.fillMaxWidth().height(200.dp))
                                     Spacer(Modifier.height(6.dp))
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Column(Modifier.weight(1f)) {
-                                            Text(preset.name, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                                            Text(preset.nameEn, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
+                                            Text(preset.name, fontWeight = FontWeight.SemiBold, style = LocalAiluaTheme.current.text.secondary)
+                                            Text(preset.nameEn, color = MaterialTheme.colorScheme.onSurfaceVariant, style = LocalAiluaTheme.current.text.caption)
                                         }
                                         if (selected) Icon(Icons.Default.Check, "当前主题",
                                             tint = preview.palette.accent, modifier = Modifier.size(17.dp))
@@ -187,9 +186,9 @@ fun ThemeCenterSheet(
 
 @Composable
 private fun ChoiceRow(title: String, subtitle: String, accent: Color, selected: Boolean, tag: String, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(15.dp)
+    val shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.medium.dp)
     Row(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(shape)
-        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f))
+        .background(LocalAiluaTheme.current.surfaces.inset)
         .border(1.dp, if (selected) accent else Color.Transparent, shape)
         .clickable(onClick = onClick).padding(12.dp).testTag(tag),
         verticalAlignment = Alignment.CenterVertically) {
@@ -203,14 +202,14 @@ private fun ChoiceRow(title: String, subtitle: String, accent: Color, selected: 
 
 @Composable
 private fun WallpaperRow(title: String, subtitle: String, colors: List<Color>, selected: Boolean, tag: String, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(15.dp)
+    val shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.medium.dp)
     val swatch = colors.ifEmpty { listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surface) }
     Row(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(shape)
-        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f))
+        .background(LocalAiluaTheme.current.surfaces.inset)
         .border(1.dp, if (selected) MaterialTheme.colorScheme.primary else Color.Transparent, shape)
         .clickable(onClick = onClick).padding(9.dp).testTag(tag),
         verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(width = 48.dp, height = 42.dp).clip(RoundedCornerShape(9.dp))
+        Box(Modifier.size(width = 48.dp, height = 42.dp).clip(RoundedCornerShape(LocalAiluaTheme.current.shapes.small.dp))
             .background(Brush.verticalGradient(swatch)))
         Spacer(Modifier.width(12.dp))
         ChoiceText(title, subtitle, Modifier.weight(1f))
@@ -220,9 +219,9 @@ private fun WallpaperRow(title: String, subtitle: String, colors: List<Color>, s
 
 @Composable
 private fun IconRow(title: String, subtitle: String, preview: AiluaThemeRuntime, selected: Boolean, tag: String, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(15.dp)
+    val shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.medium.dp)
     Row(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(shape)
-        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f))
+        .background(LocalAiluaTheme.current.surfaces.inset)
         .border(1.dp, if (selected) preview.palette.accent else Color.Transparent, shape)
         .clickable(onClick = onClick).padding(11.dp).testTag(tag),
         verticalAlignment = Alignment.CenterVertically) {
@@ -238,7 +237,7 @@ private fun IconRow(title: String, subtitle: String, preview: AiluaThemeRuntime,
 @Composable
 private fun ChoiceText(title: String, subtitle: String, modifier: Modifier) {
     Column(modifier) {
-        Text(title, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-        Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+        Text(title, fontWeight = FontWeight.SemiBold, style = LocalAiluaTheme.current.text.secondary)
+        Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = LocalAiluaTheme.current.text.caption)
     }
 }

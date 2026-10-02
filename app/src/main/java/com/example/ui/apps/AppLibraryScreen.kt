@@ -225,7 +225,7 @@ fun AppLibraryScreen(
                     )
                     Column {
                         Text(
-                            text = app.name,
+                            text = appLibraryDisplayName(app),
                             style = themeRuntime.text.section
                         )
                         Text(

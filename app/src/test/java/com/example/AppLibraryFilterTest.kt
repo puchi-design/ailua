@@ -85,7 +85,7 @@ class AppLibraryFilterTest {
     @Test
     fun `display name strips the english suffix`() {
         val chat = apps.first { it.id == "chat" }
-        assertEquals("通讯", appLibraryDisplayName(chat))
+        assertEquals("消息", appLibraryDisplayName(chat))
         val living = apps.first { it.id == "living" }
         assertEquals("生活", appLibraryDisplayName(living))
     }

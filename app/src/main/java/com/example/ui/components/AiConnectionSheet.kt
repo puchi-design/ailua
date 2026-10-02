@@ -1,10 +1,12 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,15 +15,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Key
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -29,7 +27,6 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,13 +40,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.ai.model.ProviderProfile
 import com.example.data.ai.onboarding.ProviderSetup
 import com.example.data.ai.repository.ProviderGraph
-import com.example.ui.theme.AiluaMistBlue
-import com.example.ui.theme.AiluaMoonGold
+import com.example.ui.themeengine.LocalAiluaTheme
+import com.example.ui.designsystem.AiluaChip
 import java.util.UUID
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
@@ -65,13 +61,14 @@ import androidx.compose.runtime.rememberCoroutineScope
  * ever displays the masked `••••••••abcd` label on reopen and clears its
  * local input state right after saving. Plaintext never enters StateFlow.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AiConnectionSheet(
     onDismiss: () -> Unit,
     onConnected: () -> Unit = {},
     sheetState: SheetState = rememberModalBottomSheetState(),
 ) {
+    val visual = LocalAiluaTheme.current
     val repository = ProviderGraph.repository
     val profiles by repository.profiles.collectAsStateWithLifecycle()
     val activeId by repository.activeProfileId.collectAsStateWithLifecycle()
@@ -101,43 +98,19 @@ fun AiConnectionSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = visual.surfaces.raised,
     ) {
+        HideDialogStatusBar()
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = visual.layout.screenHorizontalPadding.dp)
                 .padding(bottom = 32.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(AiluaMoonGold.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Key,
-                        contentDescription = null,
-                        tint = AiluaMoonGold,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-                Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Text(
-                        text = "AI 连接",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    )
-                    Text(
-                        text = "OpenAI-compatible API · 密钥加密保存在本机",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            Text("AI 连接", style = visual.text.title, color = visual.palette.onSurface)
+            Spacer(modifier = Modifier.height(6.dp))
+            Text("密钥加密保存在本机", style = visual.text.secondary, color = visual.palette.onSurfaceMuted)
 
             Spacer(modifier = Modifier.height(14.dp))
 
@@ -146,16 +119,10 @@ fun AiConnectionSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(visual.shapes.medium.dp))
                         .background(
-                            if (isActive) AiluaMistBlue.copy(alpha = 0.10f)
-                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        )
-                        .border(
-                            0.8.dp,
-                            if (isActive) AiluaMistBlue.copy(alpha = 0.6f)
-                            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            RoundedCornerShape(12.dp),
+                            if (isActive) visual.palette.accent.copy(alpha = 0.10f)
+                            else visual.surfaces.inset.copy(alpha = 0.4f),
                         )
                         .clickable {
                             editingId = profile.id
@@ -172,35 +139,35 @@ fun AiConnectionSheet(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = profile.name,
-                                style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.5.sp),
+                                style = visual.text.body,
                             )
                             if (isActive) {
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Box(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(5.dp))
-                                        .background(AiluaMistBlue.copy(alpha = 0.18f))
+                                        .clip(RoundedCornerShape(visual.shapes.medium.dp))
+                                        .background(visual.palette.accent.copy(alpha = 0.18f))
                                         .padding(horizontal = 5.dp, vertical = 1.dp),
                                 ) {
                                     Text(
                                         text = "激活",
-                                        fontSize = 9.5.sp,
+                                        style = visual.text.caption,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = AiluaMistBlue,
+                                        color = visual.palette.onSurface,
                                     )
                                 }
                             }
                         }
                         Text(
                             text = "${profile.model} · ${profile.baseUrl}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = visual.text.caption,
+                            color = visual.palette.onSurfaceMuted,
                             maxLines = 1,
                         )
                         Text(
                             text = repository.maskedKeyLabel(profile.id) ?: "未设置 API Key",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            style = visual.text.caption,
+                            color = visual.palette.onSurfaceMuted.copy(alpha = 0.7f),
                         )
                     }
                     if (!isActive) {
@@ -208,7 +175,7 @@ fun AiConnectionSheet(
                             repository.setActiveProfile(profile.id)
                             statusMessage = "已设为激活：${profile.name}"
                         }) {
-                            Text("设为激活", fontSize = 11.sp, color = AiluaMistBlue)
+                            Text("设为激活", style = visual.text.caption, color = visual.palette.onSurface)
                         }
                     }
                     TextButton(onClick = {
@@ -216,7 +183,7 @@ fun AiConnectionSheet(
                         if (editingId == profile.id) resetForm()
                         statusMessage = "已删除：${profile.name}"
                     }) {
-                        Text("删除", fontSize = 11.sp, color = MaterialTheme.colorScheme.error)
+                        Text("删除", style = visual.text.caption, color = MaterialTheme.colorScheme.error)
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
@@ -225,15 +192,15 @@ fun AiConnectionSheet(
             if (profiles.isEmpty()) {
                 Text(
                     text = "还没有连接。填写下面的表单创建第一个 AI 连接。",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = visual.text.secondary,
+                    color = visual.palette.onSurfaceMuted,
                 )
                 Spacer(modifier = Modifier.height(10.dp))
             }
 
-            Text("选择服务商", style = MaterialTheme.typography.labelMedium)
+            Text("选择服务商", style = visual.text.caption)
             ProviderSetup.presets.forEach { preset ->
-                FilterChip(
+                AiluaChip(
                     selected = name == preset.label,
                     onClick = {
                         name = preset.label
@@ -241,7 +208,7 @@ fun AiConnectionSheet(
                         model = preset.model
                         statusMessage = null
                     },
-                    label = { Text(preset.label) },
+                    label = preset.label,
                 )
             }
 
@@ -251,7 +218,7 @@ fun AiConnectionSheet(
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("连接名称") },
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(visual.shapes.medium.dp),
                 colors = fieldColors(),
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -262,7 +229,7 @@ fun AiConnectionSheet(
                 label = { Text("API 地址") },
                 placeholder = { Text("https://api.openai.com/v1") },
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(visual.shapes.medium.dp),
                 colors = fieldColors(),
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -273,7 +240,7 @@ fun AiConnectionSheet(
                 label = { Text("模型") },
                 placeholder = { Text("gpt-4o-mini") },
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(visual.shapes.medium.dp),
                 colors = fieldColors(),
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -287,13 +254,16 @@ fun AiConnectionSheet(
                 },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(visual.shapes.medium.dp),
                 colors = fieldColors(),
             )
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Button(
                     onClick = {
                         if (isTesting) return@Button
@@ -322,9 +292,9 @@ fun AiConnectionSheet(
                         }
                     },
                     enabled = canSave,
-                    shape = RoundedCornerShape(12.dp),
-                ) { Text(if (isTesting) "正在连接…" else "测试连接") }
-                Spacer(modifier = Modifier.width(8.dp))
+                    shape = RoundedCornerShape(visual.shapes.medium.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = visual.palette.accent.copy(alpha = 0.18f), contentColor = visual.palette.onSurface),
+                ) { Text(if (isTesting) "正在连接…" else "测试连接", style = visual.text.secondary) }
                 Button(
                     onClick = {
                         val id = editingId ?: UUID.randomUUID().toString()
@@ -351,14 +321,13 @@ fun AiConnectionSheet(
                         }
                     },
                     enabled = canSave,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AiluaMistBlue),
+                    shape = RoundedCornerShape(visual.shapes.medium.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = visual.palette.accent.copy(alpha = 0.18f), contentColor = visual.palette.onSurface),
                 ) {
-                    Text("保存", color = Color.White, fontSize = 13.sp)
+                    Text("保存", style = visual.text.secondary)
                 }
-                Spacer(modifier = Modifier.width(10.dp))
                 TextButton(onClick = { resetForm(); statusMessage = null }) {
-                    Text("清空表单", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("清空表单", style = visual.text.secondary, color = visual.palette.onSurfaceMuted)
                 }
             }
 
@@ -366,8 +335,8 @@ fun AiConnectionSheet(
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = msg,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AiluaMistBlue,
+                    style = visual.text.caption,
+                    color = visual.palette.onSurface,
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -377,8 +346,8 @@ fun AiConnectionSheet(
 
 @Composable
 private fun fieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-    focusedBorderColor = AiluaMistBlue.copy(alpha = 0.6f),
+    focusedContainerColor = LocalAiluaTheme.current.surfaces.inset.copy(alpha = 0.4f),
+    unfocusedContainerColor = LocalAiluaTheme.current.surfaces.inset.copy(alpha = 0.3f),
+    focusedBorderColor = LocalAiluaTheme.current.palette.accent.copy(alpha = 0.6f),
     unfocusedBorderColor = Color.Transparent,
 )

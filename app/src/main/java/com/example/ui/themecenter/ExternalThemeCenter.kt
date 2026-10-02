@@ -27,8 +27,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.ui.themeengine.AiluaThemeRuntime
+import com.example.ui.themeengine.LocalAiluaTheme
 import com.example.ui.themeengine.ThemeSelection
 import com.example.ui.themeengine.ThemeStore
 import com.example.ui.themeengine.external.ExternalThemeFormat
@@ -50,8 +50,8 @@ import kotlinx.coroutines.withContext
 private val editableApps = listOf(
     "mailbox" to "信箱", "gallery" to "相册", "chat" to "消息", "living" to "生活",
     "moments" to "动态", "contacts" to "联系人", "call" to "通话记录",
-    "memories" to "记忆", "relations" to "关系谱", "diary" to "心声日记",
-    "theater" to "沉浸剧场", "check_phone" to "窥屏", "apps" to "应用"
+    "memories" to "记忆", "relations" to "关系", "diary" to "日记",
+    "theater" to "剧场", "check_phone" to "他的手机", "apps" to "应用库"
 )
 
 @Composable
@@ -76,21 +76,21 @@ internal fun MyThemesSection(runtime: AiluaThemeRuntime) {
         val selectedSource = ThemeStore.selection
         val inUse = selectedSource.wallpaperSourceId == theme.id ||
             selectedSource.iconSourceOverrideId == "theme:" + theme.id
-        val shape = RoundedCornerShape(16.dp)
+        val shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.medium.dp)
         Column(Modifier.fillMaxWidth().padding(bottom = 10.dp).clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            .background(LocalAiluaTheme.current.surfaces.inset)
             .border(1.dp, if (inUse) runtime.palette.accent else Color.Transparent, shape)
             .clickable { selectedId = theme.id }.padding(10.dp)
             .testTag("installed_theme_" + theme.id)) {
-            ImportedThemePreview(theme, runtime, modifier = Modifier.fillMaxWidth().height(145.dp))
+            ImportedThemePreview(theme, runtime, modifier = Modifier.fillMaxWidth().height(210.dp))
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(theme.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    Text(theme.name, fontWeight = FontWeight.SemiBold, style = LocalAiluaTheme.current.text.body)
                     Text(formatTitle(theme.format) + " · " + (theme.author ?: "未知作者"),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, style = LocalAiluaTheme.current.text.caption)
                 }
-                if (inUse) Text("使用中", color = runtime.palette.accent, fontSize = 11.sp)
+                if (inUse) Text("使用中", color = runtime.palette.accent, style = LocalAiluaTheme.current.text.caption)
             }
         }
     }
@@ -105,13 +105,13 @@ private fun ExternalThemeDetail(
     onDelete: (() -> Unit)? = null,
     applyTitle: String = "应用主题"
 ) {
-    Text(theme.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+    Text(theme.name, style = LocalAiluaTheme.current.text.section, fontWeight = FontWeight.Bold)
     Spacer(Modifier.height(4.dp))
     Text("作者：" + (theme.author ?: "未知") + "  ·  格式：" + formatTitle(theme.format),
-        color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+        color = MaterialTheme.colorScheme.onSurfaceVariant, style = LocalAiluaTheme.current.text.secondary)
     theme.description?.takeIf { it.isNotBlank() }?.let {
         Spacer(Modifier.height(4.dp))
-        Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, maxLines = 3)
+        Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, style = LocalAiluaTheme.current.text.secondary, maxLines = 3)
     }
     Spacer(Modifier.height(12.dp))
     ImportedThemePreview(theme, runtime, draftAssets, Modifier.fillMaxWidth().height(205.dp))
@@ -119,7 +119,7 @@ private fun ExternalThemeDetail(
     Text("壁纸 " + theme.wallpapers.size + "  ·  图标 " +
         (theme.icons?.allIcons?.size ?: theme.icons?.mappings?.size ?: 0) +
         "  ·  预览 " + theme.previewAssets.size,
-        color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+        color = MaterialTheme.colorScheme.onSurfaceVariant, style = LocalAiluaTheme.current.text.secondary)
     Spacer(Modifier.height(12.dp))
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Button(onClick = onApply, modifier = Modifier.weight(1f).testTag("external_theme_apply")) {
@@ -161,10 +161,10 @@ internal fun ImportThemeSection(runtime: AiluaThemeRuntime, onInstalled: () -> U
             }
         }
     }
-    Text("导入本地主题", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+    Text("导入本地主题", style = LocalAiluaTheme.current.text.section, fontWeight = FontWeight.SemiBold)
     Spacer(Modifier.height(5.dp))
-    Text("支持 AILUA Theme、MIUI / HyperOS .mtz 和 ColorOS .theme",
-        color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+    Text("支持 .ailuatheme、MIUI / HyperOS .mtz 和 ColorOS .theme",
+        color = MaterialTheme.colorScheme.onSurfaceVariant, style = LocalAiluaTheme.current.text.secondary)
     Spacer(Modifier.height(12.dp))
     OutlinedButton(
         onClick = { launcher.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) },
@@ -176,12 +176,12 @@ internal fun ImportThemeSection(runtime: AiluaThemeRuntime, onInstalled: () -> U
     }
     status?.let {
         Spacer(Modifier.height(9.dp))
-        Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+        Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, style = LocalAiluaTheme.current.text.secondary)
     }
     preview?.let { detected ->
         Spacer(Modifier.height(15.dp))
         Text("检测到主题", color = runtime.palette.accent,
-            fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+            fontWeight = FontWeight.SemiBold, style = LocalAiluaTheme.current.text.secondary)
         Spacer(Modifier.height(7.dp))
         ExternalThemeDetail(detected.theme, runtime, detected.assets,
             onApply = {
@@ -219,7 +219,7 @@ internal fun IconPacksSection(runtime: AiluaThemeRuntime) {
     val currentPack = packs.firstOrNull { it.packageName == activePackage }
 
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("已安装图标包", style = MaterialTheme.typography.titleMedium,
+        Text("已安装图标包", style = LocalAiluaTheme.current.text.section,
             fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
         TextButton(onClick = { refresh++ }) { Text("刷新") }
     }
@@ -228,9 +228,9 @@ internal fun IconPacksSection(runtime: AiluaThemeRuntime) {
     }
     packs.forEach { pack ->
         val active = pack.packageName == activePackage
-        val shape = RoundedCornerShape(14.dp)
+        val shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.medium.dp)
         Row(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            .background(LocalAiluaTheme.current.surfaces.inset)
             .border(1.dp, if (active) runtime.palette.accent else Color.Transparent, shape)
             .clickable {
                 ThemeStore.update(ThemeStore.selection.copy(
@@ -240,9 +240,9 @@ internal fun IconPacksSection(runtime: AiluaThemeRuntime) {
             }.padding(12.dp).testTag("icon_pack_" + pack.packageName),
             verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(pack.label, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                Text(pack.label, fontWeight = FontWeight.SemiBold, style = LocalAiluaTheme.current.text.secondary)
                 Text(pack.packageName, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, style = LocalAiluaTheme.current.text.caption)
             }
             if (active) Icon(Icons.Default.Check, "已应用",
                 tint = runtime.palette.accent, modifier = Modifier.size(18.dp))
@@ -251,9 +251,9 @@ internal fun IconPacksSection(runtime: AiluaThemeRuntime) {
     if (currentPack != null) {
         Spacer(Modifier.height(10.dp))
         Text("自定义图标 · " + currentPack.label,
-            style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            style = LocalAiluaTheme.current.text.section, fontWeight = FontWeight.SemiBold)
         Text("点选 AILUA 应用，再从图标包中选择图标。",
-            color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+            color = MaterialTheme.colorScheme.onSurfaceVariant, style = LocalAiluaTheme.current.text.caption)
         Spacer(Modifier.height(8.dp))
         if (editingKey != null) {
             val appKey = editingKey!!
@@ -267,7 +267,7 @@ internal fun IconPacksSection(runtime: AiluaThemeRuntime) {
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = { editingKey = null }) { Text("‹ 应用列表") }
-                Text(appName, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text(appName, style = LocalAiluaTheme.current.text.secondary, fontWeight = FontWeight.SemiBold)
             }
             if (allIcons.isEmpty()) {
                 EmptyThemeMessage("此图标包没有提供图标列表", "自动映射仍可使用。")
@@ -288,7 +288,7 @@ internal fun IconPacksSection(runtime: AiluaThemeRuntime) {
                         }.padding(3.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             AndroidPackIcon(resolver, currentPack.packageName, icon.drawableName,
                                 runtime, Modifier.size(43.dp))
-                            Text(icon.displayName ?: icon.drawableName, fontSize = 8.sp,
+                            Text(icon.displayName ?: icon.drawableName, style = LocalAiluaTheme.current.text.caption,
                                 maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
@@ -301,12 +301,12 @@ internal fun IconPacksSection(runtime: AiluaThemeRuntime) {
                     verticalAlignment = Alignment.CenterVertically) {
                     ResolvedPackIcon(context, key, selection, runtime, Modifier.size(34.dp))
                     Spacer(Modifier.width(10.dp))
-                    Text(name, modifier = Modifier.weight(1f), fontSize = 12.sp)
+                    Text(name, modifier = Modifier.weight(1f), style = LocalAiluaTheme.current.text.secondary)
                     if (selection.manualIconOverrides.containsKey(key)) {
                         TextButton(onClick = {
                             ThemeStore.update(ThemeStore.selection.copy(manualIconOverrides =
                                 ThemeStore.selection.manualIconOverrides - key))
-                        }) { Text("恢复自动", fontSize = 10.sp) }
+                        }) { Text("恢复自动", style = LocalAiluaTheme.current.text.caption) }
                     }
                     Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -348,22 +348,22 @@ private fun AndroidPackIcon(
     if (bitmap != null) {
         androidx.compose.foundation.Image(bitmap!!.asImageBitmap(), drawableName, modifier)
     } else {
-        Box(modifier.clip(RoundedCornerShape(8.dp))
+        Box(modifier.clip(RoundedCornerShape(LocalAiluaTheme.current.shapes.small.dp))
             .background(runtime.palette.surfaceVariant))
     }
 }
 
 @Composable
 private fun EmptyThemeMessage(title: String, message: String) {
-    Text(title, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+    Text(title, fontWeight = FontWeight.SemiBold, style = LocalAiluaTheme.current.text.secondary)
     Spacer(Modifier.height(4.dp))
-    Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+    Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant, style = LocalAiluaTheme.current.text.caption)
 }
 
 private fun formatTitle(format: ExternalThemeFormat): String = when (format) {
-    ExternalThemeFormat.AILUA -> "AILUA Theme"
+    ExternalThemeFormat.AILUA -> "AILUA 主题"
     ExternalThemeFormat.MIUI_MTZ -> "MIUI / HyperOS MTZ"
-    ExternalThemeFormat.COLOROS_THEME -> "ColorOS Theme"
+    ExternalThemeFormat.COLOROS_THEME -> "ColorOS 主题"
     ExternalThemeFormat.ANDROID_ICON_PACK -> "Android 图标包"
 }
 
@@ -397,14 +397,14 @@ internal fun ExternalWallpaperChoices(runtime: AiluaThemeRuntime) {
     val themes = ExternalThemeRepository.themes.filter { it.wallpapers.isNotEmpty() }
     if (themes.isEmpty()) return
     Spacer(Modifier.height(10.dp))
-    Text("已导入壁纸", style = MaterialTheme.typography.titleSmall,
+    Text("已导入壁纸", style = LocalAiluaTheme.current.text.section,
         fontWeight = FontWeight.SemiBold)
     Spacer(Modifier.height(7.dp))
     themes.forEach { theme ->
         val selected = ThemeStore.selection.wallpaperSourceId == theme.id
-        val shape = RoundedCornerShape(14.dp)
+        val shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.medium.dp)
         Row(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            .background(LocalAiluaTheme.current.surfaces.inset)
             .border(1.dp, if (selected) runtime.palette.accent else Color.Transparent, shape)
             .clickable {
                 ThemeStore.update(ThemeStore.selection.copy(wallpaperSourceId = theme.id))
@@ -412,11 +412,11 @@ internal fun ExternalWallpaperChoices(runtime: AiluaThemeRuntime) {
             verticalAlignment = Alignment.CenterVertically) {
             ExternalAssetImage(theme.wallpapers.first(), null, 120,
                 Modifier.size(width = 48.dp, height = 42.dp)
-                    .clip(RoundedCornerShape(8.dp)))
+                    .clip(RoundedCornerShape(LocalAiluaTheme.current.shapes.small.dp)))
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
-                Text(theme.name, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                Text(formatTitle(theme.format), fontSize = 10.sp,
+                Text(theme.name, fontWeight = FontWeight.SemiBold, style = LocalAiluaTheme.current.text.secondary)
+                Text(formatTitle(theme.format), style = LocalAiluaTheme.current.text.caption,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (selected) Icon(Icons.Default.Check, "已选",
@@ -430,14 +430,14 @@ internal fun ExternalIconChoices(runtime: AiluaThemeRuntime) {
     val themes = ExternalThemeRepository.themes.filter { it.icons != null }
     if (themes.isEmpty()) return
     Spacer(Modifier.height(10.dp))
-    Text("已导入图标", style = MaterialTheme.typography.titleSmall,
+    Text("已导入图标", style = LocalAiluaTheme.current.text.section,
         fontWeight = FontWeight.SemiBold)
     Spacer(Modifier.height(7.dp))
     themes.forEach { theme ->
         val selected = ThemeStore.selection.iconSourceOverrideId == "theme:" + theme.id
-        val shape = RoundedCornerShape(14.dp)
+        val shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.medium.dp)
         Row(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            .background(LocalAiluaTheme.current.surfaces.inset)
             .border(1.dp, if (selected) runtime.palette.accent else Color.Transparent, shape)
             .clickable {
                 ThemeStore.update(ThemeStore.selection.copy(
@@ -449,14 +449,14 @@ internal fun ExternalIconChoices(runtime: AiluaThemeRuntime) {
                 ?: theme.icons?.mappings?.values?.firstOrNull()
             if (sample != null) {
                 ExternalAssetImage(sample, null, 96,
-                    Modifier.size(35.dp).clip(RoundedCornerShape(8.dp)))
+                    Modifier.size(35.dp).clip(RoundedCornerShape(LocalAiluaTheme.current.shapes.small.dp)))
             } else {
                 ThemePreviewIcon(runtime, "chat", 35.dp)
             }
             Spacer(Modifier.width(11.dp))
             Column(Modifier.weight(1f)) {
-                Text(theme.name, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                Text(formatTitle(theme.format), fontSize = 10.sp,
+                Text(theme.name, fontWeight = FontWeight.SemiBold, style = LocalAiluaTheme.current.text.secondary)
+                Text(formatTitle(theme.format), style = LocalAiluaTheme.current.text.caption,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (selected) Icon(Icons.Default.Check, "已选",

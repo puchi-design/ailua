@@ -34,11 +34,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.desktop.DesktopFolder
@@ -76,12 +73,11 @@ fun FolderOverlay(
     fun saveTitle() { onRename(title.ifBlank { "文件夹" }) }
     Dialog(onDismissRequest = { saveTitle(); onDismiss() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         HideDialogStatusBar()
-        val shape = RoundedCornerShape(theme.widgets.cornerRadiusDp.dp)
+        val shape = RoundedCornerShape(theme.shapes.large.dp)
         Column(
             Modifier.padding(24.dp).widthIn(max = 390.dp).fillMaxWidth()
                 .clip(shape)
-                .background(theme.widgets.backgroundColor.copy(alpha =
-                    theme.widgets.surfaceAlpha.coerceAtLeast(0.88f)))
+                .background(theme.surfaces.raised)
                 .border(theme.widgets.border.widthDp.dp,
                     theme.widgets.border.color, shape)
                 .padding(18.dp).testTag("folder_overlay"),
@@ -90,8 +86,7 @@ fun FolderOverlay(
                 value = title,
                 onValueChange = { title = it },
                 singleLine = true,
-                textStyle = TextStyle(color = theme.palette.onSurface,
-                    fontSize = 20.sp, fontWeight = FontWeight.SemiBold),
+                textStyle = theme.text.title.copy(color = theme.palette.onSurface),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = {
                     saveTitle()
@@ -124,17 +119,17 @@ fun FolderOverlay(
                                 if (index >= 0) onReorder(item.id, index)
                             }).padding(horizontal = 14.dp, vertical = 3.dp)
                                 .testTag("folder_reorder_${item.id}")) {
-                                Text("≡", color = theme.palette.onSurfaceMuted, fontSize = 16.sp)
+                                Text("≡", color = theme.palette.onSurfaceMuted, style = theme.text.section)
                             }
                             DropdownMenu(
                                 expanded = menuFor == item.id,
                                 onDismissRequest = { menuFor = null },
                             ) {
-                                DropdownMenuItem(text = { Text("打开") }, onClick = {
+                                DropdownMenuItem(text = { Text("打开", style = theme.text.body) }, onClick = {
                                     menuFor = null
                                     onOpenApp(item.sourceId)
                                 })
-                                DropdownMenuItem(text = { Text("移到桌面") }, onClick = {
+                                DropdownMenuItem(text = { Text("移到桌面", style = theme.text.body) }, onClick = {
                                     menuFor = null
                                     onMoveOut(item.id)
                                 })
@@ -144,7 +139,7 @@ fun FolderOverlay(
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                Button(onClick = { saveTitle(); onDismiss() }) { Text("完成") }
+                Button(onClick = { saveTitle(); onDismiss() }) { Text("完成", style = theme.text.body) }
             }
         }
     }

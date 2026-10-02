@@ -29,7 +29,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.data.desktop.DesktopItem
 import com.example.data.desktop.DesktopItemType
 import com.example.data.desktop.DesktopPage
@@ -47,21 +46,21 @@ fun PageThumbnail(
     modifier: Modifier = Modifier,
 ) {
     val theme = LocalAiluaTheme.current
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(theme.shapes.medium.dp)
     Column(modifier.width(130.dp).clip(shape)
-        .background(theme.palette.surfaceVariant.copy(alpha = 0.55f))
+        .background(theme.surfaces.inset)
         .border(if (isCurrent || page.isHome) 2.dp else 1.dp,
             if (isCurrent || page.isHome) theme.palette.accent else theme.palette.border, shape)
         .padding(8.dp).testTag("page_thumbnail_${page.id}")) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("第 ${pageNumber} 页", color = theme.palette.onSurface,
-                fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                style = theme.text.secondary, fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f))
-            if (isCurrent) Text("当前", color = theme.palette.accent, fontSize = 10.sp)
+            if (isCurrent) Text("当前", color = theme.palette.accent, style = theme.text.caption)
         }
         Canvas(Modifier.fillMaxWidth().height(142.dp).padding(top = 7.dp)
-            .clip(RoundedCornerShape(9.dp)).testTag("page_preview_${page.id}")) {
-            drawRoundRect(theme.palette.backgroundSecondary, cornerRadius = CornerRadius(9.dp.toPx()))
+            .clip(RoundedCornerShape(theme.shapes.small.dp)).testTag("page_preview_${page.id}")) {
+            drawRoundRect(theme.surfaces.screen, cornerRadius = CornerRadius(theme.shapes.small.dp.toPx()))
             val cellW = size.width / 4f
             val cellH = size.height / 6f
             for (column in 1..3) {
