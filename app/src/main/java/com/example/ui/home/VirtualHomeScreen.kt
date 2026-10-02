@@ -77,6 +77,9 @@ import com.example.data.desktop.DesktopPlacement
 import com.example.data.desktop.WidgetPlacement
 import com.example.data.desktop.CellRect
 import com.example.ui.design.launcher.WorkspaceAppLabel
+import com.example.ui.launcher.LauncherAppCatalog
+import com.example.navigation.AppRouter
+import com.example.navigation.AiluaDestinations
 import com.example.ui.design.launcher.WorkspaceViewModel
 import com.example.ui.design.launcher.DragLayer
 import com.example.ui.design.launcher.layout.DragDirection
@@ -202,25 +205,15 @@ fun VirtualHomeScreen(
     var edgeSwitching by remember { mutableStateOf(false) }
     var edgeJob by remember { mutableStateOf<Job?>(null) }
 
-    // Desktop grid only holds apps that are not already pinned in the dock
-    val defaultHomeApps = listOf(
-        HomeAppDef("mailbox", "信箱", "mailbox", if (unreadLettersCount > 0) "$unreadLettersCount" else null),
-        HomeAppDef("gallery", "相册", "gallery", null),
-        HomeAppDef("check_phone", "窥屏", "check_phone", null),
-        HomeAppDef("memories", "记忆", "memories", null),
-        HomeAppDef("relations", "关系谱", "relations", null),
-        HomeAppDef("diary", "心声日记", "diary", null),
-        HomeAppDef("theater", "沉浸剧场", "theater", null),
-        HomeAppDef("call_history", "通话记录", "call", null)
-    )
-    val labels = defaultHomeApps.associate { it.id to WorkspaceAppLabel(it.name, it.iconKey, it.badge) } +
-        mapOf(
-            "messages" to WorkspaceAppLabel("消息", "chat", null),
-            "moments" to WorkspaceAppLabel("动态", "moments", null),
-            "living" to WorkspaceAppLabel("生活", "living", null),
-            "contacts" to WorkspaceAppLabel("联系人", "contacts", null),
-            "apps" to WorkspaceAppLabel("应用", "apps", null),
-        )
+    val labels = (LauncherAppCatalog.all().map { it.id } + workspace.items.map { it.sourceId })
+        .distinct().mapNotNull { id ->
+            LauncherAppCatalog.get(id)?.let { entry ->
+                id to WorkspaceAppLabel(
+                    LauncherAppCatalog.label(id), entry.iconKey,
+                    if (id == "mailbox" && unreadLettersCount > 0) "$unreadLettersCount" else null,
+                )
+            }
+        }.toMap()
     val latestWorkspace by rememberUpdatedState(workspace)
     val latestPages by rememberUpdatedState(workspacePages)
     val latestDrag by rememberUpdatedState(dragState)
@@ -1083,23 +1076,16 @@ private fun dispatchAppAction(
     preferredPageId: String?,
     onAppClick: (String) -> Unit
 ) {
-    when (appId) {
-        "messages", "chat" -> onNavigateToMessages()
-        "moments" -> onNavigateToMoments()
-        "living" -> onNavigateToLiving()
-        "contacts" -> onNavigateToContacts()
-        "check_phone" -> onNavigateToCheckPhone()
-        "diary" -> onNavigateToDiary()
-        "memories" -> onNavigateToMemories()
-        "relations" -> onNavigateToRelations()
-        "apps" -> onNavigateToApps(preferredPageId)
+    when (AppRouter.destinationOrNull(appId)) {
+        AiluaDestinations.MESSAGES -> onNavigateToMessages()
+        AiluaDestinations.MOMENTS -> onNavigateToMoments()
+        AiluaDestinations.LIVING -> onNavigateToLiving()
+        AiluaDestinations.CONTACTS -> onNavigateToContacts()
+        AiluaDestinations.CHECK_PHONE -> onNavigateToCheckPhone()
+        AiluaDestinations.DIARY -> onNavigateToDiary()
+        AiluaDestinations.MEMORIES -> onNavigateToMemories()
+        AiluaDestinations.RELATIONS -> onNavigateToRelations()
+        AiluaDestinations.APPS -> onNavigateToApps(preferredPageId)
         else -> onAppClick(appId)
     }
 }
-
-private data class HomeAppDef(
-    val id: String,
-    val name: String,
-    val iconKey: String,
-    val badge: String?
-)

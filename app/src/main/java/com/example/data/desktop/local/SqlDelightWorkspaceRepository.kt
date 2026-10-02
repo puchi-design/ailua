@@ -15,6 +15,7 @@ import com.example.data.desktop.WorkspaceSeed
 import com.example.data.desktop.WorkspaceSnapshot
 import com.example.data.desktop.WidgetPlacement
 import com.example.ui.design.launcher.layout.GridOccupancy
+import com.example.ui.launcher.LauncherAppCatalog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -179,6 +180,50 @@ class SqlDelightWorkspaceRepository(private val database: ChatDatabase) : Worksp
             }
         }
 
+    override suspend fun addAppToWorkspace(
+        sourceId: String,
+        preferredPageId: String?,
+    ): WorkspaceSnapshot? = withContext(Dispatchers.IO) {
+        val canonicalId = LauncherAppCatalog.canonicalId(sourceId)
+        if (!LauncherAppCatalog.canAddToHome(canonicalId)) return@withContext null
+        database.transactionWithResult {
+            val before = snapshot()
+            if (before.items.any { it.type == DesktopItemType.APP &&
+                    LauncherAppCatalog.canonicalId(it.sourceId) == canonicalId }) {
+                return@transactionWithResult null
+            }
+            val preferred = before.pages.firstOrNull { it.id == preferredPageId }
+                ?: before.pages.firstOrNull { it.isHome }
+            val candidates = listOfNotNull(preferred) + before.pages
+                .sortedBy { it.rank }.filterNot { it.id == preferred?.id }
+            val vacancy = candidates.firstNotNullOfOrNull { page ->
+                WidgetPlacement.firstVacant(before.itemsFor(page.id), 1, 1)?.let { page to it }
+            }
+            val newPage = if (vacancy == null) DesktopPage(
+                UUID.randomUUID().toString(), (before.pages.maxOfOrNull { it.rank } ?: -1) + 1, false
+            ) else null
+            val (targetPage, cell) = vacancy ?: (requireNotNull(newPage) to
+                requireNotNull(WidgetPlacement.firstVacant(emptyList(), 1, 1)))
+            val app = DesktopItem(
+                id = "app_${canonicalId}_${UUID.randomUUID()}",
+                type = DesktopItemType.APP,
+                sourceId = canonicalId,
+                container = DesktopContainer.WORKSPACE,
+                pageId = targetPage.id,
+                cellX = cell.x,
+                cellY = cell.y,
+                rank = cell.y * GridSpec().columns + cell.x,
+            )
+            validate(before.copy(
+                pages = before.pages + listOfNotNull(newPage),
+                items = before.items + app,
+            ))
+            newPage?.let { pages.insertPage(it.id, it.rank.toLong(), 0L) }
+            insert(app)
+            snapshot()
+        }
+    }
+
     override suspend fun deleteWidget(itemId: String): WorkspaceSnapshot = withContext(Dispatchers.IO) {
         database.transactionWithResult {
             val before = snapshot()
@@ -337,7 +382,8 @@ class SqlDelightWorkspaceRepository(private val database: ChatDatabase) : Worksp
         require(state.pages.count { it.isHome } == 1)
         require(state.pages.map { it.id }.distinct().size == state.pages.size)
         require(state.items.map { it.id }.distinct().size == state.items.size)
-        require(state.items.filter { it.type == DesktopItemType.APP }.map { it.sourceId }.distinct().size ==
+        require(state.items.filter { it.type == DesktopItemType.APP }
+            .map { LauncherAppCatalog.canonicalId(it.sourceId) }.distinct().size ==
             state.items.count { it.type == DesktopItemType.APP }) { "Duplicate app" }
         val pageIds = state.pages.map { it.id }.toSet()
         require(state.items.all { item ->

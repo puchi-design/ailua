@@ -12,6 +12,7 @@ interface WorkspaceRepository {
     suspend fun commitLayout(placements: Map<String, DesktopPlacement>)
     suspend fun applyDrop(commit: WorkspaceCommit): WorkspaceSnapshot
     suspend fun addWidget(sourceId: String, pageId: String, spanX: Int, spanY: Int): WorkspaceSnapshot?
+    suspend fun addAppToWorkspace(sourceId: String, preferredPageId: String? = null): WorkspaceSnapshot?
     suspend fun deleteWidget(itemId: String): WorkspaceSnapshot
     suspend fun setHomePage(pageId: String)
     suspend fun createFolder(

@@ -32,9 +32,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,52 +45,68 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.mock.MockData
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.data.desktop.DesktopItemType
+import com.example.data.desktop.WorkspaceGraph
+import com.example.data.engine.WorldHeartbeatEngine
 import com.example.data.model.AiluaApp
 import com.example.ui.components.AppIconItem
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
-import com.example.ui.theme.AiluaMistBlue
+import com.example.ui.design.launcher.WorkspaceViewModel
+import com.example.ui.launcher.LauncherAppCatalog
+import com.example.ui.themeengine.AiluaThemeProvider
+import com.example.ui.themeengine.ThemeResolver
+import com.example.ui.themeengine.ThemeStore
+import com.example.ui.themeengine.external.ExternalThemeRepository
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun AppLibraryScreen(
     isDarkTheme: Boolean = false,
     initialSearchQuery: String = "",
+    preferredPageId: String? = null,
     onToggleTheme: () -> Unit = {},
     onBackToHome: () -> Unit = {},
-    onNavigateToMessages: () -> Unit = {},
-    onNavigateToContacts: () -> Unit = {},
-    onNavigateToMoments: () -> Unit = {},
-    onNavigateToLiving: () -> Unit = {},
-    onNavigateToDiary: () -> Unit = {},
-    onNavigateToCheckPhone: () -> Unit = {},
-    onNavigateToRelations: () -> Unit = {},
-    onNavigateToMemories: () -> Unit = {},
-    onNavigateToCharacterCreator: () -> Unit = {},
-    onNavigateToWorldBook: () -> Unit = {},
-    onNavigateToWorldMap: () -> Unit = {},
-    onNavigateToTheater: () -> Unit = {},
-    onNavigateToMailbox: () -> Unit = {},
-    onNavigateToCall: () -> Unit = {},
-    onNavigateToGallery: () -> Unit = {},
-    onNavigateToReality: () -> Unit = {},
-    onNavigateToSettings: () -> Unit = {},
+    onOpenApp: (String) -> Unit = {},
 ) {
+    val context = LocalContext.current
+    remember(context) { ThemeStore.initialize(context); ExternalThemeRepository.initialize(context); true }
+    val worldClock by WorldHeartbeatEngine.worldClock.collectAsStateWithLifecycle()
+    val themeRuntime = ThemeResolver.resolve(
+        ThemeStore.selection, isDarkTheme, worldClock.dayPhase, worldClock.weather
+    )
+    val workspaceViewModel: WorkspaceViewModel = viewModel(factory = WorkspaceViewModel.factory(context))
+    val workspace by workspaceViewModel.workspace.collectAsStateWithLifecycle()
+    val placedApps = workspace.items.asSequence()
+        .filter { it.type == DesktopItemType.APP }
+        .map { LauncherAppCatalog.canonicalId(it.sourceId) }
+        .toSet()
+    val scope = rememberCoroutineScope()
+    val snackbarHost = remember { SnackbarHostState() }
     var searchQuery by remember { mutableStateOf(initialSearchQuery) }
     var selectedCategory by remember { mutableStateOf(APP_LIBRARY_ALL) }
     var detailsApp by remember { mutableStateOf<AiluaApp?>(null) }
 
-    val categories = remember { appLibraryCategories(MockData.appLibraryList) }
+    val apps = LauncherAppCatalog.drawerApps()
+    val categories = remember { appLibraryCategories(apps) }
     val filteredApps = remember(searchQuery, selectedCategory) {
-        filterAppLibrary(MockData.appLibraryList, searchQuery, selectedCategory)
+        filterAppLibrary(apps, searchQuery, selectedCategory)
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    AiluaThemeProvider(themeRuntime) {
+    Box(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize().background(themeRuntime.palette.backgroundPrimary).testTag("app_library_screen")) {
         VirtualPhoneStatusBar(
             isDarkTheme = isDarkTheme,
             onToggleTheme = onToggleTheme
@@ -155,7 +174,7 @@ fun AppLibraryScreen(
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surface,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    focusedBorderColor = AiluaMistBlue.copy(alpha = 0.7f),
+                    focusedBorderColor = themeRuntime.palette.accent.copy(alpha = 0.7f),
                     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
                 ),
                 singleLine = true
@@ -174,12 +193,12 @@ fun AppLibraryScreen(
                     modifier = Modifier
                         .clip(RoundedCornerShape(14.dp))
                         .background(
-                            if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                            if (isSelected) themeRuntime.palette.accent.copy(alpha = 0.18f)
                             else MaterialTheme.colorScheme.surface
                         )
                         .border(
                             1.dp,
-                            if (isSelected) AiluaMistBlue.copy(alpha = 0.6f)
+                            if (isSelected) themeRuntime.palette.accent.copy(alpha = 0.6f)
                             else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
                             RoundedCornerShape(14.dp)
                         )
@@ -192,7 +211,7 @@ fun AppLibraryScreen(
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                             fontSize = 11.5.sp
                         ),
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                        color = if (isSelected) themeRuntime.palette.accent
                         else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -200,10 +219,10 @@ fun AppLibraryScreen(
         }
 
         Spacer(modifier = Modifier.height(10.dp))
-        TextButton(onClick = onNavigateToReality, modifier = Modifier.padding(horizontal = 16.dp).testTag("reality_bridge_entry")) {
+        TextButton(onClick = { onOpenApp("reality") }, modifier = Modifier.padding(horizontal = 16.dp).testTag("reality_bridge_entry")) {
             Text("◉ 现实感知 · Reality Bridge")
         }
-        TextButton(onClick = onNavigateToSettings, modifier = Modifier.padding(horizontal = 16.dp).testTag("settings_entry")) {
+        TextButton(onClick = { onOpenApp("settings") }, modifier = Modifier.padding(horizontal = 16.dp).testTag("settings_entry")) {
             Text("⚙ 设置 · Settings")
         }
 
@@ -228,23 +247,24 @@ fun AppLibraryScreen(
                     AppLibraryGridCell(
                         app = app,
                         onOpen = {
-                            when (app.id) {
-                                "chat", "messages" -> onNavigateToMessages()
-                                "contacts" -> onNavigateToContacts()
-                                "moments" -> onNavigateToMoments()
-                                "living" -> onNavigateToLiving()
-                                "diary" -> onNavigateToDiary()
-                                "check_phone" -> onNavigateToCheckPhone()
-                                "relations" -> onNavigateToRelations()
-                                "memories" -> onNavigateToMemories()
-                                "character_creation" -> onNavigateToCharacterCreator()
-                                "lore_books" -> onNavigateToWorldBook()
-                                "world_map" -> onNavigateToWorldMap()
-                                "theater" -> onNavigateToTheater()
-                                "mailbox" -> onNavigateToMailbox()
-                                "call", "companion_call" -> onNavigateToCall()
-                                "gallery" -> onNavigateToGallery()
-                                else -> detailsApp = app
+                            if (app.route != null) onOpenApp(app.id)
+                            else detailsApp = app
+                        },
+                        alreadyOnHome = LauncherAppCatalog.canonicalId(app.id) in placedApps,
+                        canAddToHome = LauncherAppCatalog.canAddToHome(app.id),
+                        onAddToHome = {
+                            scope.launch {
+                                val added = try {
+                                    withContext(Dispatchers.IO) {
+                                        WorkspaceGraph.init(context)
+                                        WorkspaceGraph.repository.addAppToWorkspace(app.id, preferredPageId)
+                                    } != null
+                                } catch (e: CancellationException) {
+                                    throw e
+                                } catch (_: Exception) {
+                                    false
+                                }
+                                snackbarHost.showSnackbar(if (added) "已添加到桌面" else "暂时无法添加到桌面")
                             }
                         },
                         onOpenDetails = { detailsApp = app }
@@ -258,6 +278,8 @@ fun AppLibraryScreen(
             onBack = onBackToHome,
             onGoHome = onBackToHome
         )
+    }
+    SnackbarHost(hostState = snackbarHost, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 48.dp))
     }
 
     detailsApp?.let { app ->
@@ -306,17 +328,21 @@ fun AppLibraryScreen(
             }
         )
     }
+    }
 }
 
 @Composable
 private fun AppLibraryGridCell(
     app: AiluaApp,
     onOpen: () -> Unit,
+    alreadyOnHome: Boolean,
+    canAddToHome: Boolean,
+    onAddToHome: () -> Unit,
     onOpenDetails: () -> Unit
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     Box(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().testTag("app_library_item_${app.id}"),
         contentAlignment = Alignment.Center
     ) {
         AppIconItem(
@@ -334,6 +360,15 @@ private fun AppLibraryGridCell(
                 onClick = {
                     menuOpen = false
                     onOpen()
+                }
+            )
+            DropdownMenuItem(
+                text = { Text(if (alreadyOnHome) "已在桌面" else "添加到桌面") },
+                modifier = Modifier.testTag("app_library_add_${app.id}"),
+                enabled = canAddToHome && !alreadyOnHome,
+                onClick = {
+                    menuOpen = false
+                    onAddToHome()
                 }
             )
             DropdownMenuItem(

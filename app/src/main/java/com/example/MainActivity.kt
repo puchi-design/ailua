@@ -248,14 +248,22 @@ fun AiluaAppRoot() {
                         onNavigateToMoments = { navController.navigate(AiluaDestinations.MOMENTS) },
                         onNavigateToLiving = { navController.navigate(AiluaDestinations.LIVING) },
                         onNavigateToMemories = { navController.navigate(AiluaDestinations.MEMORIES) },
-                        onNavigateToApps = { navController.navigate(AiluaDestinations.APPS) },
+                        onNavigateToApps = { preferredPageId ->
+                            val route = preferredPageId?.let {
+                                "${AiluaDestinations.APPS}?preferredPageId=${android.net.Uri.encode(it)}"
+                            } ?: AiluaDestinations.APPS
+                            navController.navigate(route)
+                        },
                         onOpenProfile = { navController.navigate(AiluaDestinations.profileRoute(selectedCharacterId)) },
                         onNavigateToMailbox = { navController.navigate(AiluaDestinations.MAILBOX) },
                         onNavigateToCall = { navController.navigate(AiluaDestinations.callRoute(selectedCharacterId)) },
                         onNavigateToCallHistory = { navController.navigate(AiluaDestinations.CALL_HISTORY) },
                         onNavigateToGallery = { navController.navigate(AiluaDestinations.GALLERY) },
                         onAppClick = { appId ->
-                            navController.navigate(AppRouter.resolve(appId))
+                            navController.navigate(
+                                AppRouter.launchRouteOrNull(appId, selectedCharacterId)
+                                    ?: AppRouter.resolve(appId)
+                            )
                         }
                     )
                 }
@@ -386,28 +394,24 @@ fun AiluaAppRoot() {
                 }
 
                 // Screen 11: App Library Screen
-                composable(AiluaDestinations.APPS) {
+                composable(
+                    "${AiluaDestinations.APPS}?preferredPageId={preferredPageId}",
+                    arguments = listOf(navArgument("preferredPageId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    })
+                ) { backStackEntry ->
                     AppLibraryScreen(
                         isDarkTheme = isDarkTheme,
+                        preferredPageId = backStackEntry.arguments?.getString("preferredPageId"),
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBackToHome = { navController.popBackStack() },
-                        onNavigateToMessages = { navController.navigate(AiluaDestinations.MESSAGES) },
-                        onNavigateToContacts = { navController.navigate(AiluaDestinations.CONTACTS) },
-                        onNavigateToMoments = { navController.navigate(AiluaDestinations.MOMENTS) },
-                        onNavigateToLiving = { navController.navigate(AiluaDestinations.LIVING) },
-                        onNavigateToDiary = { navController.navigate(AiluaDestinations.DIARY) },
-                        onNavigateToCheckPhone = { navController.navigate(AiluaDestinations.CHECK_PHONE) },
-                        onNavigateToRelations = { navController.navigate(AiluaDestinations.RELATIONS) },
-                        onNavigateToMemories = { navController.navigate(AiluaDestinations.MEMORIES) },
-                        onNavigateToCharacterCreator = { navController.navigate(AiluaDestinations.CHARACTER_CREATOR) },
-                        onNavigateToWorldBook = { navController.navigate(AiluaDestinations.WORLD_BOOK) },
-                        onNavigateToWorldMap = { navController.navigate(AiluaDestinations.WORLD_MAP) },
-                        onNavigateToTheater = { navController.navigate(AiluaDestinations.THEATER) },
-                        onNavigateToMailbox = { navController.navigate(AiluaDestinations.MAILBOX) },
-                        onNavigateToCall = { navController.navigate(AiluaDestinations.callRoute(selectedCharacterId)) },
-                        onNavigateToGallery = { navController.navigate(AiluaDestinations.GALLERY) },
-                        onNavigateToReality = { navController.navigate(AiluaDestinations.REALITY) },
-                        onNavigateToSettings = { navController.navigate(AiluaDestinations.SETTINGS) }
+                        onOpenApp = { appId ->
+                            AppRouter.launchRouteOrNull(appId, selectedCharacterId)?.let { route ->
+                                navController.navigate(route)
+                            }
+                        }
                     )
                 }
                 composable(AiluaDestinations.REALITY) {

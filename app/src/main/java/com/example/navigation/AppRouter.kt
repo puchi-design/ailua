@@ -39,9 +39,8 @@ object AppRouter {
         "theater" to AiluaDestinations.THEATER,
         "mailbox" to AiluaDestinations.MAILBOX,
         "call_history" to AiluaDestinations.CALL_HISTORY,
-        // AiluaApp "companion_call" declares route = call_history; the app library
-        // intercepts "call"/"companion_call" itself to open an active call, so this
-        // mapping only applies to Home grid / widget dispatch
+        // The library declares call_history for this app. Launching the library
+        // entry itself opens a companion call through launchRouteOrNull below.
         "call" to AiluaDestinations.CALL_HISTORY,
         "companion_call" to AiluaDestinations.CALL_HISTORY,
         "gallery" to AiluaDestinations.GALLERY,
@@ -50,6 +49,11 @@ object AppRouter {
     )
 
     fun destinationOrNull(appId: String): String? = destinationByAppId[appId]
+
+    /** Launch behavior shared by drawer and folder entries. */
+    fun launchRouteOrNull(appId: String, activeCharacterId: String): String? =
+        if (appId == "companion_call") AiluaDestinations.callRoute(activeCharacterId)
+        else destinationOrNull(appId)
 
     fun resolve(appId: String): String =
         destinationByAppId[appId] ?: AiluaDestinations.APPS
