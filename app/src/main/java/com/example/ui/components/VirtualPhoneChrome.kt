@@ -1,6 +1,15 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
+import com.example.ui.systemui.LocalVirtualSystemUiController
+import com.example.ui.systemui.LocalUnseenNotificationCount
+import com.example.ui.systemui.LocalStatusBarActivityContent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -38,7 +47,7 @@ import com.example.ui.theme.AiluaMoonGold
 import com.example.ui.theme.AiluaMutedLavender
 import com.example.ui.themeengine.LocalAiluaTheme
 
-/** Virtual phone chrome follows the same runtime as the desktop. */
+/** Virtual phone chrome follows the global theme and owns the two pull-down regions. */
 @Composable
 fun VirtualPhoneStatusBar(
     modifier: Modifier = Modifier,
@@ -49,107 +58,60 @@ fun VirtualPhoneStatusBar(
     val runtime = LocalAiluaTheme.current
     val spec = runtime.statusBar
     val textColor = spec.foregroundColor
-    val subtleColor = textColor.copy(alpha = 0.66f)
-
+    val subtleColor = textColor.copy(alpha = 0.72f)
+    val controller = LocalVirtualSystemUiController.current
+    val unseenCount = LocalUnseenNotificationCount.current
+    val activityContent = LocalStatusBarActivityContent.current
     Row(
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth().heightIn(min = 40.dp)
             .background(runtime.palette.surface.copy(alpha = spec.backgroundAlpha))
-            .padding(horizontal = 20.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .pointerInput(controller) {
+                var startX = 0f
+                var distance = 0f
+                detectVerticalDragGestures(
+                    onDragStart = { startX = it.x; distance = 0f },
+                    onVerticalDrag = { change, delta -> distance += delta; change.consume() },
+                    onDragCancel = { distance = 0f },
+                    onDragEnd = {
+                        if (distance > 24.dp.toPx()) {
+                            if (startX < size.width * 0.6f) controller?.openNotifications()
+                            else controller?.openControlCenter()
+                        }
+                    }
+                )
+            }
+            .semantics {
+                customActions = listOf(
+                    CustomAccessibilityAction("打开通知中心") { controller?.openNotifications(); controller != null },
+                    CustomAccessibilityAction("打开控制中心") { controller?.openControlCenter(); controller != null },
+                )
+            }
+            .padding(horizontal = 16.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = state.timeLabel,
-                style = MaterialTheme.typography.labelLarge.copy(
-                    fontWeight = FontWeight.SemiBold, fontSize = 13.sp
-                ),
-                color = textColor,
-                modifier = Modifier.testTag("virtual_status_time")
-            )
-            if (!spec.minimal) {
-                Row(
-                    modifier = Modifier.clip(RoundedCornerShape(10.dp))
-                        .background(runtime.palette.surface.copy(alpha = 0.65f))
-                        .padding(horizontal = 7.dp, vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Box(
-                        modifier = Modifier.size(5.dp).clip(CircleShape)
-                            .background(AiluaMoonGold)
-                    )
-                    Text(
-                        text = "AILUA OS",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 10.sp, fontWeight = FontWeight.Medium
-                        ),
-                        color = subtleColor
-                    )
-                }
+        Text(state.timeLabel, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+            color = textColor, modifier = Modifier.testTag("virtual_status_time"))
+        Box(Modifier.weight(1f).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
+            when {
+                activityContent != null -> activityContent()
+                unseenCount > 0 -> Text("● $unseenCount", fontSize = 11.sp, color = textColor,
+                    modifier = Modifier.testTag("notification_unseen_count"))
+                !spec.minimal -> Text("AILUA OS", fontSize = 10.sp, fontWeight = FontWeight.Medium, color = subtleColor)
             }
         }
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            if (!spec.minimal) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Wifi,
-                        contentDescription = "心网连接正常",
-                        modifier = Modifier.size(13.dp),
-                        tint = textColor
-                    )
-                    Text(
-                        text = state.networkLabel,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        color = subtleColor
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.clip(RoundedCornerShape(6.dp))
-                        .background(runtime.palette.surface.copy(alpha = 0.5f))
-                        .padding(horizontal = 5.dp, vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                ) {
-                    Text(
-                        text = state.batteryLabel,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 10.sp, fontWeight = FontWeight.Medium
-                        ),
-                        color = textColor
-                    )
-                    Box(
-                        modifier = Modifier.size(8.dp).clip(CircleShape)
-                            .background(Brush.sweepGradient(listOf(AiluaMutedLavender, AiluaMoonGold)))
-                    )
-                }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Icon(Icons.Default.Wifi, state.networkLabel, Modifier.size(13.dp), tint = textColor)
+            if (activityContent == null && !spec.minimal) {
+                Text(state.networkLabel, fontSize = 10.sp, color = subtleColor)
             }
+            Text(state.batteryLabel, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = textColor)
             Box(
-                modifier = Modifier.size(24.dp).clip(CircleShape)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onToggleTheme
-                    ),
-                contentAlignment = Alignment.Center
+                modifier = Modifier.size(24.dp).clip(CircleShape).clickable(
+                    interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onToggleTheme
+                ), contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
-                    contentDescription = "切换虚拟世界心境主题",
-                    modifier = Modifier.size(14.dp),
-                    tint = textColor
-                )
+                Icon(if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
+                    "切换虚拟世界心境主题", Modifier.size(14.dp), tint = textColor)
             }
         }
     }

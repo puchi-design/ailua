@@ -6,17 +6,37 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.data.model.CallSession
 import com.example.data.model.CallState
+import com.example.data.systemui.notification.VirtualNotification
+import com.example.data.systemui.notification.VirtualNotificationGraph
+import com.example.data.systemui.notification.NotificationHeadsUpPolicy
 import com.example.navigation.AiluaDestinations
 import com.example.ui.components.VirtualPhoneStatusBar
 import com.example.ui.systemui.lockscreen.VirtualLockScreen
+import com.example.ui.systemui.lockscreen.LockScreenNotificationItem
+import com.example.ui.systemui.lockscreen.LockScreenNotificationPreview
+import com.example.ui.systemui.notification.NotificationShade
+import com.example.ui.systemui.notification.HeadsUpNotification
+import kotlinx.coroutines.launch
 
 /** A single overlay owner above every app route. App navigation stays underneath. */
 @Composable
@@ -32,6 +52,32 @@ fun VirtualSystemUiHost(
     val state by controller.state.collectAsStateWithLifecycle()
     val priorityCallId by controller.priorityCallId.collectAsStateWithLifecycle()
     val incoming = currentCall?.state == CallState.INCOMING
+    val repository = VirtualNotificationGraph.repository
+    val notificationFlow = remember(repository) { repository.observeActive() }
+    val notifications by notificationFlow.collectAsStateWithLifecycle(emptyList())
+    val scope = rememberCoroutineScope()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var headsUp by remember { mutableStateOf<VirtualNotification?>(null) }
+    val currentIncoming by androidx.compose.runtime.rememberUpdatedState(incoming)
+    LaunchedEffect(repository, lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            repository.newNotifications.collect { notification ->
+                val current = controller.state.value
+                if (NotificationHeadsUpPolicy.shouldShow(notification, current.isLocked,
+                        current.surface != SystemUiSurface.NONE, focusMode = false, isIncomingCall = currentIncoming)) {
+                    headsUp = notification
+                }
+            }
+        }
+    }
+    LaunchedEffect(state.surface, incoming) {
+        if (state.surface != SystemUiSurface.NONE || incoming) headsUp = null
+    }
+    LaunchedEffect(state.surface, notifications) {
+        if (state.surface == SystemUiSurface.NOTIFICATION_SHADE && !incoming) {
+            notifications.filterNot { it.seen }.forEach { repository.markSeen(it.id) }
+        }
+    }
     LaunchedEffect(currentCall?.id, incoming) {
         controller.updatePriorityCall(currentCall?.id, incoming)
     }
@@ -40,16 +86,27 @@ fun VirtualSystemUiHost(
     val priorityCallVisible = incoming || (priorityCallId != null &&
         priorityCallId == currentCall?.id && currentRoute == "call/{characterId}")
     val showLock = state.isLocked && !priorityCallVisible
-    BackHandler(enabled = showLock) { controller.closeSystemSurface() }
 
     fun launchUnlocked(route: String) {
+        headsUp = null
         controller.unlock()
         onLaunchRoute(route)
     }
 
-    VirtualSystemUiProvider(controller) {
+    fun openNotification(notification: VirtualNotification) {
+        scope.launch { repository.markSeen(notification.id) }
+        headsUp = null
+        controller.unlock()
+        notification.route?.let(onLaunchRoute)
+    }
+
+    VirtualSystemUiProvider(controller, unseenCount = notifications.count { !it.seen }) {
         Box(Modifier.fillMaxSize()) {
             content()
+            headsUp?.let { notification ->
+                HeadsUpNotification(notification, ::openNotification, onDismiss = { headsUp = null },
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 46.dp, start = 16.dp, end = 16.dp))
+            }
             AnimatedVisibility(
                 visible = showLock,
                 enter = fadeIn(),
@@ -60,7 +117,33 @@ fun VirtualSystemUiHost(
                     onOpenCommunications = { launchUnlocked(AiluaDestinations.MESSAGES) },
                     onOpenGallery = { launchUnlocked(AiluaDestinations.GALLERY) },
                     statusBar = { VirtualPhoneStatusBar(isDarkTheme = isDarkTheme, onToggleTheme = onToggleDarkMode) },
+                    modifier = Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = {}
+                    ),
+                    notificationContent = {
+                        val unread = notifications.filterNot { it.seen }
+                        LockScreenNotificationPreview(
+                            unread.map { LockScreenNotificationItem(it.id, it.title, it.body) },
+                            onOpen = { id -> unread.firstOrNull { it.id == id }?.let(::openNotification) },
+                            onOpenAll = controller::openNotifications,
+                        )
+                    },
                 )
+            }
+            if (!priorityCallVisible && state.surface == SystemUiSurface.NOTIFICATION_SHADE) {
+                NotificationShade(
+                    notifications = notifications,
+                    onOpen = ::openNotification,
+                    onDismiss = { scope.launch { repository.dismiss(it.id) } },
+                    onClearAll = { scope.launch { repository.clearDismissible() } },
+                    onClose = controller::closeSystemSurface,
+                    modifier = Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = {}
+                    ),
+                )
+            }
+            BackHandler(enabled = !priorityCallVisible && (showLock || state.surface != SystemUiSurface.NONE)) {
+                controller.closeSystemSurface()
             }
         }
     }

@@ -64,7 +64,7 @@ fun SettingsScreen(
             SettingsRow("角色", "导入或创建角色") { onCharacters() }
             SettingsRow("现实感知", "电量、屏幕、使用统计与健康数据") { onReality() }
             SettingsRow("主题", if (isDarkTheme) "深色" else "浅色") { onToggleTheme() }
-            Text("通知 · 此版本尚未启用主动通知", style = MaterialTheme.typography.bodySmall)
+            Text("通知 · 主动消息与来信会保存在通知中心，可在控制中心开启专注模式", style = MaterialTheme.typography.bodySmall)
             SettingsRow("隐私", "了解本机存储与 AI 服务商") { onPrivacy() }
             SettingsRow("数据", "重置本机 AILUA 数据") { showReset = true }
             resetError?.let { Text(it, color = MaterialTheme.colorScheme.error) }

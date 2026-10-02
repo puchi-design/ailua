@@ -18,6 +18,9 @@ import com.example.data.model.ProactiveSettings
 import com.example.data.model.ProactiveState
 import com.example.data.model.WeatherState
 import com.example.data.registry.CharacterRegistry
+import com.example.data.systemui.notification.NotificationEvents
+import com.example.data.systemui.notification.VirtualNotification
+import com.example.data.systemui.notification.VirtualNotificationGraph
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -93,6 +96,7 @@ class ProactiveMessageEngine(
     private val timeZone: TimeZone = TimeZone.getDefault(),
     private val realityContext: suspend () -> String? = { null },
     private val recentWorldEvents: () -> List<LifeEvent> = { WorldStateRepository.latestEvents(20) },
+    private val postNotification: suspend (VirtualNotification) -> Unit = { VirtualNotificationGraph.post(it) },
 ) {
 
     private val inFlight = AtomicBoolean(false)
@@ -147,7 +151,7 @@ class ProactiveMessageEngine(
         if (content.isNullOrEmpty()) return false
 
         withContext(NonCancellable) {
-            chatRepository.appendAssistantTurn(
+            val turn = chatRepository.appendAssistantTurn(
                 sessionId = session.id,
                 content = content,
                 status = VariantStatus.COMPLETE,
@@ -170,6 +174,16 @@ class ProactiveMessageEngine(
                 )
             )
             saveState(ProactiveRules.withSuccess(state, now, today))
+            postNotification(
+                NotificationEvents.proactiveMessage(
+                    sessionId = session.id,
+                    turnId = turn.id,
+                    characterId = characterId,
+                    characterName = character.name,
+                    content = content,
+                    timestampEpochMs = now,
+                ),
+            )
         }
         return true
     }

@@ -7,6 +7,9 @@ import com.example.data.model.LetterDeliveryState
 import com.example.data.model.LetterType
 import com.example.data.model.LifeEvent
 import com.example.data.model.LifeEventType
+import com.example.data.systemui.notification.NotificationEvents
+import com.example.data.systemui.notification.VirtualNotification
+import com.example.data.systemui.notification.VirtualNotificationGraph
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -90,7 +93,11 @@ object MailboxRepository {
     /**
      * Evaluates scheduled letters when virtual clock advances.
      */
-    fun checkScheduledDeliveries(currentVirtualMinutes: Int): List<Letter> {
+    fun checkScheduledDeliveries(
+        currentVirtualMinutes: Int,
+        postNotification: (VirtualNotification) -> Unit = VirtualNotificationGraph::postAsync,
+        nowEpochMs: Long = System.currentTimeMillis(),
+    ): List<Letter> {
         val newlyDelivered = mutableListOf<Letter>()
         val updated = _letters.value.map { letter ->
             if (letter.deliveryState == LetterDeliveryState.SCHEDULED && letter.deliverAtVirtualTimeMinutes <= currentVirtualMinutes) {
@@ -122,6 +129,9 @@ object MailboxRepository {
         if (newlyDelivered.isNotEmpty()) {
             _letters.value = updated
             _unreadCount.value = updated.count { it.deliveryState == LetterDeliveryState.DELIVERED }
+            newlyDelivered.forEach { letter ->
+                postNotification(NotificationEvents.mailDelivered(letter, nowEpochMs))
+            }
         }
         return newlyDelivered
     }

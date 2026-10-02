@@ -12,8 +12,25 @@ import org.junit.Test
 class ChatMigrationTest {
 
     @Test
-    fun schemaVersionIsSeven() {
-        assertEquals(7, ChatDatabase.Schema.version)
+    fun schemaVersionIsEight() {
+        assertEquals(8, ChatDatabase.Schema.version)
+    }
+
+    @Test
+    fun migratingFromV7CreatesNotificationHistoryWithoutChangingChatOrWorkspace() {
+        val f = ChatTestHarness.inMemory()
+        try {
+            val session = f.repository.getOrCreatePrivateSession("mira")
+            f.repository.appendUserTurn(session.id, "通知升级前的聊天")
+            val workspace = com.example.data.desktop.local.SqlDelightWorkspaceRepository(f.database)
+            workspace.migrateIfEmpty(listOf("gallery"))
+            val before = workspace.snapshot()
+            f.driver.execute(null, "DROP TABLE virtual_notification", 0)
+            ChatDatabase.Schema.migrate(f.driver, oldVersion = 7, newVersion = 8)
+            assertEquals(emptyList<com.example.data.chat.local.Virtual_notification>(), f.database.virtualNotificationQueries.selectActiveNotifications().executeAsList())
+            assertEquals(before, workspace.snapshot())
+            assertEquals("通知升级前的聊天", f.repository.getResolvedTurns(session.id).single().activeVariant?.content)
+        } finally { f.driver.close() }
     }
 
     @Test

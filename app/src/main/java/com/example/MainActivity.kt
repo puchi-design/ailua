@@ -81,6 +81,7 @@ import com.example.ui.theater.TheaterScreen
 import com.example.ui.theme.AiluaTheme
 import com.example.ui.world.WorldPlacesScreen
 import com.example.data.systemui.lock.VirtualLockStore
+import com.example.data.systemui.notification.VirtualNotificationGraph
 import com.example.ui.systemui.VirtualSystemUiSession
 import com.example.ui.systemui.VirtualSystemUiHost
 import com.example.ui.themeengine.AiluaThemeProvider
@@ -106,6 +107,7 @@ class MainActivity : ComponentActivity() {
         RelationshipStateRepository.restore()
         ProviderGraph.init(applicationContext)
         MemoryGraph.init(applicationContext)
+        VirtualNotificationGraph.init(applicationContext)
         WorldPlanRuntime.init(applicationContext)
         ProactiveGraph.init(applicationContext)
         WorldStateRepository.syncWithLocalStore()

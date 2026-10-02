@@ -10,6 +10,8 @@ import com.example.data.engine.ProactiveRules
 import com.example.data.engine.WorldStateRepository
 import com.example.data.model.ProactiveSettings
 import com.example.data.model.ProactiveState
+import com.example.data.systemui.notification.VirtualNotification
+import com.example.data.systemui.notification.NotificationCategory
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -98,6 +100,7 @@ class ProactiveMessageTest {
         var settings = ProactiveSettings(enabled = true)
         var state = ProactiveState()
         var savedStates = 0
+        val notifications = mutableListOf<VirtualNotification>()
 
         val engine = ProactiveMessageEngine(
             chatRepository = chat.repository,
@@ -112,6 +115,12 @@ class ProactiveMessageTest {
             },
             timeZone = TimeZone.getTimeZone("UTC"),
             recentWorldEvents = { emptyList() },
+            postNotification = {
+                // This callback must run only after both the turn and success state committed.
+                assertTrue(savedStates > 0)
+                assertTrue(miraTurns().isNotEmpty())
+                notifications += it
+            },
         )
 
         fun use(provider: AiProvider) {
@@ -152,6 +161,10 @@ class ProactiveMessageTest {
         assertEquals(1, f.state.sentCount)
         assertEquals("2023-11-14", f.state.sentDate)
         assertEquals(1_700_000_000_000L, f.state.lastSuccessAtEpochMs)
+        assertEquals(NotificationCategory.MESSAGE, f.notifications.single().category)
+        assertEquals("chat/mira", f.notifications.single().route)
+        assertEquals("message:${turns.single().sessionId}:${turns.single().id}", f.notifications.single().sourceKey)
+        assertEquals(turns.single().activeVariant?.content, f.notifications.single().body)
     }
 
     @Test
@@ -215,6 +228,7 @@ class ProactiveMessageTest {
 
         assertTrue(f.miraTurns().isEmpty())
         assertEquals(0, f.state.sentCount)
+        assertTrue(f.notifications.isEmpty())
     }
 
     @Test
