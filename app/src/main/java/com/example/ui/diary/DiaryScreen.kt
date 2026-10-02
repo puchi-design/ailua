@@ -1,44 +1,27 @@
 package com.example.ui.diary
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.PhotoAlbum
-import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,26 +29,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.data.model.DiaryEntry
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.engine.WorldStateRepository
+import com.example.data.model.DiaryEntry
 import com.example.data.projection.projectDiary
-import com.example.ui.components.AiluaAvatar
-import com.example.ui.components.VirtualPhoneHomeBar
-import com.example.ui.components.VirtualPhoneStatusBar
-import com.example.ui.theme.AiluaDustyRose
-import com.example.ui.theme.AiluaMistBlue
-import com.example.ui.theme.AiluaMoonGold
-import com.example.ui.theme.AiluaMutedLavender
+import com.example.ui.designsystem.AiluaChip
+import com.example.ui.designsystem.AiluaMediaFrame
+import com.example.ui.designsystem.AiluaScreenScaffold
+import com.example.ui.themeengine.LocalAiluaTheme
 import kotlinx.coroutines.launch
 
 @Composable
@@ -74,442 +48,115 @@ fun DiaryScreen(
     onToggleTheme: () -> Unit = {},
     onBackToHome: () -> Unit = {},
     characterId: String = "mira",
-    characterName: String = "小弥"
+    characterName: String = "小弥",
+    onGoHome: () -> Unit = onBackToHome
 ) {
+    val theme = LocalAiluaTheme.current
     val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
     val entries = remember(characterId, worldEvents) {
         projectDiary(characterId = characterId, runtimeEvents = worldEvents)
     }
     var selectedEntryId by remember(characterId) { mutableStateOf(entries.firstOrNull()?.id ?: "") }
     val currentEntry = entries.find { it.id == selectedEntryId } ?: entries.firstOrNull()
-    val displayAuthor = currentEntry?.authorName ?: characterName.ifBlank { "伴生" }
+    var showReader by remember(characterId) { mutableStateOf(false) }
     var isLiked by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    BackHandler(enabled = showReader) { showReader = false }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .testTag("diary_screen")
+    AiluaScreenScaffold(
+        title = "日记",
+        onBack = { if (showReader) showReader = false else onBackToHome() },
+        onGoHome = onGoHome,
+        backTestTag = "diary_back_btn",
+        modifier = Modifier.testTag("diary_screen"),
+        bottomBar = { SnackbarHost(snackbarHostState) }
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Virtual OS Status Bar
-            VirtualPhoneStatusBar(
-                isDarkTheme = isDarkTheme,
-                onToggleTheme = onToggleTheme
-            )
-
-            // Header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(
-                        0.5.dp,
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth()
+                .padding(horizontal = theme.layout.screenHorizontalPadding.dp),
+            verticalArrangement = Arrangement.spacedBy(theme.layout.sectionGap.dp)
+        ) {
+            if (showReader && currentEntry != null) {
+                item(key = currentEntry.id) {
+                    DiaryReader(
+                        entry = currentEntry,
+                        isLiked = isLiked,
+                        onLike = {
+                            isLiked = !isLiked
+                            coroutineScope.launch {
+                                if (isLiked) snackbarHostState.showSnackbar("已喜欢${characterName.ifBlank { "角色" }}的日记")
+                            }
+                        }
                     )
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(
-                        onClick = onBackToHome,
-                        modifier = Modifier.testTag("diary_back_btn")
+                }
+            } else if (entries.isEmpty()) {
+                item { Text("还没有日记", style = theme.text.body, color = theme.palette.onSurfaceMuted) }
+            } else {
+                items(entries, key = { it.id }) { entry ->
+                    Column(
+                        modifier = Modifier.fillMaxWidth().clickable {
+                            selectedEntryId = entry.id
+                            isLiked = false
+                            showReader = true
+                        }.padding(vertical = theme.layout.itemGap.dp),
+                        verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Column {
+                        Text(entry.date, style = theme.text.caption, color = theme.palette.onSurfaceMuted)
+                        Text(entry.title, style = theme.text.section, color = theme.palette.onSurface)
                         Text(
-                            text = "心声日记 · Secret Diary",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 17.sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
+                            entry.excerpt.ifBlank { entry.content }, style = theme.text.body,
+                            color = theme.palette.onSurfaceMuted, maxLines = 2, overflow = TextOverflow.Ellipsis
                         )
-                        Text(
-                            text = "${displayAuthor}的手写生活随笔 · 心网沉淀",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.5.sp,
-                                color = AiluaMistBlue
-                            )
-                        )
+                        Spacer(Modifier.height(theme.layout.itemGap.dp))
+                        HorizontalDivider(color = theme.surfaces.divider)
                     }
                 }
+            }
+            item { Spacer(Modifier.height(theme.layout.sectionGap.dp)) }
+        }
+    }
+}
 
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(AiluaMoonGold.copy(alpha = 0.15f))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+@Composable
+private fun DiaryReader(entry: DiaryEntry, isLiked: Boolean, onLike: () -> Unit) {
+    val theme = LocalAiluaTheme.current
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = theme.layout.itemGap.dp),
+        verticalArrangement = Arrangement.spacedBy(theme.layout.sectionGap.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(entry.date, style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
+            val context = listOf(entry.weather, entry.mood).filter { it.isNotBlank() }.joinToString(" · ")
+            if (context.isNotBlank()) Text(context, style = theme.text.caption, color = theme.palette.onSurfaceMuted)
+        }
+        Text("《${entry.title}》", style = theme.text.title, color = theme.palette.onSurface)
+        Text(entry.content, style = theme.text.body, color = theme.palette.onSurface)
+        entry.imageReference?.let {
+            AiluaMediaFrame(modifier = Modifier.fillMaxWidth().height(160.dp)) {
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)
                 ) {
-                    Text(
-                        text = "共 ${entries.size} 篇",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = AiluaMoonGold
-                        )
-                    )
+                    Icon(Icons.Default.PhotoAlbum, null, Modifier.size(28.dp), tint = theme.palette.onSurfaceMuted)
+                    Text("随文照片", style = theme.text.caption, color = theme.palette.onSurfaceMuted)
                 }
             }
-
-            // Diary Timeline Stream & Reader
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                item { Spacer(modifier = Modifier.height(6.dp)) }
-
-                // Date Selector Strip
-                item {
-                    Text(
-                        text = "随笔归档",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 12.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+        }
+        Text("——${entry.authorName}", modifier = Modifier.align(Alignment.End), style = theme.text.body, color = theme.palette.onSurfaceMuted)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            AiluaChip(
+                label = if (isLiked) "已喜欢" else "喜欢",
+                onClick = onLike,
+                selected = isLiked,
+                leading = {
+                    Icon(
+                        if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = "喜欢日记", modifier = Modifier.size(18.dp),
+                        tint = if (isLiked) theme.palette.accent else theme.palette.onSurfaceMuted
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    if (entries.isEmpty()) {
-                        Text(
-                            text = "还没有日记 · 等待第一篇心声",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        )
-                    } else LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        items(entries, key = { it.id }) { entry ->
-                            val isSelected = entry.id == selectedEntryId
-                            Box(
-                                modifier = Modifier
-                                    .shadow(if (isSelected) 3.dp else 1.dp, RoundedCornerShape(16.dp))
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(
-                                        if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                                        else MaterialTheme.colorScheme.surface
-                                    )
-                                    .border(
-                                        1.dp,
-                                        if (isSelected) AiluaMistBlue
-                                        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                        RoundedCornerShape(16.dp)
-                                    )
-                                    .clickable {
-                                        selectedEntryId = entry.id
-                                        isLiked = false
-                                    }
-                                    .padding(horizontal = 14.dp, vertical = 10.dp)
-                            ) {
-                                Column {
-                                    Text(
-                                        text = entry.date,
-                                        style = MaterialTheme.typography.labelMedium.copy(
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                            fontSize = 12.sp
-                                        ),
-                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
-                                        else MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = entry.title,
-                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1
-                                    )
-                                }
-                            }
-                        }
-                    }
                 }
-
-                // Main Diary Paper Card
-                item {
-                    val entry = currentEntry
-                    if (entry == null) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .shadow(
-                                    elevation = 4.dp,
-                                    shape = RoundedCornerShape(22.dp),
-                                    ambientColor = Color.Black.copy(alpha = 0.04f),
-                                    spotColor = Color.Black.copy(alpha = 0.08f)
-                                )
-                                .clip(RoundedCornerShape(22.dp))
-                                .background(
-                                    if (isDarkTheme) Color(0xFF1E1B29)
-                                    else Color(0xFFFFFDF9)
-                                )
-                                .border(
-                                    1.dp,
-                                    if (isDarkTheme) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                                    else Color(0xFFEFE9DC),
-                                    RoundedCornerShape(22.dp)
-                                )
-                                .padding(28.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.MenuBook,
-                                    contentDescription = null,
-                                    tint = AiluaMoonGold,
-                                    modifier = Modifier.size(28.dp)
-                                )
-                                Text(
-                                    text = "还没有心声日记",
-                                    style = MaterialTheme.typography.titleSmall.copy(
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 14.sp
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "${displayAuthor}的日记会在这里逐页展开",
-                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                                )
-                            }
-                        }
-                    } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(
-                                elevation = 4.dp,
-                                shape = RoundedCornerShape(22.dp),
-                                ambientColor = Color.Black.copy(alpha = 0.04f),
-                                spotColor = Color.Black.copy(alpha = 0.08f)
-                            )
-                            .clip(RoundedCornerShape(22.dp))
-                            .background(
-                                if (isDarkTheme) Color(0xFF1E1B29)
-                                else Color(0xFFFFFDF9)
-                            )
-                            .border(
-                                1.dp,
-                                if (isDarkTheme) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                                else Color(0xFFEFE9DC),
-                                RoundedCornerShape(22.dp)
-                            )
-                            .padding(20.dp)
-                    ) {
-                        Column {
-                            // Card Top: Author & Weather/Mood
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    AiluaAvatar(
-                                        avatarId = entry.characterId,
-                                        size = 36.dp,
-                                        showHalo = false
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Column {
-                                        Text(
-                                            text = "${entry.authorName} · 日记手记",
-                                            style = MaterialTheme.typography.labelMedium.copy(
-                                                fontWeight = FontWeight.SemiBold,
-                                                fontSize = 13.sp
-                                            ),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Text(
-                                            text = entry.date,
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                fontSize = 10.5.sp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                                            )
-                                        )
-                                    }
-                                }
-
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    if (entry.weather.isNotBlank()) {
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(AiluaMistBlue.copy(alpha = 0.12f))
-                                                .padding(horizontal = 7.dp, vertical = 3.dp)
-                                        ) {
-                                            Text(
-                                                text = entry.weather,
-                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                        }
-                                    }
-                                    if (entry.mood.isNotBlank()) {
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(AiluaMoonGold.copy(alpha = 0.12f))
-                                                .padding(horizontal = 7.dp, vertical = 3.dp)
-                                        ) {
-                                            Text(
-                                                text = entry.mood,
-                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            // Diary Title
-                            Text(
-                                text = "《${entry.title}》",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.5.sp
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            // Diary Content Body
-                            Text(
-                                text = entry.content,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontSize = 13.5.sp,
-                                    lineHeight = 22.sp,
-                                    letterSpacing = 0.2.sp
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f)
-                            )
-
-                            // Associated Photo or Memory Note
-                            entry.imageReference?.let { img ->
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
-                                        .padding(10.dp)
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = Icons.Default.PhotoAlbum,
-                                            contentDescription = null,
-                                            tint = AiluaMistBlue,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = "随文附记生活相片 · 已归档于影集与查手机私密相册",
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                fontSize = 10.5.sp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        )
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            // Bottom Interaction Bar
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.AutoAwesome,
-                                        contentDescription = null,
-                                        tint = AiluaMoonGold,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = "心网专属私密日记",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 10.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                        )
-                                    )
-                                }
-
-                                Row(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(
-                                            if (isLiked) AiluaDustyRose.copy(alpha = 0.15f)
-                                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                        )
-                                        .clickable {
-                                            isLiked = !isLiked
-                                            coroutineScope.launch {
-                                                if (isLiked) {
-                                                    snackbarHostState.showSnackbar("已在${characterName.ifBlank { "TA" }}的心声日记留下一枚暖心印痕 ✨")
-                                                }
-                                            }
-                                        }
-                                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                        contentDescription = "心契回应",
-                                        tint = if (isLiked) AiluaDustyRose else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = if (isLiked) "已心契共鸣" else "留下暖心印记",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = if (isLiked) AiluaDustyRose else MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    }
-                }
-
-                item { Spacer(modifier = Modifier.height(16.dp)) }
-            }
-
-            // Snackbar Host
-            SnackbarHost(hostState = snackbarHostState)
-
-            // Virtual Home Indicator Bar
-            VirtualPhoneHomeBar(
-                canGoBack = true,
-                onBack = onBackToHome,
-                onGoHome = onBackToHome
             )
         }
     }
