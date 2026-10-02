@@ -25,7 +25,7 @@ import com.example.data.model.DayPhase
 import com.example.data.model.WeatherState
 import com.example.ui.themeengine.*
 
-private enum class ThemeCenterTab(val title: String) {
+enum class ThemeCenterSection(val title: String) {
     THEMES("内置"), MINE("我的主题"), PACKS("图标包"), IMPORT("导入"),
     PALETTES("配色"), WALLPAPERS("壁纸"), ICONS("图标样式")
 }
@@ -37,9 +37,10 @@ fun ThemeCenterSheet(
     isDarkTheme: Boolean,
     dayPhase: DayPhase,
     weather: WeatherState,
+    initialSection: ThemeCenterSection = ThemeCenterSection.THEMES,
 ) {
     val selection = ThemeStore.selection
-    var tab by remember { mutableStateOf(ThemeCenterTab.THEMES) }
+    var tab by remember(initialSection) { mutableStateOf(initialSection) }
     val runtime = ThemeResolver.resolve(selection, isDarkTheme, dayPhase, weather)
 
     ModalBottomSheet(
@@ -56,7 +57,7 @@ fun ThemeCenterSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(14.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                ThemeCenterTab.entries.take(4).forEach { item ->
+                ThemeCenterSection.entries.take(4).forEach { item ->
                     val selected = tab == item
                     val shape = RoundedCornerShape(13.dp)
                     Box(Modifier.weight(1f).clip(shape)
@@ -73,7 +74,7 @@ fun ThemeCenterSheet(
             }
             Spacer(Modifier.height(7.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                ThemeCenterTab.entries.drop(4).forEach { item ->
+                ThemeCenterSection.entries.drop(4).forEach { item ->
                     val selected = tab == item
                     val shape = RoundedCornerShape(10.dp)
                     Box(Modifier.weight(1f).clip(shape)
@@ -89,12 +90,12 @@ fun ThemeCenterSheet(
             }
             Spacer(Modifier.height(12.dp))
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-                if (tab in setOf(ThemeCenterTab.PALETTES, ThemeCenterTab.WALLPAPERS, ThemeCenterTab.ICONS)) {
+                if (tab in setOf(ThemeCenterSection.PALETTES, ThemeCenterSection.WALLPAPERS, ThemeCenterSection.ICONS)) {
                     ThemePreview(runtime, Modifier.fillMaxWidth().height(190.dp))
                     Spacer(Modifier.height(14.dp))
                 }
                 when (tab) {
-                    ThemeCenterTab.THEMES -> ThemeCatalog.presets.chunked(2).forEach { presets ->
+                    ThemeCenterSection.THEMES -> ThemeCatalog.presets.chunked(2).forEach { presets ->
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             presets.forEach { preset ->
                                 val candidate = selection.copy(themePresetId = preset.id)
@@ -122,12 +123,12 @@ fun ThemeCenterSheet(
                         }
                         Spacer(Modifier.height(10.dp))
                     }
-                    ThemeCenterTab.MINE -> MyThemesSection(runtime)
-                    ThemeCenterTab.PACKS -> IconPacksSection(runtime)
-                    ThemeCenterTab.IMPORT -> ImportThemeSection(runtime) {
-                        tab = ThemeCenterTab.MINE
+                    ThemeCenterSection.MINE -> MyThemesSection(runtime)
+                    ThemeCenterSection.PACKS -> IconPacksSection(runtime)
+                    ThemeCenterSection.IMPORT -> ImportThemeSection(runtime) {
+                        tab = ThemeCenterSection.MINE
                     }
-                    ThemeCenterTab.PALETTES -> {
+                    ThemeCenterSection.PALETTES -> {
                         ChoiceRow("跟随主题", "使用当前主题的默认配色",
                             ThemeResolver.resolve(selection.copy(paletteOverrideId = null), isDarkTheme, dayPhase, weather).palette.accent,
                             selection.paletteOverrideId == null, "palette_option_default") {
@@ -142,7 +143,7 @@ fun ThemeCenterSheet(
                             }
                         }
                     }
-                    ThemeCenterTab.WALLPAPERS -> {
+                    ThemeCenterSection.WALLPAPERS -> {
                         val defaultColors = ThemeResolver.resolve(selection.copy(wallpaperOverrideId = null, wallpaperSourceId = null),
                             isDarkTheme, dayPhase, weather).wallpaper.colors
                         WallpaperRow("跟随主题", "使用当前主题的默认壁纸", defaultColors,
@@ -159,7 +160,7 @@ fun ThemeCenterSheet(
                         }
                         ExternalWallpaperChoices(runtime)
                     }
-                    ThemeCenterTab.ICONS -> {
+                    ThemeCenterSection.ICONS -> {
                         IconRow("跟随主题", "使用当前主题的默认图标",
                             ThemeResolver.resolve(selection.copy(iconStyleOverrideId = null, iconSourceOverrideId = null, manualIconOverrides = emptyMap()), isDarkTheme, dayPhase, weather),
                             selection.iconStyleOverrideId == null && selection.iconSourceOverrideId == null, "icon_option_default") {

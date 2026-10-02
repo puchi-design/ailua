@@ -98,6 +98,10 @@ import com.example.ui.home.hotseat.HomeHotseat
 import com.example.ui.home.folder.FolderHoverController
 import com.example.ui.home.folder.FolderOverlay
 import com.example.ui.home.folder.FolderNameSuggester
+import com.example.ui.home.folder.WorkspaceFolderItem
+import com.example.ui.home.edit.HomeEditPanel
+import com.example.ui.home.edit.HomeDisplayPreferencesStore
+import com.example.ui.home.edit.HomeDisplaySettingsSheet
 import com.example.ui.home.special.LifeBentoPage
 import com.example.ui.home.widget.WidgetPickerSheet
 import com.example.ui.home.widget.WorkspaceWidgetItem
@@ -122,6 +126,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import com.example.ui.themecenter.ThemeCenterSheet
+import com.example.ui.themecenter.ThemeCenterSection
 import com.example.ui.theme.AiluaMistBlue
 import androidx.compose.ui.unit.IntOffset
 import kotlinx.coroutines.Dispatchers
@@ -133,6 +138,8 @@ import kotlinx.coroutines.withContext
 import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.roundToInt
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VirtualHomeScreen(
@@ -176,13 +183,21 @@ fun VirtualHomeScreen(
     val unreadLettersCount = letters.count { it.deliveryState == LetterDeliveryState.DELIVERED && !it.isRead }
     var showDevTimeSheet by remember { mutableStateOf(false) }
     var showThemeSheet by remember { mutableStateOf(false) }
+    var themeInitialSection by remember { mutableStateOf(ThemeCenterSection.THEMES) }
     var showWidgetPicker by remember { mutableStateOf(false) }
+    var showDisplaySettings by remember { mutableStateOf(false) }
     var widgetMessage by remember { mutableStateOf<String?>(null) }
     var selectedWidgetId by remember { mutableStateOf<String?>(null) }
     var resizeItemId by remember { mutableStateOf<String?>(null) }
     var resizeSize by remember { mutableStateOf<WidgetSize?>(null) }
     var resizePlan by remember { mutableStateOf<DropPlan?>(null) }
-    remember(context) { ThemeStore.initialize(context); ExternalThemeRepository.initialize(context); true }
+    remember(context) {
+        ThemeStore.initialize(context)
+        ExternalThemeRepository.initialize(context)
+        HomeDisplayPreferencesStore.initialize(context)
+        true
+    }
+    val homeDisplayPreferences = HomeDisplayPreferencesStore.current
     val selection = ThemeStore.selection
     val themeRuntime = ThemeResolver.resolve(
         selection, isDarkTheme, worldClock.dayPhase, worldClock.weather
@@ -582,6 +597,8 @@ fun VirtualHomeScreen(
                         ) },
                         onFolderClick = { openFolderId = it },
                         folderHoverTargetId = FolderDropResolver.targetId(activeFolderIntent),
+                        showLabels = homeDisplayPreferences.showLabels,
+                        iconScale = homeDisplayPreferences.iconScale,
                     )
                 } else {
                     LifeBentoPage(
@@ -595,26 +612,9 @@ fun VirtualHomeScreen(
                 }
             }
 
-            // Pager Indicator Dots + lightweight edit control strip
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 18.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(modifier = Modifier.weight(1f)) {
-                    if (isEditing) {
-                        HomeEditPill(
-                            label = "完成",
-                            testTag = "home_edit_done",
-                            accent = themeRuntime.palette.accent
-                        ) {
-                            isEditing = false
-                        }
-                    }
-                }
+            if (homeDisplayPreferences.showPageIndicator) {
                 Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -637,19 +637,21 @@ fun VirtualHomeScreen(
                         )
                     }
                 }
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                    if (isEditing) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            HomeEditPill("+组件", "home_edit_widgets", themeRuntime.palette.accent) {
-                                showWidgetPicker = true
-                            }
-                            HomeEditPill("主题", "home_edit_theme", themeRuntime.palette.accent) {
-                                showThemeSheet = true
-                            }
-                        }
-                    }
-                }
             }
+            if (isEditing) HomeEditPanel(
+                onDone = { isEditing = false },
+                onWidgets = { showWidgetPicker = true },
+                onWallpaper = {
+                    themeInitialSection = ThemeCenterSection.WALLPAPERS
+                    showThemeSheet = true
+                },
+                onTheme = {
+                    themeInitialSection = ThemeCenterSection.THEMES
+                    showThemeSheet = true
+                },
+                onPages = {},
+                onSettings = { showDisplaySettings = true },
+            )
 
             workspaceError?.let { Text(it, modifier = Modifier.padding(horizontal = 24.dp), color = MaterialTheme.colorScheme.error) }
             widgetMessage?.let { Text(it, modifier = Modifier.padding(horizontal = 24.dp),
@@ -692,6 +694,7 @@ fun VirtualHomeScreen(
                 ) },
                 onFolderClick = { openFolderId = it },
                 folderHoverTargetId = FolderDropResolver.targetId(activeFolderIntent),
+                iconScale = homeDisplayPreferences.iconScale,
             )
 
             // Virtual Home Indicator Bar
@@ -717,6 +720,23 @@ fun VirtualHomeScreen(
                 WorkspaceWidgetItem(item, widgetContext, false, false,
                     onSelect = {}, onDelete = {}, onResizePreview = {}, onResizeCommit = {})
             }
+        } else if (dragState.isDragging && draggedItem?.type == DesktopItemType.FOLDER) {
+            Box(Modifier.offset {
+                IntOffset((dragState.pointerPosition.x - dragState.grabOffset.x).roundToInt(),
+                    (dragState.pointerPosition.y - dragState.grabOffset.y).roundToInt())
+            }.size(with(density) { dragState.previewWidth.toDp() },
+                with(density) { dragState.previewHeight.toDp() }),
+                contentAlignment = Alignment.Center) {
+                WorkspaceFolderItem(
+                    folder = workspace.folder(draggedItem.id)
+                        ?: com.example.data.desktop.DesktopFolder(draggedItem.id, "文件夹"),
+                    children = workspace.folderItems(draggedItem.id),
+                    labels = labels, isEditing = true,
+                    showLabel = homeDisplayPreferences.showLabels,
+                    size = com.example.ui.components.AppIconDefaults.ContainerSize * homeDisplayPreferences.iconScale,
+                    onClick = {},
+                )
+            }
         } else if (dragState.isDragging && draggedLabel != null) {
             DragLayer(
                 label = draggedLabel,
@@ -736,6 +756,7 @@ fun VirtualHomeScreen(
         if (showThemeSheet) {
             ThemeCenterSheet(
                 onDismiss = { showThemeSheet = false },
+                initialSection = themeInitialSection,
                 isDarkTheme = isDarkTheme,
                 dayPhase = worldClock.dayPhase,
                 weather = worldClock.weather,
@@ -755,6 +776,11 @@ fun VirtualHomeScreen(
                 }
             }
         }
+        if (showDisplaySettings) HomeDisplaySettingsSheet(
+            preferences = homeDisplayPreferences,
+            onChange = HomeDisplayPreferencesStore::update,
+            onDismiss = { showDisplaySettings = false },
+        )
         val folderId = openFolderId
         val folder = folderId?.let(workspace::folder)
         if (folder != null) {
@@ -1030,35 +1056,6 @@ internal fun LivingPresenceStrip(
                 tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
-    }
-}
-
-/** Lightweight pill used for the edit mode control strip: [完成] / [主题]. */
-@Composable
-private fun HomeEditPill(
-    label: String,
-    testTag: String,
-    accent: Color,
-    onClick: () -> Unit
-) {
-    val shape = RoundedCornerShape(14.dp)
-    Box(
-        modifier = Modifier
-            .clip(shape)
-            .background(accent.copy(alpha = 0.16f))
-            .border(1.dp, accent.copy(alpha = 0.40f), shape)
-            .clickable { onClick() }
-            .padding(horizontal = 12.dp, vertical = 5.dp)
-            .testTag(testTag)
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold
-            ),
-            color = accent
-        )
     }
 }
 

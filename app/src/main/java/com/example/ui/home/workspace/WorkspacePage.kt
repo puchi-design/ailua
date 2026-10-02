@@ -27,6 +27,7 @@ import com.example.data.desktop.DesktopFolder
 import com.example.data.desktop.GridSpec
 import com.example.data.desktop.WorkspaceSnapshot
 import com.example.ui.components.AppIconItem
+import com.example.ui.components.AppIconDefaults
 import com.example.ui.design.launcher.CellLayout
 import com.example.ui.design.launcher.DropIndicator
 import com.example.ui.design.launcher.WorkspaceAppLabel
@@ -63,6 +64,8 @@ fun WorkspacePageGrid(
     onAppClick: (String) -> Unit,
     onFolderClick: (String) -> Unit,
     folderHoverTargetId: String?,
+    showLabels: Boolean,
+    iconScale: Float,
     modifier: Modifier = Modifier,
 ) {
     val grid = GridSpec(rows = displayRows)
@@ -89,6 +92,8 @@ fun WorkspacePageGrid(
                 ) {
                     AppIconItem(
                         name = label.name, iconKey = label.iconKey, badge = label.badge,
+                        size = AppIconDefaults.ContainerSize * iconScale,
+                        showLabel = showLabels,
                         editMode = isEditing,
                         onClick = if (isEditing) ({}) else ({ onAppClick(item.sourceId) }),
                     )
@@ -102,7 +107,8 @@ fun WorkspacePageGrid(
                     contentAlignment = Alignment.Center,
                 ) {
                     WorkspaceFolderItem(folder, snapshot.folderItems(item.id), labels,
-                        isEditing = isEditing, showLabel = true,
+                        isEditing = isEditing, showLabel = showLabels,
+                        size = AppIconDefaults.ContainerSize * iconScale,
                         onClick = { onFolderClick(item.id) })
                 }
             }
@@ -149,6 +155,8 @@ fun WorkspacePage(
     onAppClick: (String) -> Unit,
     onFolderClick: (String) -> Unit,
     folderHoverTargetId: String?,
+    showLabels: Boolean,
+    iconScale: Float,
 ) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState(), enabled = !isDragging)
@@ -165,6 +173,7 @@ fun WorkspacePage(
             onWidgetResizeCommit = onWidgetResizeCommit,
             canDrop = canDrop, onBounds = onBounds, onAppClick = onAppClick,
             onFolderClick = onFolderClick, folderHoverTargetId = folderHoverTargetId,
+            showLabels = showLabels, iconScale = iconScale,
             modifier = Modifier.fillMaxWidth().height((6 * 82).dp),
         )
     }

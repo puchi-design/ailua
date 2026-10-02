@@ -47,6 +47,7 @@ fun HomeHotseat(
     onAppClick: (String) -> Unit,
     onFolderClick: (String) -> Unit,
     folderHoverTargetId: String?,
+    iconScale: Float,
 ) {
     val runtime = LocalAiluaTheme.current
     val dock = runtime.dock
@@ -97,6 +98,7 @@ fun HomeHotseat(
                 val item = items.firstOrNull { it.cellX == slot }
                 val label = item?.let { labels[it.sourceId] }
                 val outline = when {
+                    item != null && folderHoverTargetId == item.id -> accent
                     hoverSlot == slot -> if (canDrop) accent else MaterialTheme.colorScheme.error
                     item == null && isEditing -> accent.copy(alpha = 0.24f)
                     else -> Color.Transparent
@@ -114,14 +116,14 @@ fun HomeHotseat(
                                 DesktopItemType.APP -> if (label != null) AppIconItem(
                                     name = label.name, iconKey = label.iconKey, badge = label.badge,
                                     showLabel = false, editMode = isEditing,
-                                    size = com.example.ui.components.AppIconDefaults.ContainerSize * dock.iconScale,
+                                    size = com.example.ui.components.AppIconDefaults.ContainerSize * dock.iconScale * iconScale,
                                     onClick = if (isEditing) ({}) else ({ onAppClick(item.sourceId) }),
                                 )
                                 DesktopItemType.FOLDER -> WorkspaceFolderItem(
                                     folder = snapshot.folder(item.id) ?: DesktopFolder(item.id, "文件夹"),
                                     children = snapshot.folderItems(item.id), labels = labels,
                                     isEditing = isEditing, showLabel = false,
-                                    size = com.example.ui.components.AppIconDefaults.ContainerSize * dock.iconScale,
+                                    size = com.example.ui.components.AppIconDefaults.ContainerSize * dock.iconScale * iconScale,
                                     onClick = { onFolderClick(item.id) },
                                     modifier = Modifier.then(if (folderHoverTargetId == item.id)
                                         Modifier.border(2.dp, accent, RoundedCornerShape(18.dp)) else Modifier),
