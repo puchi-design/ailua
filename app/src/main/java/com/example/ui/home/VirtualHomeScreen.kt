@@ -73,6 +73,8 @@ import com.example.data.desktop.DesktopItem
 import com.example.data.desktop.DesktopContainer
 import com.example.data.desktop.DesktopPage
 import com.example.data.desktop.DesktopItemType
+import com.example.data.desktop.DesktopPlacement
+import com.example.data.desktop.WidgetPlacement
 import com.example.data.desktop.CellRect
 import com.example.ui.design.launcher.WorkspaceAppLabel
 import com.example.ui.design.launcher.WorkspaceViewModel
@@ -87,7 +89,12 @@ import com.example.ui.home.workspace.WorkspaceDragPhase
 import com.example.ui.home.workspace.WorkspaceDragState
 import com.example.ui.home.workspace.WorkspacePage
 import com.example.ui.home.workspace.WorkspacePageGrid
+import com.example.ui.home.workspace.FolderDropIntent
+import com.example.ui.home.workspace.FolderDropResolver
 import com.example.ui.home.hotseat.HomeHotseat
+import com.example.ui.home.folder.FolderHoverController
+import com.example.ui.home.folder.FolderOverlay
+import com.example.ui.home.folder.FolderNameSuggester
 import com.example.ui.home.special.LifeBentoPage
 import com.example.ui.home.widget.WidgetPickerSheet
 import com.example.ui.home.widget.WorkspaceWidgetItem
@@ -139,7 +146,7 @@ fun VirtualHomeScreen(
     onNavigateToMoments: () -> Unit = {},
     onNavigateToLiving: () -> Unit = {},
     onNavigateToMemories: () -> Unit = {},
-    onNavigateToApps: () -> Unit = {},
+    onNavigateToApps: (String?) -> Unit = {},
     onOpenProfile: () -> Unit = {},
     onNavigateToMailbox: () -> Unit = {},
     onNavigateToCall: () -> Unit = {},
@@ -183,6 +190,9 @@ fun VirtualHomeScreen(
     var isEditing by remember { mutableStateOf(initialEditing) }
     var dragState by remember { mutableStateOf(WorkspaceDragState()) }
     var dropPlan by remember { mutableStateOf<DropPlan?>(null) }
+    var folderCandidate by remember { mutableStateOf<FolderDropIntent>(FolderDropIntent.None) }
+    var activeFolderIntent by remember { mutableStateOf<FolderDropIntent>(FolderDropIntent.None) }
+    var openFolderId by remember { mutableStateOf<String?>(null) }
     val gridBounds = remember { mutableStateMapOf<String, Rect>() }
     val gridRows = remember { mutableStateMapOf<String, Int>() }
     var hotseatBounds by remember { mutableStateOf<Rect?>(null) }
@@ -215,6 +225,7 @@ fun VirtualHomeScreen(
     val latestPages by rememberUpdatedState(workspacePages)
     val latestDrag by rememberUpdatedState(dragState)
     val latestDropPlan by rememberUpdatedState(dropPlan)
+    val latestFolderIntent by rememberUpdatedState(activeFolderIntent)
 
     val widgetContext = WidgetHostContext(
         character = character, accent = themeRuntime.palette.accent, worldClock = worldClock,
@@ -266,6 +277,8 @@ fun VirtualHomeScreen(
         }
         temporaryPage = null
         dropPlan = null
+        folderCandidate = FolderDropIntent.None
+        activeFolderIntent = FolderDropIntent.None
         dragState = WorkspaceDragState()
     }
 
@@ -292,6 +305,18 @@ fun VirtualHomeScreen(
             }
             else -> null
         }
+        val candidate = if (item != null && target != null) {
+            val rect = if (target.first == DesktopContainer.HOTSEAT) dockRect else pageRect
+            val columns = if (target.first == DesktopContainer.HOTSEAT) 5 else 4
+            val rows = if (target.first == DesktopContainer.HOTSEAT) 1 else page?.let { gridRows[it.id] } ?: 6
+            if (rect != null && FolderHoverController.isCentered(point, rect, target.third, columns, rows)) {
+                FolderDropResolver.resolve(workspace, item, target.first, target.second, target.third)
+            } else FolderDropIntent.None
+        } else FolderDropIntent.None
+        if (candidate != folderCandidate) {
+            folderCandidate = candidate
+            activeFolderIntent = FolderDropIntent.None
+        }
         dropPlan = if (item != null && target != null) DropResolver.resolveDrop(
             snapshot = workspace.copy(pages = workspacePages), item = item,
             targetContainer = target.first, targetPageId = target.second, targetCell = target.third,
@@ -303,6 +328,15 @@ fun VirtualHomeScreen(
         )
     }
     val latestUpdateHover by rememberUpdatedState(updateHover)
+
+    LaunchedEffect(folderCandidate, dragState.draggedItemId) {
+        if (folderCandidate == FolderDropIntent.None || !dragState.isDragging) return@LaunchedEffect
+        delay(FolderHoverController.DWELL_MS)
+        if (dragState.isDragging && folderCandidate != FolderDropIntent.None) {
+            activeFolderIntent = folderCandidate
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        }
+    }
 
     val pagerRect = pagerBounds?.let(::localBounds)
     val edgeAction = if (dragState.phase == WorkspaceDragPhase.DRAGGING &&
@@ -322,6 +356,8 @@ fun VirtualHomeScreen(
         dragState = dragState.copy(phase = WorkspaceDragPhase.EDGE_DWELL,
             targetContainer = null, hoverCell = null)
         dropPlan = null
+        folderCandidate = FolderDropIntent.None
+        activeFolderIntent = FolderDropIntent.None
         val from = pagerState.currentPage
         edgeJob = scope.launch {
             try {
@@ -441,6 +477,8 @@ fun VirtualHomeScreen(
                                 phase = WorkspaceDragPhase.DRAGGING,
                             )
                             dropPlan = null
+                            folderCandidate = FolderDropIntent.None
+                            activeFolderIntent = FolderDropIntent.None
                         }
                     },
                     onDrag = { change, delta ->
@@ -454,7 +492,26 @@ fun VirtualHomeScreen(
                     },
                     onDragEnd = {
                         val accepted = latestDropPlan as? DropPlan.Accept
-                        if (accepted == null || !latestDrag.isDragging) {
+                        val folderIntent = latestFolderIntent
+                        if (latestDrag.isDragging && folderIntent != FolderDropIntent.None) {
+                            dragState = latestDrag.copy(phase = WorkspaceDragPhase.DROPPING)
+                            scope.launch {
+                                val saved = when (folderIntent) {
+                                    is FolderDropIntent.Create -> workspaceViewModel.createFolder(
+                                        folderIntent.draggedAppId, folderIntent.targetAppId,
+                                        FolderNameSuggester.suggest(
+                                            latestWorkspace.items.firstOrNull { it.id == folderIntent.draggedAppId }?.sourceId,
+                                            latestWorkspace.items.firstOrNull { it.id == folderIntent.targetAppId }?.sourceId,
+                                        ),
+                                    )
+                                    is FolderDropIntent.Add -> workspaceViewModel.addItemToFolder(
+                                        folderIntent.draggedAppId, folderIntent.folderId,
+                                    )
+                                    FolderDropIntent.None -> false
+                                }
+                                finishDrag(restoreSourcePage = !saved)
+                            }
+                        } else if (accepted == null || !latestDrag.isDragging) {
                             scope.launch { finishDrag(restoreSourcePage = true) }
                         } else if (accepted.commit.placements.isEmpty() && accepted.commit.newPage == null) {
                             scope.launch { finishDrag(restoreSourcePage = false) }
@@ -500,10 +557,11 @@ fun VirtualHomeScreen(
                 if (workspacePage != null) {
                     val pageItems = workspace.itemsFor(workspacePage.id)
                     val hover = if (dragState.currentPageId == workspacePage.id &&
-                        dragState.targetContainer == DesktopContainer.WORKSPACE) dragState.hoverCell else null
+                        dragState.targetContainer == DesktopContainer.WORKSPACE &&
+                        activeFolderIntent == FolderDropIntent.None) dragState.hoverCell else null
                     val preview = if (hover != null) (dropPlan as? DropPlan.Accept)?.preview else null
                     WorkspacePage(
-                        items = pageItems, labels = labels, isEditing = isEditing,
+                        items = pageItems, snapshot = workspace, labels = labels, isEditing = isEditing,
                         isDragging = dragState.isDragging, draggedItemId = dragState.draggedItemId,
                         preview = preview, hoverCell = hover, canDrop = dropPlan is DropPlan.Accept,
                         widgetContext = widgetContext,
@@ -526,8 +584,11 @@ fun VirtualHomeScreen(
                         onAppClick = { id -> dispatchAppAction(
                             id, onNavigateToMessages, onNavigateToMoments, onNavigateToLiving,
                             onNavigateToContacts, onNavigateToCheckPhone, onNavigateToDiary,
-                            onNavigateToMemories, onNavigateToRelations, onNavigateToApps, onAppClick,
+                            onNavigateToMemories, onNavigateToRelations, onNavigateToApps,
+                            workspacePages.getOrNull(pagerState.currentPage)?.id, onAppClick,
                         ) },
+                        onFolderClick = { openFolderId = it },
+                        folderHoverTargetId = FolderDropResolver.targetId(activeFolderIntent),
                     )
                 } else {
                     LifeBentoPage(
@@ -621,19 +682,23 @@ fun VirtualHomeScreen(
 
             // Persistent Virtual Phone Dock (system launcher style, translucent + theme tinted)
             HomeHotseat(
-                items = workspace.hotseatItems(), labels = labels,
+                items = workspace.hotseatItems(), snapshot = workspace, labels = labels,
                 accent = themeRuntime.palette.accent,
                 isEditing = isEditing,
                 draggedItemId = dragState.draggedItemId,
-                hoverSlot = if (dragState.targetContainer == DesktopContainer.HOTSEAT)
+                hoverSlot = if (dragState.targetContainer == DesktopContainer.HOTSEAT &&
+                    activeFolderIntent == FolderDropIntent.None)
                     dragState.hoverCell?.x else null,
                 canDrop = dropPlan is DropPlan.Accept,
                 onBounds = { hotseatBounds = it },
                 onAppClick = { id -> dispatchAppAction(
                     id, onNavigateToMessages, onNavigateToMoments, onNavigateToLiving,
                     onNavigateToContacts, onNavigateToCheckPhone, onNavigateToDiary,
-                    onNavigateToMemories, onNavigateToRelations, onNavigateToApps, onAppClick,
+                    onNavigateToMemories, onNavigateToRelations, onNavigateToApps,
+                    workspacePages.getOrNull(pagerState.currentPage)?.id, onAppClick,
                 ) },
+                onFolderClick = { openFolderId = it },
+                folderHoverTargetId = FolderDropResolver.targetId(activeFolderIntent),
             )
 
             // Virtual Home Indicator Bar
@@ -696,6 +761,44 @@ fun VirtualHomeScreen(
                     }
                 }
             }
+        }
+        val folderId = openFolderId
+        val folder = folderId?.let(workspace::folder)
+        if (folder != null) {
+            FolderOverlay(
+                folder = folder,
+                children = workspace.folderItems(folder.id),
+                labels = labels,
+                onDismiss = { openFolderId = null },
+                onRename = { title -> scope.launch { workspaceViewModel.renameFolder(folder.id, title) } },
+                onOpenApp = { sourceId ->
+                    openFolderId = null
+                    dispatchAppAction(sourceId, onNavigateToMessages, onNavigateToMoments,
+                        onNavigateToLiving, onNavigateToContacts, onNavigateToCheckPhone,
+                        onNavigateToDiary, onNavigateToMemories, onNavigateToRelations,
+                        onNavigateToApps, workspacePages.getOrNull(pagerState.currentPage)?.id,
+                        onAppClick)
+                },
+                onMoveOut = { itemId ->
+                    val pages = listOfNotNull(workspacePages.getOrNull(pagerState.currentPage)) +
+                        workspacePages.filterNot { it.id == workspacePages.getOrNull(pagerState.currentPage)?.id }
+                    val destination = pages.firstNotNullOfOrNull { page ->
+                        WidgetPlacement.firstVacant(workspace.itemsFor(page.id), 1, 1)
+                            ?.let { page to it }
+                    }
+                    if (destination == null) widgetMessage = "桌面没有空位"
+                    else scope.launch {
+                        val (page, cell) = destination
+                        val saved = workspaceViewModel.moveItemOutOfFolder(itemId,
+                            DesktopPlacement(DesktopContainer.WORKSPACE, page.id,
+                                cell.x, cell.y, rank = cell.y * 4 + cell.x))
+                        if (saved) openFolderId = null
+                    }
+                },
+                onReorder = { itemId, index ->
+                    scope.launch { workspaceViewModel.moveFolderItem(itemId, folder.id, index) }
+                },
+            )
         }
     }
     }
@@ -976,7 +1079,8 @@ private fun dispatchAppAction(
     onNavigateToDiary: () -> Unit,
     onNavigateToMemories: () -> Unit,
     onNavigateToRelations: () -> Unit,
-    onNavigateToApps: () -> Unit,
+    onNavigateToApps: (String?) -> Unit,
+    preferredPageId: String?,
     onAppClick: (String) -> Unit
 ) {
     when (appId) {
@@ -988,7 +1092,7 @@ private fun dispatchAppAction(
         "diary" -> onNavigateToDiary()
         "memories" -> onNavigateToMemories()
         "relations" -> onNavigateToRelations()
-        "apps" -> onNavigateToApps()
+        "apps" -> onNavigateToApps(preferredPageId)
         else -> onAppClick(appId)
     }
 }

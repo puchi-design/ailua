@@ -10,15 +10,17 @@ CREATE TABLE desktop_item (
  span_y INTEGER NOT NULL DEFAULT 1,
  rank INTEGER NOT NULL DEFAULT 0,
  locked INTEGER NOT NULL DEFAULT 0,
+ parent_folder_id TEXT,
  FOREIGN KEY(page_id) REFERENCES desktop_page(id) ON DELETE CASCADE
 );
 CREATE INDEX desktop_item_page_idx ON desktop_item(page_id);
+CREATE INDEX desktop_item_folder_idx ON desktop_item(parent_folder_id);
 selectAllItems:
 SELECT * FROM desktop_item ORDER BY container, page_id, rank, id;
 insertItem:
-INSERT INTO desktop_item(id, item_type, source_id, container, page_id, cell_x, cell_y, span_x, span_y, rank, locked)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO desktop_item(id, item_type, source_id, container, page_id, parent_folder_id, cell_x, cell_y, span_x, span_y, rank, locked)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 updatePlacement:
-UPDATE desktop_item SET container = ?, page_id = ?, cell_x = ?, cell_y = ?, span_x = ?, span_y = ?, rank = ? WHERE id = ?;
+UPDATE desktop_item SET container = ?, page_id = ?, parent_folder_id = ?, cell_x = ?, cell_y = ?, span_x = ?, span_y = ?, rank = ? WHERE id = ?;
 deleteItem:
 DELETE FROM desktop_item WHERE id = ?;

@@ -14,4 +14,14 @@ interface WorkspaceRepository {
     suspend fun addWidget(sourceId: String, pageId: String, spanX: Int, spanY: Int): WorkspaceSnapshot?
     suspend fun deleteWidget(itemId: String): WorkspaceSnapshot
     suspend fun setHomePage(pageId: String)
+    suspend fun createFolder(
+        draggedItemId: String,
+        targetItemId: String,
+        suggestedTitle: String? = null,
+    ): WorkspaceSnapshot
+    suspend fun addItemToFolder(itemId: String, folderId: String): WorkspaceSnapshot
+    suspend fun moveFolderItem(itemId: String, folderId: String, rank: Int): WorkspaceSnapshot
+    suspend fun moveItemOutOfFolder(itemId: String, placement: DesktopPlacement): WorkspaceSnapshot
+    suspend fun renameFolder(folderId: String, title: String): WorkspaceSnapshot
+    suspend fun dissolveFolderIfNeeded(folderId: String): WorkspaceSnapshot
 }

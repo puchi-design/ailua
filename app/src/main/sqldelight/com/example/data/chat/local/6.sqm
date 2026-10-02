@@ -1,0 +1,6 @@
+ALTER TABLE desktop_item ADD COLUMN parent_folder_id TEXT;
+CREATE INDEX desktop_item_folder_idx ON desktop_item(parent_folder_id);
+CREATE TABLE desktop_folder (
+ id TEXT NOT NULL PRIMARY KEY,
+ title TEXT NOT NULL
+);

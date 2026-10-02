@@ -101,6 +101,45 @@ class WorkspaceViewModel(context: Context) : ViewModel() {
         }
     }
 
+    suspend fun createFolder(draggedId: String, targetId: String, title: String?): Boolean =
+        updateWorkspace("文件夹未创建，请重试") {
+            createFolder(draggedId, targetId, title)
+        }
+
+    suspend fun addItemToFolder(itemId: String, folderId: String): Boolean =
+        updateWorkspace("未能加入文件夹，请重试") {
+            addItemToFolder(itemId, folderId)
+        }
+
+    suspend fun moveFolderItem(itemId: String, folderId: String, rank: Int): Boolean =
+        updateWorkspace("文件夹排序未保存，请重试") {
+            moveFolderItem(itemId, folderId, rank)
+        }
+
+    suspend fun moveItemOutOfFolder(itemId: String, placement: DesktopPlacement): Boolean =
+        updateWorkspace("未能移出文件夹，请重试") {
+            moveItemOutOfFolder(itemId, placement)
+        }
+
+    suspend fun renameFolder(folderId: String, title: String): Boolean =
+        updateWorkspace("文件夹名称未保存，请重试") {
+            renameFolder(folderId, title)
+        }
+
+    private suspend fun updateWorkspace(
+        message: String,
+        operation: suspend WorkspaceRepository.() -> com.example.data.desktop.WorkspaceSnapshot,
+    ): Boolean = try {
+        mutableWorkspace.value = ready.await().operation()
+        mutableError.value = null
+        true
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        mutableError.value = message
+        false
+    }
+
     companion object {
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
             initializer { WorkspaceViewModel(context) }

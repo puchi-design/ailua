@@ -45,7 +45,7 @@ object DropResolver {
         direction: DragDirection = DragDirection.RIGHT,
         temporaryPage: DesktopPage? = null,
     ): DropPlan {
-        if (item.locked || item.type == DesktopItemType.FOLDER) return DropPlan.Reject("Item cannot move")
+        if (item.locked || item.container == DesktopContainer.FOLDER) return DropPlan.Reject("Item cannot move")
         if (item.type == DesktopItemType.AILUA_WIDGET && targetContainer == DesktopContainer.HOTSEAT)
             return DropPlan.Reject("Widgets cannot enter hotseat")
         return when (targetContainer) {
@@ -53,6 +53,7 @@ object DropResolver {
                 snapshot, item, targetPageId, targetCell, direction, temporaryPage,
             )
             DesktopContainer.HOTSEAT -> resolveHotseat(snapshot, item, targetCell)
+            DesktopContainer.FOLDER -> DropPlan.Reject("Folders accept apps through FolderDropResolver")
         }
     }
 

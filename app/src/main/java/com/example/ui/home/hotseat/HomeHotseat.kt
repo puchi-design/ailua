@@ -23,8 +23,12 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.example.data.desktop.DesktopItem
+import com.example.data.desktop.DesktopItemType
+import com.example.data.desktop.DesktopFolder
+import com.example.data.desktop.WorkspaceSnapshot
 import com.example.ui.components.AppIconItem
 import com.example.ui.design.launcher.WorkspaceAppLabel
+import com.example.ui.home.folder.WorkspaceFolderItem
 import com.example.ui.themeengine.DockContainerMode
 import com.example.ui.themeengine.LocalAiluaTheme
 
@@ -32,6 +36,7 @@ import com.example.ui.themeengine.LocalAiluaTheme
 @Composable
 fun HomeHotseat(
     items: List<DesktopItem>,
+    snapshot: WorkspaceSnapshot,
     labels: Map<String, WorkspaceAppLabel>,
     accent: Color,
     isEditing: Boolean,
@@ -40,6 +45,8 @@ fun HomeHotseat(
     canDrop: Boolean,
     onBounds: (Rect) -> Unit,
     onAppClick: (String) -> Unit,
+    onFolderClick: (String) -> Unit,
+    folderHoverTargetId: String?,
 ) {
     val runtime = LocalAiluaTheme.current
     val dock = runtime.dock
@@ -98,17 +105,29 @@ fun HomeHotseat(
                     Modifier.weight(1f).border(1.dp, outline, RoundedCornerShape(14.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (item != null && label != null) {
+                    if (item != null) {
                         Box(
                             modifier = Modifier.then(if (item.id == draggedItemId) Modifier.drawGhost() else Modifier),
                             contentAlignment = Alignment.Center,
                         ) {
-                            AppIconItem(
-                                name = label.name, iconKey = label.iconKey, badge = label.badge,
-                                showLabel = false, editMode = isEditing,
-                                size = com.example.ui.components.AppIconDefaults.ContainerSize * dock.iconScale,
-                                onClick = if (isEditing) ({}) else ({ onAppClick(item.sourceId) }),
-                            )
+                            when (item.type) {
+                                DesktopItemType.APP -> if (label != null) AppIconItem(
+                                    name = label.name, iconKey = label.iconKey, badge = label.badge,
+                                    showLabel = false, editMode = isEditing,
+                                    size = com.example.ui.components.AppIconDefaults.ContainerSize * dock.iconScale,
+                                    onClick = if (isEditing) ({}) else ({ onAppClick(item.sourceId) }),
+                                )
+                                DesktopItemType.FOLDER -> WorkspaceFolderItem(
+                                    folder = snapshot.folder(item.id) ?: DesktopFolder(item.id, "文件夹"),
+                                    children = snapshot.folderItems(item.id), labels = labels,
+                                    isEditing = isEditing, showLabel = false,
+                                    size = com.example.ui.components.AppIconDefaults.ContainerSize * dock.iconScale,
+                                    onClick = { onFolderClick(item.id) },
+                                    modifier = Modifier.then(if (folderHoverTargetId == item.id)
+                                        Modifier.border(2.dp, accent, RoundedCornerShape(18.dp)) else Modifier),
+                                )
+                                DesktopItemType.AILUA_WIDGET -> Unit
+                            }
                         }
                     }
                 }

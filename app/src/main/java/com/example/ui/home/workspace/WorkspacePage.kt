@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.border
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -22,7 +23,9 @@ import androidx.compose.ui.unit.dp
 import com.example.data.desktop.CellRect
 import com.example.data.desktop.DesktopItem
 import com.example.data.desktop.DesktopItemType
+import com.example.data.desktop.DesktopFolder
 import com.example.data.desktop.GridSpec
+import com.example.data.desktop.WorkspaceSnapshot
 import com.example.ui.components.AppIconItem
 import com.example.ui.design.launcher.CellLayout
 import com.example.ui.design.launcher.DropIndicator
@@ -31,12 +34,16 @@ import com.example.ui.design.launcher.layout.LayoutSolution
 import com.example.ui.home.WidgetHostContext
 import com.example.ui.home.WidgetSize
 import com.example.ui.home.widget.WorkspaceWidgetItem
+import com.example.ui.home.folder.WorkspaceFolderItem
+import com.example.ui.themeengine.LocalAiluaTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import kotlin.math.roundToInt
 import androidx.compose.ui.unit.IntOffset
 
 @Composable
 fun WorkspacePageGrid(
     items: List<DesktopItem>,
+    snapshot: WorkspaceSnapshot,
     labels: Map<String, WorkspaceAppLabel>,
     displayRows: Int,
     isEditing: Boolean,
@@ -54,9 +61,12 @@ fun WorkspacePageGrid(
     onWidgetResizeCommit: (String, WidgetSize) -> Unit,
     onBounds: (Rect) -> Unit,
     onAppClick: (String) -> Unit,
+    onFolderClick: (String) -> Unit,
+    folderHoverTargetId: String?,
     modifier: Modifier = Modifier,
 ) {
     val grid = GridSpec(rows = displayRows)
+    val theme = LocalAiluaTheme.current
     BoxWithConstraints(modifier.onGloballyPositioned { onBounds(it.boundsInRoot()) }.testTag("home_app_grid")) {
         val cellWidth = constraints.maxWidth.toFloat() / grid.columns
         val cellHeight = constraints.maxHeight.toFloat() / grid.rows
@@ -72,7 +82,9 @@ fun WorkspacePageGrid(
                 }
             } else if (item.type == DesktopItemType.APP) labels[item.sourceId]?.let { label ->
                 Box(
-                    Modifier.fillMaxSize().alpha(if (item.id == draggedItemId) 0.25f else 1f),
+                    Modifier.fillMaxSize().alpha(if (item.id == draggedItemId) 0.25f else 1f)
+                        .then(if (folderHoverTargetId == item.id) Modifier.border(
+                            2.dp, theme.palette.accent, RoundedCornerShape(20.dp)) else Modifier),
                     contentAlignment = Alignment.Center,
                 ) {
                     AppIconItem(
@@ -80,6 +92,18 @@ fun WorkspacePageGrid(
                         editMode = isEditing,
                         onClick = if (isEditing) ({}) else ({ onAppClick(item.sourceId) }),
                     )
+                }
+            } else if (item.type == DesktopItemType.FOLDER) {
+                val folder = snapshot.folder(item.id) ?: DesktopFolder(item.id, "文件夹")
+                Box(
+                    Modifier.fillMaxSize().alpha(if (item.id == draggedItemId) 0.25f else 1f)
+                        .then(if (folderHoverTargetId == item.id) Modifier.border(
+                            2.dp, theme.palette.accent, RoundedCornerShape(20.dp)) else Modifier),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    WorkspaceFolderItem(folder, snapshot.folderItems(item.id), labels,
+                        isEditing = isEditing, showLabel = true,
+                        onClick = { onFolderClick(item.id) })
                 }
             }
         }
@@ -105,6 +129,7 @@ fun WorkspacePageGrid(
 @Composable
 fun WorkspacePage(
     items: List<DesktopItem>,
+    snapshot: WorkspaceSnapshot,
     labels: Map<String, WorkspaceAppLabel>,
     isEditing: Boolean,
     isDragging: Boolean,
@@ -122,6 +147,8 @@ fun WorkspacePage(
     onWidgetResizeCommit: (String, WidgetSize) -> Unit,
     onBounds: (Rect) -> Unit,
     onAppClick: (String) -> Unit,
+    onFolderClick: (String) -> Unit,
+    folderHoverTargetId: String?,
 ) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState(), enabled = !isDragging)
@@ -129,7 +156,7 @@ fun WorkspacePage(
     ) {
         Spacer(Modifier.height(24.dp))
         WorkspacePageGrid(
-            items = items, labels = labels, displayRows = 6, isEditing = isEditing,
+            items = items, snapshot = snapshot, labels = labels, displayRows = 6, isEditing = isEditing,
             draggedItemId = draggedItemId, preview = preview, hoverCell = hoverCell,
             widgetContext = widgetContext, selectedWidgetId = selectedWidgetId,
             resizeOutline = resizeOutline, resizeValid = resizeValid,
@@ -137,6 +164,7 @@ fun WorkspacePage(
             onWidgetResizePreview = onWidgetResizePreview,
             onWidgetResizeCommit = onWidgetResizeCommit,
             canDrop = canDrop, onBounds = onBounds, onAppClick = onAppClick,
+            onFolderClick = onFolderClick, folderHoverTargetId = folderHoverTargetId,
             modifier = Modifier.fillMaxWidth().height((6 * 82).dp),
         )
     }

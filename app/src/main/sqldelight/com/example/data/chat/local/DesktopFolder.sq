@@ -1,0 +1,13 @@
+CREATE TABLE desktop_folder (
+ id TEXT NOT NULL PRIMARY KEY,
+ title TEXT NOT NULL
+);
+
+selectAllFolders:
+SELECT * FROM desktop_folder ORDER BY id;
+insertFolder:
+INSERT INTO desktop_folder(id, title) VALUES (?, ?);
+renameFolder:
+UPDATE desktop_folder SET title = ? WHERE id = ?;
+deleteFolder:
+DELETE FROM desktop_folder WHERE id = ?;

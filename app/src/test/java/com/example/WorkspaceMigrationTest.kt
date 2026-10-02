@@ -23,7 +23,7 @@ class WorkspaceMigrationTest {
             val repo = SqlDelightWorkspaceRepository(db.database)
             repo.migrateIfEmpty(listOf("gallery"))
             val first = repo.snapshot()
-            db.database.desktopItemQueries.updatePlacement("WORKSPACE", WorkspaceSeed.HOME_ID,
+            db.database.desktopItemQueries.updatePlacement("WORKSPACE", WorkspaceSeed.HOME_ID, null,
                 3, 5, 1, 1, 0, "app_gallery")
             repo.migrateIfEmpty(listOf("mailbox"))
             val restored = repo.snapshot()
