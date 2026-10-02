@@ -118,6 +118,49 @@ data class StatusBarVisualSpec(
     val minimal: Boolean
 )
 
+/** Shared system surfaces keep each skin's shape, edge and depth treatment. */
+data class SystemCardStyle(
+    val backgroundColor: Color,
+    val foregroundColor: Color,
+    val cornerRadiusDp: Float,
+    val surfaceAlpha: Float,
+    val border: BorderSpec,
+    val shadow: ShadowSpec
+)
+
+data class LockscreenVisualSpec(
+    val clockScale: Float,
+    val foregroundColor: Color,
+    val scrimAlpha: Float,
+    val notificationStyle: SystemCardStyle,
+    val shortcutStyle: SystemCardStyle
+)
+
+data class ShadeVisualSpec(
+    val backgroundAlpha: Float,
+    val cardCornerRadiusDp: Float,
+    val cardAlpha: Float,
+    val spacingDp: Float,
+    val cardStyle: SystemCardStyle
+)
+
+data class ControlCenterVisualSpec(
+    val tileCornerRadiusDp: Float,
+    val activeAlpha: Float,
+    val inactiveAlpha: Float,
+    val panelAlpha: Float,
+    val tileStyle: SystemCardStyle
+)
+
+data class LiveActivityVisualSpec(
+    val compactCornerRadiusDp: Float,
+    val expandedCornerRadiusDp: Float,
+    val backgroundColor: Color,
+    val foregroundColor: Color,
+    val border: BorderSpec,
+    val shadow: ShadowSpec
+)
+
 enum class EditMotion { WIGGLE, FLOAT, SCALE, NONE }
 data class MotionSpec(
     val pressScale: Float,
@@ -136,6 +179,10 @@ data class AiluaThemeRuntime(
     val dock: DockVisualSpec,
     val typography: TypographySpec,
     val statusBar: StatusBarVisualSpec,
+    val lockscreen: LockscreenVisualSpec,
+    val shade: ShadeVisualSpec,
+    val controlCenter: ControlCenterVisualSpec,
+    val liveActivity: LiveActivityVisualSpec,
     val motion: MotionSpec
 )
 

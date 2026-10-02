@@ -80,6 +80,13 @@ import com.example.ui.settings.PrivacyScreen
 import com.example.ui.theater.TheaterScreen
 import com.example.ui.theme.AiluaTheme
 import com.example.ui.world.WorldPlacesScreen
+import com.example.data.systemui.lock.VirtualLockStore
+import com.example.ui.systemui.VirtualSystemUiSession
+import com.example.ui.systemui.VirtualSystemUiHost
+import com.example.ui.themeengine.AiluaThemeProvider
+import com.example.ui.themeengine.ThemeResolver
+import com.example.ui.themeengine.ThemeStore
+import com.example.ui.themeengine.external.ExternalThemeRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -90,6 +97,11 @@ class MainActivity : ComponentActivity() {
         AiluaLocalStore.init(applicationContext)
         CharacterContext.init(applicationContext)
         FirstSessionStore.init(applicationContext)
+        VirtualLockStore.initialize(applicationContext)
+        VirtualSystemUiSession.controller.initializeColdStart(
+            FirstSessionStore.state.value.onboardingComplete,
+            VirtualLockStore.lockOnColdStart.value
+        )
         RealityRepository.init(applicationContext)
         RelationshipStateRepository.restore()
         ProviderGraph.init(applicationContext)
@@ -145,8 +157,17 @@ class MainActivity : ComponentActivity() {
 fun AiluaAppRoot() {
     val systemDark = isSystemInDarkTheme()
     val context = LocalContext.current
+    remember(context) {
+        ThemeStore.initialize(context)
+        ExternalThemeRepository.initialize(context)
+        true
+    }
+    val worldClock by WorldHeartbeatEngine.worldClock.collectAsStateWithLifecycle()
     val appearancePrefs = remember(context) { context.getSharedPreferences("ailua_settings", android.content.Context.MODE_PRIVATE) }
     var isDarkTheme by remember { mutableStateOf(appearancePrefs.getBoolean("dark_theme", systemDark)) }
+    val themeRuntime = ThemeResolver.resolve(
+        ThemeStore.selection, isDarkTheme, worldClock.dayPhase, worldClock.weather
+    )
     LaunchedEffect(isDarkTheme) { appearancePrefs.edit().putBoolean("dark_theme", isDarkTheme).apply() }
     val navController = rememberNavController()
     val firstSession by FirstSessionStore.state.collectAsStateWithLifecycle()
@@ -190,6 +211,7 @@ fun AiluaAppRoot() {
     }
 
     AiluaTheme(darkTheme = isDarkTheme) {
+        AiluaThemeProvider(themeRuntime) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
@@ -202,6 +224,13 @@ fun AiluaAppRoot() {
                 }
                 return@Surface
             }
+            VirtualSystemUiHost(
+                currentCall = currentCall,
+                currentRoute = currentRoute,
+                isDarkTheme = isDarkTheme,
+                onToggleDarkMode = { isDarkTheme = !isDarkTheme },
+                onLaunchRoute = { route -> navController.navigate(route) { launchSingleTop = true } },
+            ) {
             NavHost(
                 navController = navController,
                 startDestination = AiluaDestinations.HOME,
@@ -593,6 +622,8 @@ fun AiluaAppRoot() {
                     )
                 }
             }
+            }
+        }
         }
     }
 }

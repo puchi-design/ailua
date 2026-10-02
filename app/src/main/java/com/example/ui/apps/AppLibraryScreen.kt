@@ -55,17 +55,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.desktop.DesktopItemType
 import com.example.data.desktop.WorkspaceGraph
-import com.example.data.engine.WorldHeartbeatEngine
 import com.example.data.model.AiluaApp
 import com.example.ui.components.AppIconItem
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
 import com.example.ui.design.launcher.WorkspaceViewModel
 import com.example.ui.launcher.LauncherAppCatalog
-import com.example.ui.themeengine.AiluaThemeProvider
-import com.example.ui.themeengine.ThemeResolver
-import com.example.ui.themeengine.ThemeStore
-import com.example.ui.themeengine.external.ExternalThemeRepository
+import com.example.ui.themeengine.LocalAiluaTheme
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -81,11 +77,7 @@ fun AppLibraryScreen(
     onOpenApp: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
-    remember(context) { ThemeStore.initialize(context); ExternalThemeRepository.initialize(context); true }
-    val worldClock by WorldHeartbeatEngine.worldClock.collectAsStateWithLifecycle()
-    val themeRuntime = ThemeResolver.resolve(
-        ThemeStore.selection, isDarkTheme, worldClock.dayPhase, worldClock.weather
-    )
+    val themeRuntime = LocalAiluaTheme.current
     val workspaceViewModel: WorkspaceViewModel = viewModel(factory = WorkspaceViewModel.factory(context))
     val workspace by workspaceViewModel.workspace.collectAsStateWithLifecycle()
     val placedApps = workspace.items.asSequence()
@@ -104,7 +96,6 @@ fun AppLibraryScreen(
         filterAppLibrary(apps, searchQuery, selectedCategory)
     }
 
-    AiluaThemeProvider(themeRuntime) {
     Box(modifier = Modifier.fillMaxSize()) {
     Column(modifier = Modifier.fillMaxSize().background(themeRuntime.palette.backgroundPrimary).testTag("app_library_screen")) {
         VirtualPhoneStatusBar(
@@ -327,7 +318,6 @@ fun AppLibraryScreen(
                 }
             }
         )
-    }
     }
 }
 

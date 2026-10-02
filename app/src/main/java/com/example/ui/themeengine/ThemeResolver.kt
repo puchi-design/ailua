@@ -54,6 +54,10 @@ object ThemeResolver {
             dock = dockSpec(preset.dockStyleId, palette),
             typography = typographySpec(preset.typographyId),
             statusBar = statusSpec(preset.statusBarStyleId, palette, darkMode),
+            lockscreen = lockscreenSpec(preset.id, palette),
+            shade = shadeSpec(preset.id, palette),
+            controlCenter = controlCenterSpec(preset.id, palette),
+            liveActivity = liveActivitySpec(preset.id, palette),
             motion = motionSpec(preset.motionStyleId)
         )
     }
@@ -191,6 +195,62 @@ object ThemeResolver {
         )
         "mono" -> StatusBarVisualSpec(StatusForegroundMode.AUTO, p.onSurface, 0f, true)
         else -> StatusBarVisualSpec(StatusForegroundMode.AUTO, p.onSurface, 0.1f, false)
+    }
+
+    private fun systemCardSpec(id: String, p: PaletteSpec): SystemCardStyle = when (id) {
+        "glass" -> SystemCardStyle(p.surface, p.onSurface, 26f, 0.54f,
+            BorderSpec(p.highlight.copy(alpha = 0.65f), 1f), ShadowSpec(12f))
+        "diary" -> SystemCardStyle(p.surface, p.onSurface, 9f, 0.97f,
+            BorderSpec(p.border, 1f), ShadowSpec(3f))
+        "mono" -> SystemCardStyle(p.surface, p.onSurface, 2f, 1f,
+            BorderSpec(p.onSurfaceMuted.copy(alpha = 0.5f), 0.7f), ShadowSpec(0f))
+        else -> SystemCardStyle(p.surface, p.onSurface, 24f, 0.94f,
+            BorderSpec(p.highlight.copy(alpha = 0.8f), 0.7f), ShadowSpec(6f))
+    }
+
+    private fun lockscreenSpec(id: String, p: PaletteSpec): LockscreenVisualSpec {
+        val card = systemCardSpec(id, p)
+        return LockscreenVisualSpec(
+            clockScale = when (id) { "glass" -> 1.08f; "diary" -> 0.94f; "mono" -> 0.90f; else -> 1f },
+            foregroundColor = p.onSurface,
+            scrimAlpha = when (id) { "glass" -> 0.20f; "diary" -> 0.10f; "mono" -> 0.05f; else -> 0.08f },
+            notificationStyle = card,
+            shortcutStyle = card.copy(cornerRadiusDp = when (id) { "diary" -> 12f; "mono" -> 3f; else -> 28f })
+        )
+    }
+
+    private fun shadeSpec(id: String, p: PaletteSpec): ShadeVisualSpec {
+        val card = systemCardSpec(id, p)
+        return ShadeVisualSpec(
+            backgroundAlpha = when (id) { "glass" -> 0.76f; "diary" -> 0.98f; "mono" -> 1f; else -> 0.95f },
+            cardCornerRadiusDp = card.cornerRadiusDp,
+            cardAlpha = card.surfaceAlpha,
+            spacingDp = when (id) { "diary" -> 10f; "mono" -> 6f; else -> 12f },
+            cardStyle = card
+        )
+    }
+
+    private fun controlCenterSpec(id: String, p: PaletteSpec): ControlCenterVisualSpec {
+        val card = systemCardSpec(id, p)
+        return ControlCenterVisualSpec(
+            tileCornerRadiusDp = card.cornerRadiusDp,
+            activeAlpha = when (id) { "glass" -> 0.80f; "mono" -> 1f; else -> 0.95f },
+            inactiveAlpha = card.surfaceAlpha,
+            panelAlpha = when (id) { "glass" -> 0.78f; "diary" -> 0.98f; else -> 0.96f },
+            tileStyle = card
+        )
+    }
+
+    private fun liveActivitySpec(id: String, p: PaletteSpec): LiveActivityVisualSpec {
+        val card = systemCardSpec(id, p)
+        return LiveActivityVisualSpec(
+            compactCornerRadiusDp = when (id) { "diary" -> 8f; "mono" -> 3f; else -> 24f },
+            expandedCornerRadiusDp = card.cornerRadiusDp,
+            backgroundColor = card.backgroundColor.copy(alpha = card.surfaceAlpha),
+            foregroundColor = card.foregroundColor,
+            border = card.border,
+            shadow = card.shadow
+        )
     }
 
     private fun motionSpec(id: String): MotionSpec = when (id) {

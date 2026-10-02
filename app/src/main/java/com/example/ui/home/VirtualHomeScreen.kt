@@ -36,7 +36,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
@@ -117,14 +116,9 @@ import com.example.ui.components.AiluaAvatar
 import com.example.ui.components.VirtualPhoneHomeBar
 import com.example.ui.components.VirtualPhoneStatusBar
 import com.example.ui.components.WorldTimeDevSheet
-import com.example.ui.themeengine.AiluaThemeProvider
-import com.example.ui.themeengine.ThemeResolver
-import com.example.ui.themeengine.ThemeStore
-import com.example.ui.themeengine.external.ExternalThemeRepository
-import android.graphics.BitmapFactory
+import com.example.ui.themeengine.LocalAiluaTheme
+import com.example.ui.themeengine.rememberThemeWallpaperBitmap
 import androidx.compose.foundation.Image
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import com.example.ui.themecenter.ThemeCenterSheet
 import com.example.ui.themecenter.ThemeCenterSection
@@ -198,16 +192,11 @@ fun VirtualHomeScreen(
     var resizeSize by remember { mutableStateOf<WidgetSize?>(null) }
     var resizePlan by remember { mutableStateOf<DropPlan?>(null) }
     remember(context) {
-        ThemeStore.initialize(context)
-        ExternalThemeRepository.initialize(context)
         HomeDisplayPreferencesStore.initialize(context)
         true
     }
     val homeDisplayPreferences = HomeDisplayPreferencesStore.current
-    val selection = ThemeStore.selection
-    val themeRuntime = ThemeResolver.resolve(
-        selection, isDarkTheme, worldClock.dayPhase, worldClock.weather
-    )
+    val themeRuntime = LocalAiluaTheme.current
 
     // Edit mode: entered by long pressing the wallpaper or an app icon,
     // left by tapping blank space, the [完成] pill, the Home bar or Back.
@@ -433,21 +422,7 @@ fun VirtualHomeScreen(
         }
     }
 
-    val importedWallpaper by produceState<ImageBitmap?>(null, selection.wallpaperSourceId, ExternalThemeRepository.themes) {
-        value = withContext(Dispatchers.IO) {
-            runCatching {
-                val bytes = selection.wallpaperSourceId?.let(ExternalThemeRepository::get)
-                    ?.wallpapers?.firstOrNull()?.let(ExternalThemeRepository::assetBytes) ?: return@runCatching null
-                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-                if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@runCatching null
-                var sample = 1
-                while (bounds.outWidth / sample > 2048 || bounds.outHeight / sample > 2048) sample *= 2
-                val options = BitmapFactory.Options().apply { inSampleSize = sample }
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)?.asImageBitmap()
-            }.getOrNull()
-        }
-    }
+    val importedWallpaper by rememberThemeWallpaperBitmap()
 
     // Long press the wallpaper enters edit mode, tapping blank space leaves it
     BackHandler(enabled = isEditing || dragState.isDragging) {
@@ -455,7 +430,6 @@ fun VirtualHomeScreen(
         else isEditing = false
     }
 
-    AiluaThemeProvider(themeRuntime) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -866,7 +840,6 @@ fun VirtualHomeScreen(
                 },
             )
         }
-    }
     }
 }
 

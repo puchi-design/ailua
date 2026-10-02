@@ -17,6 +17,10 @@ class ThemeResolverTest {
         assertEquals(4, runtimes.map { it.icons.containerStyle }.toSet().size)
         assertEquals(4, runtimes.map { it.dock.containerMode }.toSet().size)
         assertEquals(4, runtimes.map { it.motion.editMotion }.toSet().size)
+        assertEquals(4, runtimes.map { it.lockscreen.notificationStyle.cornerRadiusDp }.toSet().size)
+        assertEquals(4, runtimes.map { it.shade.backgroundAlpha }.toSet().size)
+        assertEquals(4, runtimes.map { it.controlCenter.tileCornerRadiusDp }.toSet().size)
+        assertEquals(4, runtimes.map { it.liveActivity.expandedCornerRadiusDp }.toSet().size)
     }
 
     @Test
@@ -31,6 +35,9 @@ class ThemeResolverTest {
         assertEquals(base.dock.containerMode, sakura.dock.containerMode)
         assertNotEquals(base.palette.accent, sakura.palette.accent)
         assertNotEquals(base.wallpaper.colors, sakura.wallpaper.colors)
+        assertEquals(base.lockscreen.notificationStyle.cornerRadiusDp, sakura.lockscreen.notificationStyle.cornerRadiusDp)
+        assertEquals(base.controlCenter.tileCornerRadiusDp, sakura.controlCenter.tileCornerRadiusDp)
+        assertEquals(sakura.palette.onSurface, sakura.liveActivity.foregroundColor)
     }
 
     @Test
