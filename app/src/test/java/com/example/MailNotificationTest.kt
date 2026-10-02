@@ -23,7 +23,12 @@ class MailNotificationTest {
         context.getSharedPreferences("ailua_os_store", Context.MODE_PRIVATE).edit().clear().commit()
         AiluaLocalStore.init(context)
         AiluaLocalStore.loadFromDisk()
-        MailboxRepository.syncWithLocalStore(0)
+        // The seed inbox already contains Mira's delivered letter at 21:30.
+        // Rewinding the clock must not turn persisted delivery history into a new event.
+        MailboxRepository.syncWithLocalStore(21 * 60 + 30)
+        assertEquals(LetterDeliveryState.DELIVERED, MailboxRepository.letters.value.single { it.id == "letter_mira_1" }.deliveryState)
+        val scheduledIds = setOf("letter_yuna_1", "letter_noa_1")
+        assertEquals(scheduledIds, MailboxRepository.letters.value.filter { it.deliveryState == LetterDeliveryState.SCHEDULED }.map { it.id }.toSet())
         val notifications = mutableListOf<VirtualNotification>()
         val newlyDelivered = MailboxRepository.checkScheduledDeliveries(
             currentVirtualMinutes = 23 * 60,
@@ -35,12 +40,13 @@ class MailNotificationTest {
                 notifications += notification
             },
         )
-        assertEquals(3, newlyDelivered.size)
-        assertEquals(newlyDelivered.map { "mail:${it.id}" }.toSet(), notifications.map { it.sourceKey }.toSet())
+        assertEquals(scheduledIds, newlyDelivered.map { it.id }.toSet())
+        assertEquals(2, notifications.size)
+        assertEquals(scheduledIds.map { "mail:$it" }.toSet(), notifications.map { it.sourceKey }.toSet())
         assertTrue(notifications.all { it.category == NotificationCategory.MAIL && it.route == "mailbox" && it.timestampEpochMs == 1_234L })
         MailboxRepository.syncWithLocalStore(23 * 60)
         val repeated = MailboxRepository.checkScheduledDeliveries(23 * 60, { notifications += it })
         assertTrue(repeated.isEmpty())
-        assertEquals(3, notifications.size)
+        assertEquals(2, notifications.size)
     }
 }

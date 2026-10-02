@@ -53,14 +53,17 @@ class SqlDelightVirtualNotificationRepository(
 
     override suspend fun markSeen(id: String) = withContext(Dispatchers.IO) {
         queries.markNotificationSeen(id)
+        Unit
     }
 
     override suspend fun dismiss(id: String) = withContext(Dispatchers.IO) {
         queries.dismissNotification(id)
+        Unit
     }
 
     override suspend fun clearDismissible() = withContext(Dispatchers.IO) {
         queries.clearDismissibleNotifications()
+        Unit
     }
 
     private fun Virtual_notification.toDomain() = VirtualNotification(

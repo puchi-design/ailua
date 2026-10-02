@@ -27,6 +27,12 @@ class VirtualSystemUiControllerTest {
     @Test fun panelsKeepLockAndCloseBackToLockscreenWithoutTouchingAppNavigation() {
         val controller = VirtualSystemUiController()
         controller.lock()
+        controller.updatePriorityCall("incoming", incoming = true)
+        controller.updatePriorityCall("incoming", incoming = false)
+        assertTrue(controller.state.value.isLocked)
+        assertEquals("incoming", controller.priorityCallId.value)
+        controller.lock()
+        assertNull(controller.priorityCallId.value)
         controller.openNotifications()
         assertTrue(controller.state.value.isLocked)
         assertEquals(SystemUiSurface.NOTIFICATION_SHADE, controller.state.value.surface)

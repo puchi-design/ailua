@@ -90,6 +90,7 @@ import com.example.ui.themeengine.ThemeResolver
 import com.example.ui.themeengine.ThemeStore
 import com.example.ui.themeengine.external.ExternalThemeRepository
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -139,6 +140,16 @@ class MainActivity : ComponentActivity() {
         setContent {
             CompositionLocalProvider(LocalOsChromeState provides rememberOsChromeState()) {
                 AiluaAppRoot()
+            }
+        }
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                VirtualSystemUiSession.controller.state.collect {
+                    // A pull from the physical top edge can reveal Android's transient
+                    // status bar without changing window focus. Reapply immersive mode
+                    // after the virtual surface has opened, and after returning to the app.
+                    window.decorView.post { hideNativeStatusBar() }
+                }
             }
         }
     }

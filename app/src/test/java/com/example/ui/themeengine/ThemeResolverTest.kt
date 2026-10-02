@@ -1,5 +1,8 @@
 package com.example.ui.themeengine
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.luminance
 import com.example.data.model.DayPhase
 import com.example.data.model.WeatherState
 import com.example.ui.components.wallpaperPalette
@@ -9,6 +12,27 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ThemeResolverTest {
+    @Test
+    fun glassSystemForegroundsStayReadableOverBrightWallpaperAndPaletteOverrides() {
+        fun contrast(foreground: Color, background: Color): Float {
+            val first = foreground.compositeOver(background).luminance()
+            val second = background.luminance()
+            return (maxOf(first, second) + 0.05f) / (minOf(first, second) + 0.05f)
+        }
+        for (dark in listOf(false, true)) for (palette in listOf("world", "cream", "mist")) {
+            val runtime = ThemeResolver.resolve(ThemeSelection("glass", paletteOverrideId = palette),
+                dark, DayPhase.NOON, WeatherState.CLEAR)
+            val shade = runtime.palette.backgroundPrimary.copy(alpha = runtime.shade.backgroundAlpha).compositeOver(Color.White)
+            val control = runtime.palette.backgroundPrimary.copy(alpha = runtime.controlCenter.panelAlpha).compositeOver(Color.White)
+            val lock = runtime.palette.backgroundPrimary.copy(alpha = runtime.lockscreen.scrimAlpha).compositeOver(Color.White)
+            val live = runtime.liveActivity.backgroundColor.compositeOver(Color.White)
+            assertTrue(contrast(runtime.palette.onSurface, shade) >= 4.5f)
+            assertTrue(contrast(runtime.palette.onSurfaceMuted, control) >= 4.5f)
+            assertTrue(contrast(runtime.lockscreen.foregroundColor.copy(alpha = 0.68f), lock) >= 4.5f)
+            assertTrue(contrast(runtime.liveActivity.foregroundColor.copy(alpha = 0.72f), live) >= 4.5f)
+        }
+    }
+
     @Test
     fun allPresetsProduceDistinctVisualTreatments() {
         val runtimes = ThemeCatalog.presets.map { preset ->

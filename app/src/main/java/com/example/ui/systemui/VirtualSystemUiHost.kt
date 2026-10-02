@@ -11,8 +11,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,7 +24,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -39,6 +45,7 @@ import com.example.data.systemui.notification.NotificationHeadsUpPolicy
 import com.example.data.systemui.control.ControlCenterStore
 import com.example.navigation.AiluaDestinations
 import com.example.ui.components.VirtualPhoneStatusBar
+import com.example.ui.themeengine.LocalAiluaTheme
 import com.example.ui.systemui.lockscreen.VirtualLockScreen
 import com.example.ui.systemui.lockscreen.LockScreenNotificationItem
 import com.example.ui.systemui.lockscreen.LockScreenNotificationPreview
@@ -73,14 +80,25 @@ fun VirtualSystemUiHost(
     val activities by LiveActivityCenter.activities.collectAsStateWithLifecycle()
     var liveExpanded by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
+    val view = LocalView.current
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    var windowHasFocus by remember(view) { mutableStateOf(view.hasWindowFocus()) }
+    DisposableEffect(view) {
+        val observer = view.viewTreeObserver
+        val listener = android.view.ViewTreeObserver.OnWindowFocusChangeListener { windowHasFocus = it }
+        observer.addOnWindowFocusChangeListener(listener)
+        onDispose { if (observer.isAlive) observer.removeOnWindowFocusChangeListener(listener) }
+    }
     val lifecycleOwner = LocalLifecycleOwner.current
     var headsUp by remember { mutableStateOf<VirtualNotification?>(null) }
     val currentIncoming by androidx.compose.runtime.rememberUpdatedState(incoming)
+    val currentWindowFocus by androidx.compose.runtime.rememberUpdatedState(windowHasFocus)
     LaunchedEffect(repository, lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             repository.newNotifications.collect { notification ->
                 val current = controller.state.value
-                if (NotificationHeadsUpPolicy.shouldShow(notification, current.isLocked,
+                if (currentWindowFocus && NotificationHeadsUpPolicy.shouldShow(notification, current.isLocked,
                         current.surface != SystemUiSurface.NONE,
                         focusMode = ControlCenterStore.state.value.focusMode, isIncomingCall = currentIncoming)) {
                     headsUp = notification
@@ -91,8 +109,12 @@ fun VirtualSystemUiHost(
             }
         }
     }
-    LaunchedEffect(state.surface, incoming, controls.focusMode) {
-        if (state.surface != SystemUiSurface.NONE || incoming || controls.focusMode) headsUp = null
+    LaunchedEffect(state.surface, incoming, controls.focusMode, windowHasFocus) {
+        if (state.surface != SystemUiSurface.NONE || incoming || controls.focusMode || !windowHasFocus) headsUp = null
+        if (state.surface != SystemUiSurface.NONE || incoming) {
+            focusManager.clearFocus()
+            keyboard?.hide()
+        }
     }
     LaunchedEffect(activities.map { it.id }, state.surface, incoming) {
         liveExpanded = false
@@ -110,6 +132,8 @@ fun VirtualSystemUiHost(
     val priorityCallVisible = incoming || (priorityCallId != null &&
         priorityCallId == currentCall?.id && currentRoute == "call/{characterId}")
     val showLock = state.isLocked && !priorityCallVisible
+    val panelOpen = !incoming && (state.surface == SystemUiSurface.NOTIFICATION_SHADE ||
+        state.surface == SystemUiSurface.CONTROL_CENTER)
 
     fun launchUnlocked(route: String) {
         headsUp = null
@@ -129,8 +153,12 @@ fun VirtualSystemUiHost(
         { LiveActivityChip(activities, onClick = { liveExpanded = !liveExpanded }) }
     }
     VirtualSystemUiProvider(controller, unseenCount = notifications.count { !it.seen }, activityContent = activityContent) {
-        Box(Modifier.fillMaxSize()) {
-            content()
+        // Android 15+ enforces edge-to-edge. Keep all virtual OS surfaces inside
+        // the same cutout/system-bar safe area, including transient bar reveals.
+        Box(Modifier.fillMaxSize().background(LocalAiluaTheme.current.palette.backgroundPrimary).safeDrawingPadding()) {
+            Box(Modifier.fillMaxSize().coveredSystemUi(showLock || panelOpen || liveExpanded)) {
+                content()
+            }
             headsUp?.let { notification ->
                 HeadsUpNotification(notification, ::openNotification, onDismiss = { headsUp = null },
                     modifier = Modifier.align(Alignment.TopCenter).padding(top = 46.dp, start = 16.dp, end = 16.dp))
@@ -145,7 +173,7 @@ fun VirtualSystemUiHost(
                     onOpenCommunications = { launchUnlocked(AiluaDestinations.MESSAGES) },
                     onOpenGallery = { launchUnlocked(AiluaDestinations.GALLERY) },
                     statusBar = { VirtualPhoneStatusBar(isDarkTheme = isDarkTheme, onToggleTheme = onToggleDarkMode) },
-                    modifier = Modifier.clickable(
+                    modifier = Modifier.coveredSystemUi(panelOpen || liveExpanded).clickable(
                         interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = {}
                     ),
                     notificationContent = {
@@ -170,7 +198,7 @@ fun VirtualSystemUiHost(
                     onDismiss = { scope.launch { repository.dismiss(it.id) } },
                     onClearAll = { scope.launch { repository.clearDismissible() } },
                     onClose = controller::closeSystemSurface,
-                    modifier = Modifier.clickable(
+                    modifier = Modifier.coveredSystemUi(liveExpanded).clickable(
                         interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = {}
                     ),
                     quickControls = {
@@ -228,3 +256,7 @@ fun VirtualSystemUiHost(
         }
     }
 }
+
+/** An occluded app remains composed, but cannot expose duplicate controls to accessibility. */
+private fun Modifier.coveredSystemUi(covered: Boolean): Modifier =
+    if (covered) clearAndSetSemantics { } else this

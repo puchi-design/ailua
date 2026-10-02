@@ -29,6 +29,10 @@ object ThemeResolver {
         val paletteBase = PaletteCatalog.resolve(paletteId, darkMode, world.colors)
         val palette = if (preset.id == "glass") {
             paletteBase.copy(
+                // Glass uses light foregrounds in both appearance modes. Its system
+                // scrims must therefore stay dark even with a light/world palette.
+                backgroundPrimary = Color(0xFF172735),
+                backgroundSecondary = Color(0xFF233B50),
                 onSurface = Color(0xFFF7FAFF),
                 onSurfaceMuted = Color(0xFFD5E1EE),
                 surface = Color(0xFF26394C),
@@ -198,7 +202,7 @@ object ThemeResolver {
     }
 
     private fun systemCardSpec(id: String, p: PaletteSpec): SystemCardStyle = when (id) {
-        "glass" -> SystemCardStyle(p.surface, p.onSurface, 26f, 0.54f,
+        "glass" -> SystemCardStyle(p.surface, p.onSurface, 26f, 0.86f,
             BorderSpec(p.highlight.copy(alpha = 0.65f), 1f), ShadowSpec(12f))
         "diary" -> SystemCardStyle(p.surface, p.onSurface, 9f, 0.97f,
             BorderSpec(p.border, 1f), ShadowSpec(3f))
@@ -213,7 +217,7 @@ object ThemeResolver {
         return LockscreenVisualSpec(
             clockScale = when (id) { "glass" -> 1.08f; "diary" -> 0.94f; "mono" -> 0.90f; else -> 1f },
             foregroundColor = p.onSurface,
-            scrimAlpha = when (id) { "glass" -> 0.20f; "diary" -> 0.10f; "mono" -> 0.05f; else -> 0.08f },
+            scrimAlpha = when (id) { "glass" -> 0.80f; "diary" -> 0.10f; "mono" -> 0.05f; else -> 0.08f },
             notificationStyle = card,
             shortcutStyle = card.copy(cornerRadiusDp = when (id) { "diary" -> 12f; "mono" -> 3f; else -> 28f })
         )
