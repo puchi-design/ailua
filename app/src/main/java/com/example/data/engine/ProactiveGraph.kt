@@ -27,6 +27,8 @@ object ProactiveGraph {
     private var instance: ProactiveMessageEngine? = null
 
     fun init(context: Context) {
+        // WorldStateRepository has already restored the ledger at the app-root initialization boundary.
+        com.example.data.repository.MailboxRepository.syncRuntimeLetters(WorldStateRepository.events.value)
         if (instance == null) {
             synchronized(this) {
                 if (instance == null) {

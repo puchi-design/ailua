@@ -64,7 +64,7 @@ class LifeEventLedgerTest {
         triggerTimeMinutes = 20 * 60,
         triggerTimeString = "20:00",
         type = type,
-        characterId = "mira",
+        characterId = "ledger_schedule_$id",
         payloadId = "payload_$id",
         title = "title_$id",
         description = "description_$id",

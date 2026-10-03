@@ -101,6 +101,9 @@ object PromptAssembler {
         buildWorldState(input.worldState)?.let { content ->
             stack.add(PromptBlock.of(PromptCategory.WORLD_STATE, "world_state", content))
         }
+        input.relationshipInstructions?.takeIf { it.isNotBlank() }?.let { content ->
+            stack.add(PromptBlock.of(PromptCategory.WORLD_STATE, "relationship_runtime", macros.resolve(content), priority = 650))
+        }
         buildTemporal(input)?.let { content ->
             stack.add(PromptBlock.of(PromptCategory.TEMPORAL, "temporal", content))
         }

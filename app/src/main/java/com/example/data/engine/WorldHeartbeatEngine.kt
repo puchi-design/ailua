@@ -12,6 +12,12 @@ import com.example.data.model.WorldPlan
 import com.example.data.repository.MailboxRepository
 import com.example.data.registry.CharacterRegistry
 import com.example.data.context.CharacterContext
+import com.example.data.character.runtime.CharacterRuntimeResolver
+import com.example.data.character.initiative.CharacterInitiativeQuota
+import java.util.Calendar
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -219,6 +225,7 @@ object WorldHeartbeatEngine {
                     offset != null && (offset * 1440 + action.triggerTimeMinutes - startMinutes) in 1..deltaMinutes
                 } else WorldTimeAdvancer.isActionTriggeredInInterval(action.triggerTimeMinutes, startMinutes, deltaMinutes))
             ) {
+                // A now-ineligible plan is consumed without fabricating a fact; future plans are resolved afresh.
                 executeAction(action)
                 AiluaLocalStore.markWorldActionFired(action.id)
                 action.copy(fired = true)
@@ -241,7 +248,18 @@ object WorldHeartbeatEngine {
         else -> action.lifeEventType
     }
 
-    internal fun executeAction(action: ScheduledWorldAction) {
+    internal fun executeAction(action: ScheduledWorldAction): Boolean = synchronized(CharacterInitiativeQuota) {
+        val now = System.currentTimeMillis()
+        val calendar = Calendar.getInstance().apply { timeInMillis = now }
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(now))
+        val profile = CharacterRuntimeResolver.resolve(action.characterId)
+        if (!CharacterInitiativeQuota.eligibleScheduled(action, profile, _worldClock.value, WorldStateRepository.events.value,
+                AiluaLocalStore.getProactiveSettings(), AiluaLocalStore.getProactiveState(), now,
+                calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE), today, CallStateEngine.currentCall.value != null)) return@synchronized false
+        val romance = com.example.data.relationship.romance.RomanceRepository.triggerFacts(action.characterId, now)
+        val contact = action.type == ScheduledActionType.INCOMING_CALL || action.type == ScheduledActionType.LETTER_DELIVERY ||
+            action.lifeEventType == LifeEventType.MESSAGE || "user" in action.relatedCharacterIds
+        if (contact && romance.recentConflict && !romance.readyToReconnect) return@synchronized false
         when (action.type) {
             ScheduledActionType.LIFE_EVENT, ScheduledActionType.MOMENT -> {
                 WorldStateRepository.appendLifeEvent(
@@ -285,6 +303,10 @@ object WorldHeartbeatEngine {
             }
             ScheduledActionType.GALLERY_ASSET -> {}
         }
+        if (contact && action.type != ScheduledActionType.LETTER_DELIVERY) {
+            AiluaLocalStore.saveProactiveState(ProactiveRules.withSuccess(AiluaLocalStore.getProactiveState(), now, today))
+        }
+        true
     }
 
     private fun scheduledLifeEvent(
@@ -304,6 +326,7 @@ object WorldHeartbeatEngine {
             worldDateLabel = action.worldDate.ifBlank { _worldClock.value.dateLabel },
             worldMinutesOfDay = action.triggerTimeMinutes,
             sourceAppId = "heartbeat",
+            visibility = if (action.type == ScheduledActionType.INCOMING_CALL || type == LifeEventType.MESSAGE || "user" in action.relatedCharacterIds) "PRIVATE" else "PUBLIC",
             sourceRefId = action.id,
             metadata = action.metadata,
             imageReference = action.imageReference,

@@ -18,7 +18,7 @@ import com.example.data.model.WorldClock
 import com.example.data.model.WorldPlan
 import com.example.data.character.CharacterBehaviorRuntime
 import com.example.data.character.CharacterWorldPolicy
-import com.example.data.codec.AiluaCharacterExtensionCodec
+import com.example.data.character.runtime.CharacterRuntimeResolver
 import com.example.data.registry.CharacterRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -95,9 +95,9 @@ object WorldPlanRuntime {
             val actions = (0..2).map { index ->
                 val character = characters[index % characters.size]
                 val advanced = WorldTimeAdvancer.advance(clock.minutesOfDay, clock.dateLabel, shift + index * 75)
-                val extension = CharacterRegistry.getCard(character.id)?.data?.let(AiluaCharacterExtensionCodec::readOrNull)
-                val preferences = CharacterBehaviorRuntime.fallbackKinds(extension)
-                val kind = if (CharacterBehaviorRuntime.isSleeping(extension, advanced.newMinutes)) LifeEventType.SLEEP
+                val runtime = CharacterRuntimeResolver.resolve(character.id)
+                val preferences = CharacterBehaviorRuntime.fallbackKinds(runtime)
+                val kind = if (CharacterBehaviorRuntime.isSleeping(runtime, advanced.newMinutes)) LifeEventType.SLEEP
                     else preferences[(rotation + index) % preferences.size]
                 val title = when (kind) {
                     LifeEventType.THOUGHT -> "${character.name}整理手记"
@@ -114,10 +114,10 @@ object WorldPlanRuntime {
                     characterId = character.id, triggerWorldDate = advanced.newDateLabel,
                     triggerMinutes = advanced.newMinutes, lifeEventType = kind,
                     title = title,
-                    description = if (kind == LifeEventType.THOUGHT && extension?.life?.hobbies?.isNotEmpty() == true)
-                        "${character.name}继续${extension.life.hobbies.first()}，暂时把手机放在一旁。" else title,
-                    location = if (kind == LifeEventType.SLEEP) extension?.life?.home?.ifBlank { character.location } ?: character.location
-                        else extension?.life?.workplace?.ifBlank { character.location } ?: character.location,
+                    description = if (kind == LifeEventType.THOUGHT && runtime.life.hobbies.isNotEmpty())
+                        "${character.name}继续${runtime.life.hobbies.first()}，暂时把手机放在一旁。" else title,
+                    location = if (kind == LifeEventType.SLEEP) runtime.life.home.ifBlank { character.location }
+                        else runtime.life.workplace.ifBlank { character.location },
                 )
             }
             val candidate = WorldPlan(clock.dateLabel, clock.minutesOfDay,

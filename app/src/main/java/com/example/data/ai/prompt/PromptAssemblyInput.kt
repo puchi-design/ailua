@@ -32,6 +32,8 @@ data class PromptAssemblyInput(
     val currentTime: String = "",
     val userName: String = "",
     val realityContext: String? = null,
+    /** Natural-language state projected from real relationship evidence; no numeric UI or raw JSON. */
+    val relationshipInstructions: String? = null,
 )
 
 /**

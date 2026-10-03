@@ -6,8 +6,10 @@ import com.example.data.model.WorldClock
 
 /** Shared weak contact guard for planned calls/messages and proactive sends. */
 object UserContactCooldown {
-    fun isContact(event: LifeEvent): Boolean = event.sourceAppId == "heartbeat" &&
-        (event.type == LifeEventType.MESSAGE || "user" in event.relatedCharacterIds || event.sourceRefId == "proactive_message")
+    fun isContact(event: LifeEvent): Boolean =
+        (event.metadata["proactive_content_type"] != null && event.metadata["proactive_content_type"] != "MOMENT") ||
+        (event.sourceAppId == "heartbeat" &&
+            (event.type == LifeEventType.MESSAGE || "user" in event.relatedCharacterIds || event.sourceRefId == "proactive_message"))
 
     fun recentlyContacted(clock: WorldClock, events: List<LifeEvent>, minutes: Int = 90): Boolean =
         events.any { event ->

@@ -35,9 +35,9 @@ object CharacterRuntimeResolver {
         val message = frequency(a.messageFrequency, "medium"); val call = frequency(a.callFrequency, "low")
         val photo = frequency(a.photoFrequency, "low"); val moment = frequency(a.momentFrequency, "low")
         val letter = frequency(a.letterFrequency, "low")
-        val weights = if (a.triggerWeights.isNotEmpty()) a.triggerWeights.mapNotNull { (key, value) ->
+        val weights = a.triggerWeights.mapNotNull { (key, value) ->
             InitiativeTrigger.fromWire(key)?.takeIf { value.isFinite() }?.let { it to value.coerceIn(0.0, 1.0) }
-        }.toMap() else defaultTriggers
+        }.toMap().ifEmpty { defaultTriggers }
         return CharacterRuntimeProfile(
             characterId, name, RuntimeSource.IMPORTED,
             CharacterIdentityRuntime(i.gender, i.age?.takeIf { it >= 0 }, i.occupation, i.heightCm?.takeIf { it > 0 }, i.birthday),

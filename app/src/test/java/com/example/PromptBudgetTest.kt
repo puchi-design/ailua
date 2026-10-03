@@ -138,7 +138,8 @@ class PromptBudgetTest {
         // Deficit exceeds every optional block: optionals go first (phase 2),
         // then history must fall below its 150-token reserve (phase 3) instead
         // of declaring overflow.
-        val budget = PromptBudget(full.estimatedCost - 160, 150)
+        val requiredCost = full.includedBlocks.filter { it.required }.sumOf { it.estimatedCost }
+        val budget = PromptBudget(requiredCost + 10, 150)
         val result = PromptAssembler.assemble(input, budget)
 
         assertFalse(result.overflow)
@@ -147,6 +148,7 @@ class PromptBudgetTest {
             result.includedBlocks.map { it.id }.toSet(),
         )
         assertTrue(result.droppedBlocks.any { it.id == "lore:optional" })
+        assertTrue(result.droppedBlocks.any { it.id == "ailua_behavior" })
         assertTrue(result.droppedBlocks.any { it.id == "history:0" })
         assertTrue(result.droppedBlocks.any { it.id == "history:1" })
     }
@@ -163,7 +165,7 @@ class PromptBudgetTest {
         )
         val requiredCost = PromptAssembler
             .assemble(PromptAssemblyInput(character = miraCard()), unlimited())
-            .estimatedCost
+            .includedBlocks.filter { it.required }.sumOf { it.estimatedCost }
 
         // Exactly the required budget: everything else drops, no overflow.
         val exact = PromptAssembler.assemble(input, PromptBudget(requiredCost, 0))

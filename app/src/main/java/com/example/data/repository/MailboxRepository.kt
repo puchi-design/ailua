@@ -1,6 +1,8 @@
 package com.example.data.repository
 
 import com.example.data.engine.WorldStateRepository
+import com.example.data.character.initiative.projectInitiativeLetters
+import com.example.data.relationship.romance.RomanceRepository
 import com.example.data.mock.OfficialCharacters
 import com.example.data.local.AiluaLocalStore
 import com.example.data.model.Letter
@@ -91,6 +93,14 @@ object MailboxRepository {
         _unreadCount.value = updated.count { it.deliveryState == LetterDeliveryState.DELIVERED }
     }
 
+    /** Durable dynamic letters are projections of world facts, not a second volatile inbox. */
+    fun syncRuntimeLetters(events: List<LifeEvent>) {
+        val dynamic = projectInitiativeLetters(events, AiluaLocalStore.openedLetterIds.value)
+        val ids = dynamic.mapTo(HashSet()) { it.id }
+        _letters.value = dynamic + _letters.value.filterNot { it.id in ids }
+        _unreadCount.value = _letters.value.count { it.deliveryState == LetterDeliveryState.DELIVERED }
+    }
+
     /**
      * Evaluates scheduled letters when virtual clock advances.
      */
@@ -138,6 +148,11 @@ object MailboxRepository {
     }
 
     fun markOpened(letterId: String) {
+        val existing = _letters.value.firstOrNull { it.id == letterId } ?: return
+        if (existing.deliveryState == LetterDeliveryState.SCHEDULED) return
+        if (existing.deliveryState == LetterDeliveryState.DELIVERED) {
+            RomanceRepository.recordLetterRead(characterId = existing.characterId, letterId = letterId, nowEpochMs = System.currentTimeMillis())
+        }
         AiluaLocalStore.markLetterOpened(letterId)
         val updated = _letters.value.map {
             if (it.id == letterId) it.copy(deliveryState = LetterDeliveryState.OPENED) else it

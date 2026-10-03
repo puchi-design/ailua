@@ -19,7 +19,21 @@ import com.example.data.model.ProactiveState
 import com.example.data.model.WeatherState
 import com.example.data.registry.CharacterRegistry
 import com.example.data.context.CharacterContext
-import com.example.data.codec.AiluaCharacterExtensionCodec
+import com.example.data.character.runtime.CharacterRuntimeResolver
+import com.example.data.character.runtime.CharacterRuntimeProfile
+import com.example.data.character.runtime.InitiativeTrigger
+import com.example.data.character.initiative.CharacterInitiativeQuota
+import com.example.data.character.initiative.CharacterInitiativeRuntime
+import com.example.data.character.initiative.InitiativeEvidence
+import com.example.data.character.initiative.InitiativeDecision
+import com.example.data.character.initiative.InitiativeFacts
+import com.example.data.character.initiative.ProactiveContentType
+import com.example.data.character.initiative.projectInitiativeLetters
+import com.example.data.model.WorldClock
+import com.example.data.model.isUserActivity
+import com.example.data.relationship.romance.RomanceRepository
+import com.example.data.repository.MailboxRepository
+import com.example.data.systemui.notification.NotificationCategory
 import com.example.data.character.CharacterBehaviorRuntime
 import com.example.data.ai.prompt.PromptAssembler
 import com.example.data.ai.prompt.PromptAssemblyInput
@@ -100,13 +114,19 @@ class ProactiveMessageEngine(
     private val saveState: (ProactiveState) -> Unit,
     private val timeZone: TimeZone = TimeZone.getDefault(),
     private val realityContext: suspend () -> String? = { null },
-    private val recentWorldEvents: () -> List<LifeEvent> = { WorldStateRepository.latestEvents(20) },
+    private val recentWorldEvents: () -> List<LifeEvent> = { WorldStateRepository.events.value },
     private val postNotification: suspend (VirtualNotification) -> Unit = { VirtualNotificationGraph.post(it) },
     private val activeCharacterId: () -> String = { CharacterContext.currentId() },
+    private val resolveRuntime: (String) -> CharacterRuntimeProfile = CharacterRuntimeResolver::resolve,
+    private val worldClock: () -> WorldClock = { WorldHeartbeatEngine.worldClock.value },
+    private val sample: (String) -> Double = CharacterInitiativeRuntime::stableSample,
+    private val evidenceOverride: ((CharacterRuntimeProfile, Long, WorldClock) -> List<InitiativeEvidence>)? = null,
 ) {
 
     private val inFlight = AtomicBoolean(false)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    // Failed provider requests do not consume quota; wait for the next opportunity window before retrying.
+    private var attemptedWindow: String? = null
 
     /** Non-blocking entry called from the heartbeat ticker. */
     fun maybeFire() {
@@ -133,72 +153,98 @@ class ProactiveMessageEngine(
     }
 
     /** One synchronous evaluation; returns true when a message was sent. */
-    suspend fun fireIfDue(force: Boolean = false): Boolean {
+    suspend fun fireIfDue(force: Boolean = false, forceContentType: ProactiveContentType = ProactiveContentType.TEXT): Boolean {
         val now = clock.nowEpochMs()
         val characterId = activeCharacterId()
-        val card = CharacterRegistry.getCard(characterId)
-        val extension = card?.data?.let(AiluaCharacterExtensionCodec::readOrNull)
-        val settings = CharacterBehaviorRuntime.proactiveSettings(loadSettings(), extension)
+        val runtime = resolveRuntime(characterId)
+        val settings = CharacterInitiativeRuntime.contactSettings(loadSettings(), runtime)
         val calendar = Calendar.getInstance(timeZone).apply { timeInMillis = now }
         val minuteOfDay = calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE)
         val today = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-            .apply { timeZone = this@ProactiveMessageEngine.timeZone }
-            .format(Date(now))
+            .apply { timeZone = this@ProactiveMessageEngine.timeZone }.format(Date(now))
         val state = loadState()
-
+        val world = worldClock()
+        val events = recentWorldEvents()
         if (!force && !ProactiveRules.shouldFire(settings, state, now, minuteOfDay, today)) return false
-        if (!force && CharacterBehaviorRuntime.isSleeping(extension, WorldHeartbeatEngine.worldClock.value.minutesOfDay)) return false
-        if (!force && UserContactCooldown.recentlyContacted(WorldHeartbeatEngine.worldClock.value, recentWorldEvents())) return false
+        if (!force && CharacterBehaviorRuntime.isSleeping(runtime, world.minutesOfDay)) return false
+        if (!force && UserContactCooldown.recentlyContacted(world, events)) return false
+        if (!force && CallStateEngine.currentCall.value != null) return false
         val reality = realityContext()
         if (!force && reality?.contains("电量较低") == true) return false
         val resolved = providerResolver.resolve() ?: return false
-
         val character = CharacterRegistry.getCharacter(characterId)
         val session = chatRepository.getOrCreatePrivateSession(characterId)
-
-        val content = completeOnce(resolved, buildPrompt(character, characterId, reality))?.trim()
+        val romance = RomanceRepository.triggerFacts(characterId, now)
+        if (!force && romance.recentConflict && !romance.readyToReconnect) return false
+        val memories = memoryRepository.getMemoriesForPrompt(characterId, limit = 5)
+        val importantMemory = memories.firstOrNull { it.importance >= .6 }
+        val facts = InitiativeFacts(
+            lastUserAtEpochMs = chatRepository.getResolvedTurns(session.id).lastOrNull { it.role == ChatTurnRole.USER }?.createdAtEpochMs,
+            importantMemoryId = importantMemory?.id, importantMemory = importantMemory?.content,
+            conflictEventId = romance.conflictEventId, readyToReconnect = romance.readyToReconnect,
+            recentGoodEventAtEpochMs = romance.recentGoodEventAtEpochMs,
+        )
+        val evidence = evidenceOverride?.invoke(runtime, now, world)
+            ?: CharacterInitiativeRuntime.evidence(runtime, now, today, world, facts, events)
+        val decision = if (force) InitiativeDecision(forceContentType,
+            InitiativeEvidence(InitiativeTrigger.SHARED_MEMORY, "developer:$now", "这是用户主动触发的测试联系，不编造共同记忆。"), "developer:$characterId:$now")
+        else CharacterInitiativeRuntime.decide(runtime, now, evidence, events, world.dateLabel, sample) ?: return false
+        if (!force && attemptedWindow == decision.windowKey) return false
+        attemptedWindow = decision.windowKey
+        val relationshipRecord = RomanceRepository.record(characterId)
+        val relationshipInstructions = RomanceRepository.promptInstructions(characterId, now)
+        val content = completeOnce(resolved, buildPrompt(character, runtime, reality, decision, relationshipInstructions))?.trim()
         if (content.isNullOrEmpty()) return false
 
-        withContext(NonCancellable) {
-            val turn = chatRepository.appendAssistantTurn(
-                sessionId = session.id,
-                content = content,
-                status = VariantStatus.COMPLETE,
-                providerProfileId = resolved.profileId,
-                model = resolved.model,
-            )
-            WorldStateRepository.appendLifeEvent(
-                LifeEvent(
-                    id = "proactive_$now",
-                    characterId = characterId,
-                    time = WorldHeartbeatEngine.worldClock.value.timeFormatted,
-                    type = LifeEventType.THOUGHT,
-                    title = "${character.name}主动发来消息",
-                    description = content,
-                    location = character.location,
-                    worldDateLabel = WorldHeartbeatEngine.worldClock.value.dateLabel,
-                    worldMinutesOfDay = WorldHeartbeatEngine.worldClock.value.minutesOfDay,
-                    sourceAppId = "heartbeat",
-                    sourceRefId = "proactive_message",
-                )
-            )
-            saveState(ProactiveRules.withSuccess(state, now, today))
-            postNotification(
-                NotificationEvents.proactiveMessage(
-                    sessionId = session.id,
-                    turnId = turn.id,
-                    characterId = characterId,
-                    characterName = character.name,
-                    content = content,
-                    timestampEpochMs = now,
-                ),
-            )
+        return withContext(NonCancellable) {
+            val notification = synchronized(CharacterInitiativeQuota) {
+                val commitNow = clock.nowEpochMs()
+                val commitCalendar = Calendar.getInstance(timeZone).apply { timeInMillis = commitNow }
+                val commitMinute = commitCalendar.get(Calendar.HOUR_OF_DAY) * 60 + commitCalendar.get(Calendar.MINUTE)
+                val commitDate = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { timeZone = this@ProactiveMessageEngine.timeZone }.format(Date(commitNow))
+                val commitWorld = worldClock()
+                val commitRuntime = resolveRuntime(characterId)
+                val commitEvents = recentWorldEvents()
+                val commitState = loadState()
+                val commitRomance = RomanceRepository.triggerFacts(characterId, commitNow)
+                // Timing bypass never authorizes delivery generated against a superseded boundary/relationship.
+                if (RomanceRepository.record(characterId) != relationshipRecord ||
+                    RomanceRepository.promptInstructions(characterId, commitNow) != relationshipInstructions ||
+                    (!force && commitRomance.recentConflict && !commitRomance.readyToReconnect)) return@synchronized null
+                if (!force && (!ProactiveRules.shouldFire(CharacterInitiativeRuntime.contactSettings(loadSettings(), commitRuntime), commitState, commitNow, commitMinute, commitDate) ||
+                    CharacterBehaviorRuntime.isSleeping(commitRuntime, commitWorld.minutesOfDay) ||
+                    !CharacterInitiativeQuota.available(commitRuntime, commitWorld.dateLabel, CharacterInitiativeQuota.kind(decision.type), commitEvents) ||
+                    (CharacterInitiativeRuntime.contentWeights(commitRuntime)[decision.type] ?: 0.0) <= 0.0 ||
+                    UserContactCooldown.recentlyContacted(commitWorld, commitEvents) ||
+                    CallStateEngine.currentCall.value != null ||
+                    commitEvents.any { it.characterId == characterId && (it.metadata["initiative_window"] == decision.windowKey || it.metadata["initiative_evidence"] == decision.evidence.key) })) return@synchronized null
+                val turns = if (decision.type == ProactiveContentType.TEXT || decision.type == ProactiveContentType.CALL_INVITE) {
+                    val chunks = if (decision.type == ProactiveContentType.TEXT) CharacterInitiativeRuntime.splitText(content, runtime.initiative.maxTextBurst) else listOf(content)
+                    chunks.map { chunk -> chatRepository.appendAssistantTurn(sessionId = session.id, content = chunk,
+                        status = VariantStatus.COMPLETE, providerProfileId = resolved.profileId, model = resolved.model) }
+                } else emptyList()
+                val event = WorldStateRepository.appendLifeEvent(CharacterInitiativeRuntime.fact(commitRuntime, decision, content, commitNow, commitWorld))
+                if (decision.type == ProactiveContentType.LETTER) MailboxRepository.syncRuntimeLetters(WorldStateRepository.events.value)
+                // One provider completion/burst consumes one contact, regardless of projected media or bubble count.
+                saveState(ProactiveRules.withSuccess(commitState, commitNow, commitDate))
+                when (decision.type) {
+                    ProactiveContentType.TEXT, ProactiveContentType.CALL_INVITE -> NotificationEvents.proactiveMessage(
+                        sessionId = session.id, turnId = turns.first().id, characterId = characterId,
+                        characterName = character.name, content = content, timestampEpochMs = now)
+                    ProactiveContentType.LETTER -> NotificationEvents.mailDelivered(projectInitiativeLetters(listOf(event)).single(), now)
+                    else -> VirtualNotification(sourceKey = "initiative:${event.id}", sourceAppId = event.sourceAppId,
+                        title = event.title, body = content, characterId = characterId, timestampEpochMs = now,
+                        category = NotificationCategory.WORLD, route = if (decision.type == ProactiveContentType.PHOTO) "gallery" else "moments")
+                }
+            } ?: return@withContext false
+            postNotification(notification)
+            true
         }
-        return true
     }
 
-    private fun buildPrompt(character: CharacterProfile, characterId: String, reality: String?): List<AiMessage> {
-        val clockValue = WorldHeartbeatEngine.worldClock.value
+    private fun buildPrompt(character: CharacterProfile, runtime: CharacterRuntimeProfile, reality: String?, decision: InitiativeDecision, relationshipInstructions: String): List<AiMessage> {
+        val characterId = runtime.characterId
+        val clockValue = worldClock()
         val phase = WorldHeartbeatEngine.heartbeatState.value.currentPhase.label
         val weather = when (clockValue.weather) {
             WeatherState.RAIN -> "下着雨"
@@ -219,11 +265,24 @@ class ProactiveMessageEngine(
                 }
             }
 
+        val actionInstruction = when (decision.type) {
+            ProactiveContentType.TEXT -> if (runtime.initiative.maxTextBurst > 1) "主动发最多${runtime.initiative.maxTextBurst}条很短的意群，用换行分隔，合计一次联系。" else "主动发一条自然短消息，长度遵循角色节奏。"
+            ProactiveContentType.PHOTO -> "给一张生活照片写简短配文。照片目前使用角色素材槽位；不声称已生成具体人物新照片。"
+            ProactiveContentType.CALL_INVITE -> "只发一句询问对方现在是否方便通话的邀请，允许拒绝或稍后；并没有开始通话。"
+            ProactiveContentType.LETTER -> "写一封有具体内容的短信，遵循角色口吻，不署系统名。"
+            ProactiveContentType.MOMENT -> "写一条公开的、属于你自己生活的动态。不要透露用户私聊、私人记忆、关系状态和触发证据中的私人内容。"
+        }
         val system = "你是${character.name}。现在是${clockValue.dateLabel} ${clockValue.timeFormatted}，${weather}，${phase}。" +
-            "你主动给用户发 1 条消息：2-3 句，自然口语，结合你们最近的对话、你的记忆或当下情境；" +
-            "不要干巴巴的问候，不要提到你是 AI 或模型。只输出消息本身，不要引号和署名。"
+            actionInstruction + (if (decision.type == ProactiveContentType.MOMENT) "只描述角色自己的生活，不引用私聊或用户身份。"
+                else "触发事实：${decision.evidence.description}。结合真实记忆和对话，不重复上次主动联系。") +
+            "不要干巴巴的问候，不要提到你是 AI 或模型。只输出内容，不要 JSON、引号和技术说明。"
 
-        val context = buildList {
+        val context = if (decision.type == ProactiveContentType.MOMENT) {
+            val publicFacts = recentWorldEvents().filter { it.characterId == characterId && it.visibility != "PRIVATE" && !it.isUserActivity() &&
+                it.sourceAppId != "memory" && it.sourceAppId != "chat" && "user" !in it.relatedCharacterIds }
+                .take(4).joinToString("\n") { "${it.time} ${it.title.take(80)} ${it.description.take(160)}" }
+            "【角色自己的公开生活】\n$publicFacts"
+        } else buildList {
             if (memories.isNotEmpty()) {
                 add("【你的记忆】" + memories.joinToString("；") { it.content.trim() })
             }
@@ -236,7 +295,7 @@ class ProactiveMessageEngine(
         }.joinToString("\n")
 
         val characterMessages = CharacterRegistry.getCard(characterId)?.let { card ->
-            PromptAssembler.assemble(PromptAssemblyInput(character = card.data)).messages
+            PromptAssembler.assemble(PromptAssemblyInput(character = card.data, relationshipInstructions = if (decision.type == ProactiveContentType.MOMENT) null else relationshipInstructions)).messages
         }.orEmpty()
         return characterMessages + listOf(AiMessage(AiRole.SYSTEM, system), AiMessage(AiRole.USER, context))
     }

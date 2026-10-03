@@ -96,4 +96,11 @@ class CharacterRuntimeResolverTest {
         assertEquals(RuntimeSource.STANDARD, missing.source)
         assertFalse(missing.relationship.romanceEnabled)
     }
+
+    @Test fun unknownTriggerNamesFallBackButExplicitZeroWeightsStayDisabled() {
+        fun profile(weights: String) = CharacterRuntimeResolver.resolve(CharacterCardData(id = "triggers", name = "T",
+            extensions = Json.parseToJsonElement("""{"ailua":{"initiative":{"trigger_weights":$weights}}}""").jsonObject))
+        assertTrue(profile("""{"future_trigger":0.5}""").initiative.triggerWeights.isNotEmpty())
+        assertEquals(mapOf(InitiativeTrigger.RAIN to 0.0), profile("""{"rain":0.0}""").initiative.triggerWeights)
+    }
 }

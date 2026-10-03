@@ -9,6 +9,20 @@ import com.example.data.engine.ProactiveMessageEngine
 import com.example.data.engine.ProactiveRules
 import com.example.data.engine.WorldStateRepository
 import com.example.data.mock.OfficialCharacters
+import com.example.data.character.runtime.CharacterRuntimeResolver
+import com.example.data.character.runtime.InitiativeTrigger
+import com.example.data.character.initiative.InitiativeEvidence
+import com.example.data.character.initiative.ProactiveContentType
+import com.example.data.model.WorldClock
+import com.example.data.model.WeatherState
+import com.example.data.repository.MailboxRepository
+import com.example.data.projection.projectGalleryAssets
+import com.example.data.projection.projectMoments
+import com.example.data.model.LetterDeliveryState
+import com.example.data.relationship.romance.RomanceRepository
+import com.example.data.local.AiluaLocalStore
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.emitAll
 import com.example.data.model.ProactiveSettings
 import com.example.data.model.ProactiveState
 import com.example.data.systemui.notification.VirtualNotification
@@ -119,10 +133,18 @@ class ProactiveMessageTest {
             postNotification = {
                 // This callback must run only after both the turn and success state committed.
                 assertTrue(savedStates > 0)
-                assertTrue(characterTurns().isNotEmpty())
+                if (it.category == NotificationCategory.MESSAGE) assertTrue(characterTurns().isNotEmpty())
                 notifications += it
             },
             activeCharacterId = { characterId },
+            // Existing pipeline/rule tests isolate sampling from transport and durable writes.
+            worldClock = { WorldClock(minutesOfDay = 12 * 60, weather = WeatherState.RAIN) },
+            resolveRuntime = { id -> CharacterRuntimeResolver.resolve(id).let { profile -> profile.copy(initiative = profile.initiative.copy(
+                messageFrequency = "high", messageProbability = 1.0, callProbability = 0.0,
+                photoProbability = 0.0, momentProbability = 0.0, letterProbability = 0.0,
+                triggerWeights = mapOf(InitiativeTrigger.RAIN to 1.0))) } },
+            sample = { 0.0 },
+            evidenceOverride = { _, _, _ -> listOf(InitiativeEvidence(InitiativeTrigger.RAIN, "fixture-rain", "下雨")) },
         )
 
         fun use(provider: AiProvider) {
@@ -158,7 +180,7 @@ class ProactiveMessageTest {
             turns.single().activeVariant?.content,
         )
 
-        val expectedId = "proactive_${1_700_000_000_000L}"
+        val expectedId = "proactive_${1_700_000_000_000L}_mira"
         assertTrue(WorldStateRepository.events.value.any { it.id == expectedId })
         assertEquals(1, f.state.sentCount)
         assertEquals("2023-11-14", f.state.sentDate)
@@ -201,7 +223,7 @@ class ProactiveMessageTest {
         val miraSession = f.chat.repository.getOrCreatePrivateSession("mira")
         assertTrue(f.chat.repository.getResolvedTurns(miraSession.id).isEmpty())
 
-        val event = WorldStateRepository.events.value.single { it.id == "proactive_${f.chat.clock.now}" }
+        val event = WorldStateRepository.events.value.single { it.id == "proactive_${f.chat.clock.now}_yan" }
         assertEquals("yan", event.characterId)
         assertEquals(reply, event.description)
         assertEquals(1, f.state.sentCount)
@@ -290,5 +312,121 @@ class ProactiveMessageTest {
 
         assertEquals(1, fake.requests.size)
         assertEquals(1, f.characterTurns().size)
+    }
+
+    @Test fun mediaDispatchCommitsActualProjectionAndNavigableNotification() = runBlocking {
+        listOf(ProactiveContentType.PHOTO, ProactiveContentType.MOMENT, ProactiveContentType.LETTER).forEachIndexed { index, type ->
+            val f = Fixture("yan")
+            f.chat.clock.now += 5_000_000 + index * 10_000L
+            val body = "修复台上留下了一页纸。$type"
+            val fake = FakeAiProvider.scripted(body)
+            f.use(fake)
+            assertTrue(f.engine.fireIfDue(force = true, forceContentType = type))
+            assertEquals(1, fake.requests.size)
+            assertEquals(1, f.savedStates)
+            assertTrue(f.characterTurns().isEmpty())
+            val event = WorldStateRepository.events.value.single { it.id == "proactive_${f.chat.clock.now}_yan" }
+            assertEquals(type.name, event.metadata["proactive_content_type"])
+            when (type) {
+                ProactiveContentType.PHOTO -> {
+                    assertEquals(body, projectGalleryAssets(emptyList(), listOf(event)).single().caption)
+                    assertEquals("gallery", f.notifications.single().route)
+                }
+                ProactiveContentType.MOMENT -> {
+                    assertEquals(body, projectMoments(emptyList(), listOf(event)).single().content)
+                    assertEquals("moments", f.notifications.single().route)
+                }
+                else -> {
+                    val letter = MailboxRepository.letters.value.single { it.id == event.id }
+                    assertEquals(body, letter.body)
+                    assertEquals(LetterDeliveryState.DELIVERED, letter.deliveryState)
+                    assertEquals("mailbox", f.notifications.single().route)
+                    // Rehydration does not create a duplicate inbox item.
+                    MailboxRepository.syncRuntimeLetters(WorldStateRepository.events.value)
+                    assertEquals(1, MailboxRepository.letters.value.count { it.id == event.id })
+                }
+            }
+        }
+    }
+
+    @Test fun callInvitationIsAChatInvitationWithoutAnIncomingCallFact() = runBlocking {
+        val f = Fixture("yeo")
+        f.chat.clock.now += 7_000_000
+        f.use(FakeAiProvider.scripted("现在方便说两句吗？没空就晚点。"))
+        assertTrue(f.engine.fireIfDue(force = true, forceContentType = ProactiveContentType.CALL_INVITE))
+        val event = WorldStateRepository.events.value.single { it.id == "proactive_${f.chat.clock.now}_yeo" }
+        assertEquals("CALL_INVITE", event.metadata["proactive_content_type"])
+        assertFalse(event.id.startsWith("pulse_call_plan_"))
+        assertEquals("chat/yeo", f.notifications.single().route)
+        assertEquals(1, f.characterTurns().size)
+    }
+
+    @Test fun yeoBurstUsesOneProviderRequestAndOneQuota() = runBlocking {
+        val f = Fixture("yeo")
+        f.chat.clock.now += 8_000_000
+        val provider = FakeAiProvider.scripted("刚看到那条小路。\n就是你说的地方。\n下次一起去？")
+        f.use(provider)
+        assertTrue(f.engine.fireIfDue(force = true))
+        assertEquals(3, f.characterTurns().size)
+        assertEquals(1, f.state.sentCount)
+        assertEquals(1, provider.requests.size)
+        assertEquals(1, f.notifications.size)
+    }
+
+    @Test fun failedProviderDoesNotRetryOnEveryHeartbeatInTheSameWindow() = runBlocking {
+        val f = Fixture()
+        val provider = FakeAiProvider.unauthorized()
+        f.use(provider)
+        assertFalse(f.engine.fireIfDue())
+        assertFalse(f.engine.fireIfDue())
+        assertEquals(1, provider.requests.size)
+        assertEquals(0, f.state.sentCount)
+    }
+
+    @Test fun publicMomentRequestDoesNotReceivePrivateChatOrMemory() = runBlocking {
+        val f = Fixture("yan")
+        f.chat.clock.now += 9_000_000
+        val secret = "private-only-door-code-472991"
+        f.chat.repository.appendUserTurn(f.chat.repository.getOrCreatePrivateSession("yan").id, secret)
+        f.memoryRepository.saveMemory("yan", secret, "chat")
+        val provider = FakeAiProvider.scripted("今天把旧书的封面补好了。")
+        f.use(provider)
+        assertTrue(f.engine.fireIfDue(force = true, forceContentType = ProactiveContentType.MOMENT))
+        val prompt = provider.requests.single().messages.joinToString("\n") { it.content }
+        assertFalse(prompt.contains(secret))
+        assertFalse(prompt.contains("【最近对话】"))
+        assertFalse(prompt.contains("【你的记忆】"))
+    }
+
+    @Test fun changedBoundaryOrConflictDuringProviderCallDiscardsOldGeneratedContact() = runBlocking {
+        val original = AiluaLocalStore.savedRomanceStates.value
+        try {
+            listOf("boundary", "conflict").forEachIndexed { index, change ->
+                AiluaLocalStore.saveRomanceStates(original)
+                RomanceRepository.restore()
+                val f = Fixture("yan")
+                f.chat.clock.now += 20_000_000 + index * 100_000L
+                val delegate = FakeAiProvider.scripted("仍按旧关系生成的消息")
+                f.use(object : AiProvider {
+                    override fun streamChat(request: com.example.data.ai.model.AiChatRequest) = flow {
+                        if (change == "boundary") {
+                            RomanceRepository.observeUserBoundary("yan", "race-boundary-${f.chat.clock.now}", "我们只做朋友。", f.chat.clock.now)
+                        } else {
+                            RomanceRepository.observeExchange("yan", "race-conflict-${f.chat.clock.now}", "我需要一点时间冷静。", "我明白你需要时间。", f.chat.clock.now)
+                        }
+                        emitAll(delegate.streamChat(request))
+                    }
+                })
+                assertFalse(change, f.engine.fireIfDue(force = true))
+                assertEquals(1, delegate.requests.size)
+                assertTrue(f.characterTurns().isEmpty())
+                assertTrue(f.notifications.isEmpty())
+                assertEquals(0, f.savedStates)
+                assertFalse(WorldStateRepository.events.value.any { it.id == "proactive_${f.chat.clock.now}_yan" })
+            }
+        } finally {
+            AiluaLocalStore.saveRomanceStates(original)
+            RomanceRepository.restore()
+        }
     }
 }

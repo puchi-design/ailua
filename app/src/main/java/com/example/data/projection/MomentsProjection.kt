@@ -27,7 +27,7 @@ fun projectMoments(
 ): List<MomentPost> {
     val seedPostIds = seedPosts.mapTo(HashSet()) { it.id }
     val runtimePosts = runtimeEvents
-        .filter { (it.type == LifeEventType.MOMENT || it.type == LifeEventType.PHOTO) && !it.isUserActivity() && it.id !in seedEventIds }
+        .filter { (it.type == LifeEventType.MOMENT || it.type == LifeEventType.PHOTO) && it.visibility != "PRIVATE" && !it.isUserActivity() && it.id !in seedEventIds }
         .sortedChronologically()
         .reversed()
         .map { ev ->
