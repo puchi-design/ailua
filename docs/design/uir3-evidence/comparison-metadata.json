@@ -1,0 +1,55 @@
+{
+  "source": "Actual Android UiAutomation screenshots; no visual retouching",
+  "fullBoardTransform": "proportional Lanczos resize and labels outside screenshots",
+  "iconBoardTransform": "fixed proportional crops of the real app and Dock areas",
+  "screenshots": [
+    {
+      "path": "01-default-icons.png",
+      "sha256": "1a71117d1c6b3508d695441f905fe8fc58dfb4571b7d380985dde0fcd270c0c9",
+      "width": 1080,
+      "height": 2340
+    },
+    {
+      "path": "02-soft-icons.png",
+      "sha256": "1d24d6973195de360a7f5b8ba6255fefef354602e67c71c8d8efdfb64f99709d",
+      "width": 1080,
+      "height": 2340
+    },
+    {
+      "path": "03-midnight-icons.png",
+      "sha256": "64dc56a21e99127346fe4c010220120d92afa62da4d5c0a4263be1b7b1baf01f",
+      "width": 1080,
+      "height": 2340
+    },
+    {
+      "path": "04-y2k-prototype.png",
+      "sha256": "f7b609b4b0abe8a0a100baa9c2c40d78e46ac993b2922f7301e837c844d3dc26",
+      "width": 1080,
+      "height": 2340
+    },
+    {
+      "path": "01-default-icons-folder.png",
+      "sha256": "7ec2d1ea66dfc0017f3f0085f2591666aac2c3c545a16793998fc0ad2cacf133",
+      "width": 1080,
+      "height": 2340
+    },
+    {
+      "path": "02-soft-icons-folder.png",
+      "sha256": "f947d0596e89f0583be5f4179d0fcf7bd1510f43b7998cfe51141837327bae52",
+      "width": 1080,
+      "height": 2340
+    },
+    {
+      "path": "03-midnight-icons-folder.png",
+      "sha256": "8638f7cd726b106c609a975c3de62c5b73ef9270ec93e1dc1495380adb02e191",
+      "width": 1080,
+      "height": 2340
+    },
+    {
+      "path": "04-y2k-prototype-folder.png",
+      "sha256": "7d062ee3ed7905e166acc905338aaf2d014dfa01bd13f65ba9f87ce633bc158d",
+      "width": 1080,
+      "height": 2340
+    }
+  ]
+}

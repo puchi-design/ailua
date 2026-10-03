@@ -1,0 +1,82 @@
+{
+  "workspace": {
+    "after/desktop_page": {
+      "same": true,
+      "rows": 3
+    },
+    "after/desktop_item": {
+      "same": true,
+      "rows": 18
+    },
+    "after/desktop_folder": {
+      "same": true,
+      "rows": 1
+    },
+    "restarted/desktop_page": {
+      "same": true,
+      "rows": 3
+    },
+    "restarted/desktop_item": {
+      "same": true,
+      "rows": 18
+    },
+    "restarted/desktop_folder": {
+      "same": true,
+      "rows": 1
+    }
+  },
+  "preferences": {
+    "after": true,
+    "restarted": true
+  },
+  "database": {
+    "after/chat_session": {
+      "same": true,
+      "rows": 6
+    },
+    "after/chat_turn": {
+      "same": true,
+      "rows": 4
+    },
+    "after/chat_variant": {
+      "same": true,
+      "rows": 5
+    },
+    "after/memory_entry": {
+      "same": true,
+      "rows": 0
+    },
+    "restarted/chat_session": {
+      "same": true,
+      "rows": 6
+    },
+    "restarted/chat_turn": {
+      "same": true,
+      "rows": 4
+    },
+    "restarted/chat_variant": {
+      "same": true,
+      "rows": 5
+    },
+    "restarted/memory_entry": {
+      "same": true,
+      "rows": 0
+    },
+    "schemaVersion": 8
+  },
+  "offlineTests": {
+    "tests": 605,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "assets": {
+    "count": 72,
+    "opaque": true,
+    "totalBytes": 2951478
+  },
+  "apk": {
+    "sha256": "65e50242ce0388b69201f2ea0feafd57e9a8bf6fe7304876e5ba2bd7f4153701",
+    "sizeBytes": 34115425
+  }
+}
