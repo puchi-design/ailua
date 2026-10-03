@@ -132,7 +132,7 @@ object MockData {
             location = "月光书阁 · 负一层藏书室",
             imageReference = "night_book"
         )
-    )
+    ) + OfficialCharacters.lifeEvents
 
     // =========================================================================
     // 2. MULTI-CHARACTER PROFILES (Mira, Yuna, Noa)
@@ -230,25 +230,15 @@ object MockData {
         )
     )
 
-    val characterNoa = CharacterProfile(
-        id = "noa",
-        name = "诺亚",
-        englishName = "Noa",
-        title = "星河收信人 · 博学知己",
-        bio = "沉稳、理性中带有隐秘浪漫的文字学者。喜欢整理世界观档案与收集老唱片，说话节奏从容，擅长安抚焦虑的心绪。",
-        currentActivity = "正在月光书阁整理旧书籍",
-        mood = "沉静 · 专注",
-        location = "月光书阁 · 负一层藏书室",
-        contextualQuote = "夜雨声的频率与人脑的阿尔法波最为契合，是适合思考的良辰。",
+    val characterYan = OfficialCharacters.profiles.getValue("yan")
+    val characterYeo = OfficialCharacters.profiles.getValue("yeo")
+    val characterNoa = OfficialCharacters.profiles.getValue("noa").copy(
+        // Existing authored relationship state and memory are not reset by the persona upgrade.
         bondLevel = 2,
         bondName = "熟识 · 心灵知交",
         bondProgress = 38,
         daysTogether = 28,
         energyLevel = 76,
-        personalityTags = listOf("藏书癖", "黑胶发烧友", "夜读哲思", "从容温和"),
-        avatarId = "noa",
-        isOnline = true,
-        relationshipType = "熟人",
         memories = listOf(
             MemorySnippet(
                 id = "mn1",
@@ -258,18 +248,15 @@ object MockData {
                 tag = "深夜夜读",
                 resonanceLevel = 4
             )
-        ),
-        timeline = listOf(
-            TimelineEvent("tn1", "14:00", "开馆营业", "月光书阁开门，点燃了雪松香薰", false),
-            TimelineEvent("tn2", "19:30", "黑胶试听", "试听新收录的1978年古典爵士胶片", false),
-            TimelineEvent("tn3", "21:10", "茶会参与", "进入雨夜茶会交流雨季防潮保存纸质书的心得", true)
         )
     )
 
-    val allCharacters = mapOf(
+    val allCharacters = linkedMapOf(
+        "yan" to characterYan,
+        "yeo" to characterYeo,
+        "noa" to characterNoa,
         "mira" to sampleCharacter,
-        "yuna" to characterYuna,
-        "noa" to characterNoa
+        "yuna" to characterYuna
     )
 
     // =========================================================================
@@ -596,7 +583,7 @@ object MockData {
             imageReference = "rain_window",
             relatedMemoryIds = listOf("m3")
         )
-    )
+    ) + OfficialCharacters.diaryEntries
 
     // =========================================================================
     // 9. MOMENTS (动态生活圈，由 LifeEvent 真实驱动)
@@ -957,11 +944,7 @@ object MockData {
             it.characterId == characterId || it.relatedCharacterIds.contains(characterId)
         }
         if (events.isEmpty()) {
-            return when (characterId) {
-                "yuna" -> characterYuna.timeline
-                "noa" -> characterNoa.timeline
-                else -> sampleCharacter.timeline
-            }
+            return allCharacters[characterId]?.timeline.orEmpty()
         }
         return events.mapIndexed { index, ev ->
             TimelineEvent(
@@ -1040,7 +1023,7 @@ object MockData {
         }
         return momentEvents.map { ev ->
             val author = allCharacters[ev.characterId]
-            val authorName = author?.name ?: "小弥"
+            val authorName = author?.name ?: ev.characterId
             when (ev.id) {
                 "pulse_7" -> MomentPost(
                     id = "moment_${ev.id}",

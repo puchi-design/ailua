@@ -26,6 +26,7 @@ import com.example.data.chat.local.platform.UuidIdGenerator
 import com.example.data.chat.model.VariantStatus
 import com.example.data.engine.WorldStateRepository
 import com.example.data.registry.CharacterRegistry
+import com.example.data.context.CharacterContext
 import com.example.data.projection.projectPresence
 import com.example.data.model.Conversation
 import com.example.data.model.ConversationType
@@ -53,7 +54,9 @@ fun ConversationListScreen(
     var searchQuery by remember { mutableStateOf("") }
     val context = LocalContext.current
     val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
-    val conversations by produceState<List<Conversation>>(initialValue = emptyList(), worldEvents) {
+    val selectedCharacterId by CharacterContext.selectedId.collectAsStateWithLifecycle()
+    val registeredCards by CharacterRegistry.allCards.collectAsStateWithLifecycle()
+    val conversations by produceState<List<Conversation>>(initialValue = emptyList(), worldEvents, selectedCharacterId, registeredCards) {
         value = withContext(Dispatchers.IO) {
             val driver = ChatDriverFactory(context.applicationContext).createDriver()
             try {
@@ -71,7 +74,7 @@ fun ConversationListScreen(
                         latestMessage = latest?.activeVariant?.content?.replace('\n', ' ')?.take(100)
                             ?: "尚无对话 · ${presence.currentActivity}",
                         latestTime = latest?.let { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(it.createdAtEpochMs)) }.orEmpty(),
-                        isPinned = character.id == "mira", avatarId = character.id,
+                        isPinned = character.id == selectedCharacterId, avatarId = character.id,
                         characterStatus = presence.currentActivity,
                     )
                 } + Conversation(id = "conv_group", type = ConversationType.GROUP, title = "雨夜茶会",
@@ -111,7 +114,7 @@ fun ConversationListScreen(
                 ConversationItemCard(conv, conv.isPinned) {
                     if (conv.type == ConversationType.GROUP) onOpenGroupChat()
                     else if (conv.id == "conv_mira" || conv.characterId == "mira") onOpenMiraChat()
-                    else onSelectCharacterChat(conv.characterId ?: if (conv.isPinned) "mira" else "yuna")
+                    else onSelectCharacterChat(conv.characterId ?: selectedCharacterId)
                 }
             }
             item { Spacer(Modifier.height(16.dp)) }

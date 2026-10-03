@@ -84,6 +84,15 @@ class WorldPlanTest {
         assertTrue(WorldPlanRuntime.needsPlan(clock, fallback.actions.take(1), clock.dateLabel))
     }
 
+    @Test fun offlineContinuationKeepsLegacyCompanionAfterOfficialCatalogExpansion() {
+        listOf("mira", "yuna").forEach { selectedId ->
+            val fallback = WorldPlanRuntime.fallback(clock, emptyList(), emptyList(), selectedId)
+            assertNotNull(fallback)
+            assertTrue(fallback!!.actions.any { it.characterId == selectedId })
+            assertTrue(WorldPlanValidator.validate(fallback, clock, emptyList(), emptyList()))
+        }
+    }
+
     @Test fun unsupportedStructuredResponseRetriesOnlyOnceAsPlainJson() = runBlocking {
         val requests = mutableListOf<AiChatRequest>()
         val provider = object : AiProvider {

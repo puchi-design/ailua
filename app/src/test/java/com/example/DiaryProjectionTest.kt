@@ -115,10 +115,12 @@ class DiaryProjectionTest {
         // its authored prose already exists as seed diary_1 ("风吹进来的时候")
         assertTrue(entries.none { it.id == "pulse_5" })
         assertTrue(entries.any { it.id == "diary_1" })
-        // all seed entries intact, exactly once each
-        MockData.diaryEntries.forEach { seed ->
+        // All of this character's seed entries remain exactly once; other authors
+        // must stay out even as the official cast grows.
+        MockData.diaryEntries.filter { it.characterId == "mira" }.forEach { seed ->
             assertEquals(1, entries.count { it.id == seed.id })
         }
+        assertTrue(entries.all { it.characterId == "mira" })
     }
 
     @Test

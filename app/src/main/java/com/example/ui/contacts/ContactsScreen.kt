@@ -23,6 +23,7 @@ import com.example.data.model.isUserActivity
 import com.example.data.projection.projectPresence
 import com.example.data.relationship.repository.RelationshipStateRepository
 import com.example.data.registry.CharacterRegistry
+import com.example.data.context.CharacterContext
 import com.example.ui.designsystem.AiluaScreenScaffold
 import com.example.ui.designsystem.AiluaSectionHeader
 import com.example.ui.designsystem.CharacterPortrait
@@ -62,8 +63,9 @@ fun ContactsScreen(
             onlineState = if (latest?.type == LifeEventType.SLEEP) "休息中" else if (latest != null) "生活中" else "暂无动态"
         )
     }
-    val primaryCompanion = contacts.firstOrNull { it.characterId == "mira" }
-    val otherCharacters = contacts.filter { it.characterId != "mira" }
+    val selectedCharacterId by CharacterContext.selectedId.collectAsStateWithLifecycle()
+    val primaryCompanion = contacts.firstOrNull { it.characterId == selectedCharacterId }
+    val otherCharacters = contacts.filter { it.characterId != selectedCharacterId }
 
     val theme = LocalAiluaTheme.current
     AiluaScreenScaffold(

@@ -103,9 +103,12 @@ fun ChatScreen(
     val quickPrompts = if (!firstSession.sentFirstMessage) listOf(
         "你现在在做什么？", "今天过得怎么样？", "第一次见面，你想让我怎么称呼你？"
     ) else when (character.id.lowercase()) {
+        "yan" -> listOf("今天修的是什么书？", "我想在店里坐一会儿", "你也会有想躲起来的时候吗？")
+        "yeo" -> listOf("今天拍到什么了？", "下次带我去河边吧", "先说好，不许偷偷拍我")
         "yuna" -> listOf("你在做什么呢？", "今天有点累…", "布丁还有吗？", "雨下得真大呢", "明天去探店吧！")
         "noa" -> listOf("你在做什么呢？", "今天有点累…", "给我讲个故事吧", "雨下得真大呢", "在听什么唱片？")
-        else -> listOf("你在做什么呢？", "今天有点累…", "给我讲个故事吧", "雨下得真大呢", "红茶好喝吗？")
+        "mira" -> listOf("你在做什么呢？", "今天有点累…", "给我讲个故事吧", "雨下得真大呢", "红茶好喝吗？")
+        else -> listOf("今天过得怎么样？", "你最近在忙什么？", "聊聊你喜欢的事吧")
     }
 
     LaunchedEffect(messages.size, streamingText) {

@@ -115,7 +115,7 @@ object AiluaLocalStore {
         val cardsJson = prefs.getString(KEY_CUSTOM_CARDS, null)
         if (!cardsJson.isNullOrBlank()) {
             try {
-                val list = json.decodeFromString(ListSerializer(CharacterCard.serializer()), cardsJson)
+                val list = CharacterCardJsonCodec.decodeList(cardsJson)
                 _customCards.value = list
             } catch (_: Exception) {}
         }
@@ -191,7 +191,7 @@ object AiluaLocalStore {
         _customCards.value = current
         sharedPrefs?.edit()?.putString(
             KEY_CUSTOM_CARDS,
-            json.encodeToString(ListSerializer(CharacterCard.serializer()), current)
+            CharacterCardJsonCodec.encodeList(current)
         )?.apply()
     }
 
@@ -200,7 +200,7 @@ object AiluaLocalStore {
         _customCards.value = updated
         sharedPrefs?.edit()?.putString(
             KEY_CUSTOM_CARDS,
-            json.encodeToString(ListSerializer(CharacterCard.serializer()), updated)
+            CharacterCardJsonCodec.encodeList(updated)
         )?.apply()
     }
 

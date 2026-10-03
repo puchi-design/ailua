@@ -1,7 +1,11 @@
 package com.example.data.codec
 
 import com.example.data.model.CharacterCard
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 
 data class CharacterCardValidationResult(
     val isValid: Boolean,
@@ -18,10 +22,12 @@ object CharacterCardJsonCodec {
         encodeDefaults = true
         coerceInputValues = true
     }
+    private val storageJson = Json(json) { prettyPrint = false }
 
     /**
      * Decodes Character Card V2 JSON string into CharacterCard model.
-     * Uses lenient parser and ignores unknown extensions/properties for maximum interoperability.
+     * Extension objects retain arbitrary JSON values; the book serializer also preserves
+     * unsupported V2 book/entry properties. Unmodeled root/data properties are ignored.
      */
     fun decode(jsonString: String): CharacterCard {
         return json.decodeFromString(CharacterCard.serializer(), jsonString)
@@ -33,6 +39,22 @@ object CharacterCardJsonCodec {
     fun encode(card: CharacterCard): String {
         return json.encodeToString(CharacterCard.serializer(), card)
     }
+
+    /** For editable JSON previews: retain numeric lexemes before the user edits a field. */
+    fun encodeJsonElement(value: JsonElement): String =
+        json.encodeToString(LosslessJsonElementSerializer, value)
+
+    /** A malformed saved card must not prevent unrelated cards from loading. */
+    fun decodeList(jsonString: String): List<CharacterCard> {
+        val values = storageJson.parseToJsonElement(jsonString) as? JsonArray
+            ?: throw SerializationException("Saved character cards must be a JSON array")
+        return values.mapNotNull { value ->
+            runCatching { storageJson.decodeFromJsonElement(CharacterCard.serializer(), value) }.getOrNull()
+        }
+    }
+
+    fun encodeList(cards: List<CharacterCard>): String =
+        storageJson.encodeToString(ListSerializer(CharacterCard.serializer()), cards)
 
     /**
      * Validates CharacterCard data contract.

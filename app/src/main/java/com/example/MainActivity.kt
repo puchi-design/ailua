@@ -187,6 +187,7 @@ fun AiluaAppRoot() {
     val navController = rememberNavController()
     val firstSession by FirstSessionStore.state.collectAsStateWithLifecycle()
     var postWelcomeRoute by remember { mutableStateOf<String?>(null) }
+    var openCreatorAdvanced by remember { mutableStateOf(false) }
 
     // Step 2 & 3: Observe CallStateEngine as sole authority with lifecycle awareness
     val currentCall by CallStateEngine.currentCall.collectAsStateWithLifecycle()
@@ -208,10 +209,11 @@ fun AiluaAppRoot() {
         }
     }
 
-    // Active companion (CharacterContext bootstrap default: Mira) — profiles always
+    // Active companion: fresh installs use Yan, existing selections keep their identity.
     // resolve through CharacterRegistry, never a hardcoded sample profile
     val selectedCharacterId by CharacterContext.selectedId.collectAsStateWithLifecycle()
-    val selectedCharacter = remember(selectedCharacterId) {
+    val registeredCharacters by CharacterRegistry.allCards.collectAsStateWithLifecycle()
+    val selectedCharacter = remember(selectedCharacterId, registeredCharacters) {
         CharacterRegistry.getCharacter(selectedCharacterId)
     }
 
@@ -234,6 +236,7 @@ fun AiluaAppRoot() {
             if (!firstSession.onboardingComplete) {
                 WelcomeScreen { characterId, importCard ->
                     CharacterContext.select(characterId)
+                    openCreatorAdvanced = importCard
                     postWelcomeRoute = if (importCard) AiluaDestinations.CHARACTER_CREATOR else AiluaDestinations.chatRoute(characterId)
                     FirstSessionStore.completeOnboarding()
                 }
@@ -339,10 +342,10 @@ fun AiluaAppRoot() {
                     route = "chat/{characterId}",
                     arguments = listOf(navArgument("characterId") {
                         type = NavType.StringType
-                        defaultValue = "mira"
+                        defaultValue = CharacterContext.currentId()
                     })
                 ) { backStackEntry ->
-                    val charId = backStackEntry.arguments?.getString("characterId") ?: "mira"
+                    val charId = backStackEntry.arguments?.getString("characterId") ?: CharacterContext.currentId()
                     val character = CharacterRegistry.getCharacter(charId)
                     ChatScreen(
                         character = character,
@@ -477,7 +480,7 @@ fun AiluaAppRoot() {
                         onBack = { navController.popBackStack() },
                         onReality = { navController.navigate(AiluaDestinations.REALITY) },
                         onPrivacy = { navController.navigate(AiluaDestinations.PRIVACY) },
-                        onCharacters = { navController.navigate(AiluaDestinations.CHARACTER_CREATOR) },
+                        onCharacters = { openCreatorAdvanced = false; navController.navigate(AiluaDestinations.CHARACTER_CREATOR) },
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         isDarkTheme = isDarkTheme,
                     )
@@ -492,10 +495,10 @@ fun AiluaAppRoot() {
                     route = "profile/{characterId}",
                     arguments = listOf(navArgument("characterId") {
                         type = NavType.StringType
-                        defaultValue = "mira"
+                        defaultValue = CharacterContext.currentId()
                     })
                 ) { backStackEntry ->
-                    val charId = backStackEntry.arguments?.getString("characterId") ?: "mira"
+                    val charId = backStackEntry.arguments?.getString("characterId") ?: CharacterContext.currentId()
                     val character = CharacterRegistry.getCharacter(charId)
                     CharacterProfileScreen(
                         character = character,
@@ -530,6 +533,7 @@ fun AiluaAppRoot() {
                 // Screen 14: Character Creator
                 composable(AiluaDestinations.CHARACTER_CREATOR) {
                     CharacterCreatorScreen(
+                        initialAdvancedMode = openCreatorAdvanced,
                         onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
@@ -611,10 +615,11 @@ fun AiluaAppRoot() {
                     route = "call/{characterId}",
                     arguments = listOf(navArgument("characterId") {
                         type = NavType.StringType
-                        defaultValue = "mira"
+                        defaultValue = CharacterContext.currentId()
                     })
-                ) {
+                ) { callEntry ->
                     CallScreen(
+                        characterId = callEntry.arguments?.getString("characterId") ?: CharacterContext.currentId(),
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onCallEnded = {

@@ -32,6 +32,8 @@ object FirstSessionPolicy {
 
     fun continuation(characterId: String, characterName: String, location: String, clock: WorldClock): LifeEvent {
         val activity = when (characterId) {
+            "yan" -> "修复书桌上的旧书"
+            "yeo" -> "整理今天拍下的照片"
             "yuna" -> "整理新甜点的食谱"
             "noa" -> "翻开桌边的旧书"
             else -> "整理窗边的手记"

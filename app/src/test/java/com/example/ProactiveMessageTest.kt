@@ -8,6 +8,7 @@ import com.example.data.chat.local.SqlDelightMemoryRepository
 import com.example.data.engine.ProactiveMessageEngine
 import com.example.data.engine.ProactiveRules
 import com.example.data.engine.WorldStateRepository
+import com.example.data.mock.OfficialCharacters
 import com.example.data.model.ProactiveSettings
 import com.example.data.model.ProactiveState
 import com.example.data.systemui.notification.VirtualNotification
@@ -93,7 +94,7 @@ class ProactiveMessageTest {
 
     // === Engine pipeline ===
 
-    private class Fixture {
+    private class Fixture(val characterId: String = "mira") {
         val chat = ChatTestHarness.inMemory()
         val memoryRepository = SqlDelightMemoryRepository(chat.database, chat.idGenerator, chat.clock)
         val resolver = FakeProviderResolver(null)
@@ -118,9 +119,10 @@ class ProactiveMessageTest {
             postNotification = {
                 // This callback must run only after both the turn and success state committed.
                 assertTrue(savedStates > 0)
-                assertTrue(miraTurns().isNotEmpty())
+                assertTrue(characterTurns().isNotEmpty())
                 notifications += it
             },
+            activeCharacterId = { characterId },
         )
 
         fun use(provider: AiProvider) {
@@ -131,8 +133,8 @@ class ProactiveMessageTest {
             )
         }
 
-        fun miraTurns() = chat.repository
-            .getResolvedTurns(chat.repository.getOrCreatePrivateSession("mira").id)
+        fun characterTurns() = chat.repository
+            .getResolvedTurns(chat.repository.getOrCreatePrivateSession(characterId).id)
     }
 
     @Test
@@ -149,7 +151,7 @@ class ProactiveMessageTest {
         assertEquals(AiRole.SYSTEM, fake.requests.single().messages.first().role)
         assertTrue(fake.requests.single().messages.size >= 2)
 
-        val turns = f.miraTurns()
+        val turns = f.characterTurns()
         assertEquals(1, turns.size)
         assertEquals(
             "今天雨还没停，我把红茶又热了一遍，等你回来。",
@@ -168,6 +170,51 @@ class ProactiveMessageTest {
     }
 
     @Test
+    fun injectedYanUsesHisBehaviorPromptAndWritesOnlyHisSessionAndNotification() = runBlocking {
+        val f = Fixture(characterId = "yan")
+        // Keep the ledger event distinct from the legacy Mira fixtures' fixed timestamp.
+        f.chat.clock.now += 123_000L
+        val reply = "修好的那册书先替你留着。什么时候方便，你决定。"
+        val fake = FakeAiProvider.scripted(reply)
+        f.use(fake)
+
+        // This case verifies role routing, independent of the shared virtual clock's sleep phase.
+        assertTrue(f.engine.fireIfDue(force = true))
+
+        assertEquals(1, fake.requests.size)
+        val request = fake.requests.single()
+        assertFalse(request.stream)
+        assertEquals(AiRole.SYSTEM, request.messages.first().role)
+        val prompt = request.messages.joinToString("\n") { it.content }
+        assertTrue(prompt.contains("性别：male"))
+        assertTrue(prompt.contains(OfficialCharacters.yanExtension.identity.occupation))
+        assertTrue(prompt.contains(OfficialCharacters.yanExtension.behavior.coreDesire))
+        assertTrue(prompt.contains(OfficialCharacters.yanExtension.behavior.flaws.first()))
+        assertFalse(prompt.contains(OfficialCharacters.yeoExtension.behavior.coreDesire))
+        assertFalse(prompt.contains(OfficialCharacters.noaExtension.behavior.coreDesire))
+
+        val turns = f.characterTurns()
+        val yanSession = f.chat.repository.getOrCreatePrivateSession("yan")
+        assertEquals(1, turns.size)
+        assertEquals(yanSession.id, turns.single().sessionId)
+        assertEquals(reply, turns.single().activeVariant?.content)
+        val miraSession = f.chat.repository.getOrCreatePrivateSession("mira")
+        assertTrue(f.chat.repository.getResolvedTurns(miraSession.id).isEmpty())
+
+        val event = WorldStateRepository.events.value.single { it.id == "proactive_${f.chat.clock.now}" }
+        assertEquals("yan", event.characterId)
+        assertEquals(reply, event.description)
+        assertEquals(1, f.state.sentCount)
+        assertEquals("2023-11-14", f.state.sentDate)
+        assertEquals(f.chat.clock.now, f.state.lastSuccessAtEpochMs)
+        val notification = f.notifications.single()
+        assertEquals(NotificationCategory.MESSAGE, notification.category)
+        assertEquals("chat/yan", notification.route)
+        assertEquals("message:${yanSession.id}:${turns.single().id}", notification.sourceKey)
+        assertEquals(reply, notification.body)
+    }
+
+    @Test
     fun disabledWritesNothing() = runBlocking {
         val f = Fixture()
         f.settings = f.settings.copy(enabled = false)
@@ -177,7 +224,7 @@ class ProactiveMessageTest {
         assertFalse(f.engine.fireIfDue())
 
         assertEquals(0, fake.requests.size)
-        assertTrue(f.miraTurns().isEmpty())
+        assertTrue(f.characterTurns().isEmpty())
         assertEquals(0, f.state.sentCount)
     }
 
@@ -191,7 +238,7 @@ class ProactiveMessageTest {
         assertFalse(f.engine.fireIfDue())
 
         assertEquals(0, fake.requests.size)
-        assertTrue(f.miraTurns().isEmpty())
+        assertTrue(f.characterTurns().isEmpty())
     }
 
     @Test
@@ -205,7 +252,7 @@ class ProactiveMessageTest {
         assertFalse(f.engine.fireIfDue())
 
         assertEquals(1, fake.requests.size)
-        assertEquals(1, f.miraTurns().size)
+        assertEquals(1, f.characterTurns().size)
         assertEquals(1, f.state.sentCount)
     }
 
@@ -215,7 +262,7 @@ class ProactiveMessageTest {
 
         assertFalse(f.engine.fireIfDue())
 
-        assertTrue(f.miraTurns().isEmpty())
+        assertTrue(f.characterTurns().isEmpty())
         assertEquals(0, f.state.sentCount)
     }
 
@@ -226,7 +273,7 @@ class ProactiveMessageTest {
 
         assertFalse(f.engine.fireIfDue())
 
-        assertTrue(f.miraTurns().isEmpty())
+        assertTrue(f.characterTurns().isEmpty())
         assertEquals(0, f.state.sentCount)
         assertTrue(f.notifications.isEmpty())
     }
@@ -242,6 +289,6 @@ class ProactiveMessageTest {
         assertTrue(f.engine.fireIfDue(force = true))
 
         assertEquals(1, fake.requests.size)
-        assertEquals(1, f.miraTurns().size)
+        assertEquals(1, f.characterTurns().size)
     }
 }

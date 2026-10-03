@@ -1,7 +1,9 @@
 package com.example.data.model
 
+import com.example.data.codec.LosslessJsonObjectSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 /**
  * Character Card V2 Specification data structures.
@@ -32,7 +34,9 @@ data class CharacterCardData(
     @SerialName("character_version") val characterVersion: String = "1.0",
     @SerialName("avatar_reference") val avatarReference: String = "mira",
     @SerialName("character_book") val characterBook: WorldBook? = null,
-    @SerialName("extensions") val extensions: Map<String, String> = emptyMap()
+    @SerialName("extensions")
+    @Serializable(with = LosslessJsonObjectSerializer::class)
+    val extensions: JsonObject = JsonObject(emptyMap())
 )
 
 // === World Book & Lore Models ===
@@ -46,7 +50,7 @@ enum class LoreActivationMode {
     EVENT
 }
 
-@Serializable
+@Serializable(with = LoreEntrySerializer::class)
 data class LoreEntry(
     val id: String,
     val title: String,
@@ -59,10 +63,13 @@ data class LoreEntry(
     val locationIds: List<String> = emptyList(),
     val activationMode: LoreActivationMode = LoreActivationMode.KEYWORD,
     val category: String = "世界设定", // 世界设定, 地点, 人物关系, 事件, 习惯, 秘密, 共同记忆
-    val notes: String = ""
+    val notes: String = "",
+    val extensions: JsonObject = JsonObject(emptyMap()),
+    /** Kept by the JSON serializer, including unsupported optional V2 fields. */
+    val sourceJson: JsonObject? = null,
 )
 
-@Serializable
+@Serializable(with = WorldBookSerializer::class)
 data class WorldBook(
     val id: String,
     val name: String,
@@ -70,7 +77,10 @@ data class WorldBook(
     val scanDepth: Int = 2,
     val tokenBudget: Int = 500,
     val recursiveScanning: Boolean = false,
-    val entries: List<LoreEntry> = emptyList()
+    val entries: List<LoreEntry> = emptyList(),
+    val extensions: JsonObject = JsonObject(emptyMap()),
+    /** Source JSON survives copy(), export, and direct CharacterCard.serializer() persistence. */
+    val sourceJson: JsonObject? = null,
 )
 
 // === Virtual Places Models ===
@@ -149,4 +159,3 @@ data class TheaterBookmark(
     val history: List<TheaterHistoryStep>,
     val savedAtTimestamp: Long = System.currentTimeMillis()
 )
-

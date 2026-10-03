@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.engine.CallStateEngine
+import com.example.data.context.CharacterContext
 import com.example.data.model.CallAction
 import com.example.data.model.CallSession
 import com.example.ui.components.VirtualPhoneStatusBar
@@ -44,9 +45,9 @@ fun IncomingCallScreen(
         horizontalAlignment = Alignment.CenterHorizontally) {
         VirtualPhoneStatusBar()
         Spacer(Modifier.weight(0.65f))
-        CharacterPortrait(session?.characterId ?: "mira", PortraitVariant.HERO)
+        CharacterPortrait(session?.characterId ?: CharacterContext.currentId(), PortraitVariant.HERO)
         Spacer(Modifier.height(theme.layout.sectionGap.dp))
-        Text(session?.callerName ?: "小弥", style = theme.text.display, color = theme.palette.onSurface)
+        Text(session?.callerName ?: CharacterContext.currentCharacter().name, style = theme.text.display, color = theme.palette.onSurface)
         Spacer(Modifier.height(8.dp))
         Text("来电…", style = theme.text.body, color = theme.palette.onSurfaceMuted)
         Spacer(Modifier.weight(1f))

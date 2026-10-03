@@ -1,6 +1,7 @@
 package com.example.data.repository
 
 import com.example.data.engine.WorldStateRepository
+import com.example.data.mock.OfficialCharacters
 import com.example.data.local.AiluaLocalStore
 import com.example.data.model.Letter
 import com.example.data.model.LetterDeliveryState
@@ -60,7 +61,7 @@ object MailboxRepository {
         )
     )
 
-    private val _letters = MutableStateFlow<List<Letter>>(initialLetters)
+    private val _letters = MutableStateFlow<List<Letter>>(OfficialCharacters.letters + initialLetters)
     val letters: StateFlow<List<Letter>> = _letters.asStateFlow()
 
     private val _unreadCount = MutableStateFlow(0)

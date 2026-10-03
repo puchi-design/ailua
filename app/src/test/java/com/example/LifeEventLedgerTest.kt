@@ -198,14 +198,17 @@ class LifeEventLedgerTest {
     @Test
     fun latestForCharacterReturnsNewestChronological() {
         val suffix = System.nanoTime()
+        val characterId = "ledger_order_$suffix"
+        // Isolate the query from authored seed events and append in reverse time
+        // order so this also catches implementations returning the last insertion.
         WorldStateRepository.appendLifeEvent(
-            event(id = "latest_a_$suffix", characterId = "noa", time = "08:00", worldMinutesOfDay = 8 * 60)
+            event(id = "latest_b_$suffix", characterId = characterId, time = "23:10", worldMinutesOfDay = 23 * 60 + 10)
         )
         WorldStateRepository.appendLifeEvent(
-            event(id = "latest_b_$suffix", characterId = "noa", time = "23:10", worldMinutesOfDay = 23 * 60 + 10)
+            event(id = "latest_a_$suffix", characterId = characterId, time = "08:00", worldMinutesOfDay = 8 * 60)
         )
 
-        val latest = WorldStateRepository.latestForCharacter("noa")
+        val latest = WorldStateRepository.latestForCharacter(characterId)
         assertNotNull(latest)
         assertEquals("latest_b_$suffix", latest?.id)
     }

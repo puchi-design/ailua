@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,6 +29,7 @@ import com.example.data.engine.WorldHeartbeatEngine
 import com.example.data.engine.WorldStateRepository
 import com.example.data.mock.MockData
 import com.example.data.model.CharacterProfile
+import com.example.data.context.CharacterContext
 import com.example.data.projection.projectLiving
 import com.example.ui.designsystem.AiluaChip
 import com.example.ui.designsystem.AiluaMediaFrame
@@ -52,6 +54,7 @@ fun CharacterProfileScreen(
     val scrollState = rememberScrollState()
     val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
     val worldClock by WorldHeartbeatEngine.worldClock.collectAsStateWithLifecycle()
+    val selectedId by CharacterContext.selectedId.collectAsStateWithLifecycle()
     val projection = remember(character.id, worldEvents) {
         projectLiving(
             character = character,
@@ -89,6 +92,11 @@ fun CharacterProfileScreen(
                 }
                 Text(text = character.name, style = theme.text.display, color = theme.palette.onSurface)
                 Text(text = character.title, style = theme.text.body, color = theme.palette.onSurfaceMuted)
+                if (selectedId != character.id) {
+                    TextButton(onClick = { CharacterContext.select(character.id) }, modifier = Modifier.testTag("profile_select_character")) {
+                        Text("在主屏显示", style = theme.text.secondary)
+                    }
+                }
                 Text(
                     text = listOf(projection.currentActivity, projection.currentLocation)
                         .filter { it.isNotBlank() }

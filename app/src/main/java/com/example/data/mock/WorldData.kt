@@ -1,5 +1,6 @@
 package com.example.data.mock
 
+import com.example.data.codec.AiluaCharacterExtensionCodec
 import com.example.data.model.CharacterCard
 import com.example.data.model.CharacterCardData
 import com.example.data.model.CharacterProfile
@@ -67,31 +68,12 @@ object WorldData {
         )
     )
 
-    val cardNoa = CharacterCard(
-        spec = "chara_card_v2",
-        specVersion = "2.0",
-        data = CharacterCardData(
-            id = "noa",
-            name = "诺亚 (Noa)",
-            description = "沉稳、理性中带有隐秘浪漫的文字学者。喜欢整理世界观档案与收集老唱片。",
-            personality = "从容博学，语速不急不徐，擅长在哲学与文学的长河中为焦虑者锚定心灵港湾。",
-            scenario = "月光书阁负一层藏书室，桌前放着一杯手冲深烘咖啡，老黑胶唱片正在留声机上旋转。",
-            firstMessage = "晚上好。窗外的雨声节奏很适合阅读，月光书阁这盘1978年的爵士黑胶唱片随时可以借你听。",
-            exampleMessages = "<START>\n{{user}}: 感觉人生好迷茫。\n{{char}}: 夏目漱石在《草枕》中写过，驻足于非人情的天地，心绪自然明朗。迷茫本身说明你正在寻找更真实的立足点，不必苛求此刻就得到答案。",
-            creatorNotes = "理性与文艺交融的夜读守护者。",
-            systemPrompt = "你将扮演 Noa（诺亚）。说话温厚克制，富有哲理与知性韵味，擅长在宁静中平复浮躁。",
-            alternateGreetings = listOf(
-                "夜雨声的频率与人脑的阿尔法波最为契合，是适合思考的良辰。",
-                "翻出一册装帧精巧的星河十四行诗，其中有几句或许能与你产生共鸣。"
-            ),
-            tags = listOf("学者博学", "黑胶老唱片", "深夜知己", "理性浪漫"),
-            creator = "AILUA Core Atelier",
-            characterVersion = "1.8.0",
-            avatarReference = "noa"
-        )
-    )
+    val cardYan = OfficialCharacters.cardYan
+    val cardYeo = OfficialCharacters.cardYeo
+    val cardNoa = OfficialCharacters.cardNoa
 
-    val allCards = listOf(cardMira, cardYuna, cardNoa)
+    // Official romance routes first; the original female cards remain independently selectable.
+    val allCards = listOf(cardYan, cardYeo, cardNoa, cardMira, cardYuna)
 
     // =========================================================================
     // 2. WORLD BOOK & LORE ENTRIES (世界设定秘典)
@@ -202,11 +184,11 @@ object WorldData {
             category = "共同记忆",
             notes = "活泼日常羁绊"
         )
-    )
+    ) + OfficialCharacters.loreEntries
 
     val defaultWorldBook = WorldBook(
         id = "wb_ailua_core",
-        name = "青石街与心网物语 · Core Lorebook",
+        name = "青石街生活设定",
         description = "AILUA 伴生世界的地理、人文风貌、角色隐秘习惯与生活网络全集",
         scanDepth = 3,
         tokenBudget = 800,
@@ -309,7 +291,16 @@ object WorldData {
             coordinateX = 0.45f,
             coordinateY = 0.52f
         )
-    )
+    ).map { place ->
+        // Keep established place IDs; connect new workspaces with the existing street.
+        val additions = when (place.id) {
+            "place_mulan" -> listOf("place_old_pages", "place_river_studio")
+            "place_moonlight" -> listOf("place_old_pages")
+            "place_rainy_lane" -> listOf("place_old_pages", "place_river_walk")
+            else -> emptyList()
+        }
+        place.copy(connectedPlaceIds = (place.connectedPlaceIds + additions).distinct())
+    } + OfficialCharacters.places
 
     // =========================================================================
     // 4. THEATER INTERACTIVE NARRATIVE (沉浸剧场与分支物语)
@@ -541,29 +532,30 @@ object WorldData {
      */
     fun cardToProfile(card: CharacterCard): CharacterProfile {
         val d = card.data
+        val extension = AiluaCharacterExtensionCodec.read(d)
         return CharacterProfile(
             id = if (d.id.isNotBlank()) d.id else "custom_${System.currentTimeMillis()}",
             name = d.name.substringBefore(" (").ifBlank { d.name },
             englishName = if (d.name.contains("(") && d.name.contains(")")) {
                 d.name.substringAfter("(").substringBefore(")")
             } else d.name,
-            title = d.tags.firstOrNull() ?: "心网伴生者",
+            title = extension.identity.occupation.ifBlank { d.tags.firstOrNull() ?: "自定义角色" },
             bio = d.description,
             currentActivity = d.scenario.take(30),
-            mood = "温存 · 共鸣",
-            location = "青石街23号",
+            mood = extension.speech.tone.firstOrNull() ?: "平静",
+            location = extension.life.workplace.ifBlank { extension.life.home.ifBlank { "尚未设定" } },
             contextualQuote = d.firstMessage.take(40),
             bondLevel = 1,
-            bondName = "初识 · 伴生共鸣",
-            bondProgress = 20,
+            bondName = "初识",
+            bondProgress = 0,
             daysTogether = 1,
             energyLevel = 100,
             personalityTags = d.tags,
             memories = emptyList(),
             timeline = emptyList(),
-            avatarId = d.avatarReference.ifBlank { "mira" },
+            avatarId = d.avatarReference.ifBlank { extension.visual.avatar.ifBlank { d.id } },
             isOnline = true,
-            relationshipType = "伴生者"
+            relationshipType = extension.relationship.initialRelation.ifBlank { "初识" }
         )
     }
 }

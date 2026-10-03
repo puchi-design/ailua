@@ -2,28 +2,29 @@ package com.example.data.registry
 
 import com.example.data.local.AiluaLocalStore
 import com.example.data.mock.MockData
+import com.example.data.mock.OfficialCharacters
 import com.example.data.mock.WorldData
 import com.example.data.model.CharacterCard
 import com.example.data.model.CharacterProfile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.UUID
 
 /**
  * CharacterRegistry
  *
  * Single source of truth for all AILUA companion profiles.
- * Seamlessly integrates built-in core companions (Mira, Yuna, Noa)
+ * Integrates the official romance catalog, optional legacy characters
  * with user-imported and custom Character Card V2 characters.
  */
 object CharacterRegistry {
 
+    const val DEFAULT_CHARACTER_ID = "yan"
+    val OFFICIAL_ROMANCE_IDS: List<String> = OfficialCharacters.romanceIds
+
     // Built-in cards mapped to CharacterCard models
-    private val builtInCards = mapOf(
-        "mira" to WorldData.cardMira,
-        "yuna" to WorldData.cardYuna,
-        "noa" to WorldData.cardNoa
-    )
+    private val builtInCards = WorldData.allCards.associateBy { it.data.id }
 
     // Dynamic registry combining built-ins and custom cards
     private val _allCards = MutableStateFlow<Map<String, CharacterCard>>(builtInCards)
@@ -48,7 +49,18 @@ object CharacterRegistry {
      */
     fun getCharacter(characterId: String): CharacterProfile {
         refresh()
-        // 1. Check built-in mock characters first for rich timeline/memories
+        return resolveProfile(characterId)
+    }
+
+    private fun resolveProfile(characterId: String): CharacterProfile {
+        // A saved/imported edit wins even when it retains a built-in ID.
+        val saved = AiluaLocalStore.customCards.value.lastOrNull { card ->
+            card.data.id.ifBlank { card.data.name.lowercase().replace(" ", "_") } == characterId
+        }
+        if (saved != null) {
+            return WorldData.cardToProfile(saved.copy(data = saved.data.copy(id = characterId)))
+        }
+        // Unedited built-ins retain their authored timelines and legacy memories.
         MockData.allCharacters[characterId]?.let { return it }
 
         // 2. Check registered cards (e.g. Luna or custom imported)
@@ -62,14 +74,14 @@ object CharacterRegistry {
             id = characterId,
             name = characterId.replaceFirstChar { it.uppercase() },
             englishName = characterId.replaceFirstChar { it.uppercase() },
-            title = "自定义伴生者",
-            bio = "通过伴生工坊导入的专属灵魂知己。",
-            currentActivity = "正在心网世界静候连通…",
-            mood = "温存",
-            location = "青石街23号",
+            title = "自定义角色",
+            bio = "尚未添加角色资料。",
+            currentActivity = "暂无近况",
+            mood = "平静",
+            location = "尚未设定",
             contextualQuote = "很高兴在 AILUA 与你相遇。",
-            avatarId = "mira",
-            relationshipType = "伴生者"
+            avatarId = characterId,
+            relationshipType = "初识"
         )
     }
 
@@ -78,21 +90,20 @@ object CharacterRegistry {
         return _allCards.value[characterId]
     }
 
+    /** Saved built-in edits must not inherit the original persona through the shared world book. */
+    fun isUnmodifiedBuiltIn(characterId: String): Boolean =
+        characterId in builtInCards && AiluaLocalStore.customCards.value.none { card ->
+            card.data.id.ifBlank { card.data.name.lowercase().replace(" ", "_") } == characterId
+        }
+
     fun getAllCharacters(): List<CharacterProfile> {
         refresh()
-        val profiles = mutableListOf<CharacterProfile>()
-        // Built-ins in canonical order
-        profiles.add(MockData.sampleCharacter)
-        MockData.allCharacters["yuna"]?.let { profiles.add(it) }
-        MockData.allCharacters["noa"]?.let { profiles.add(it) }
+        return _allCards.value.keys.map(::resolveProfile)
+    }
 
-        // Append custom imported characters
-        _allCards.value.forEach { (id, card) ->
-            if (id != "mira" && id != "yuna" && id != "noa") {
-                profiles.add(WorldData.cardToProfile(card))
-            }
-        }
-        return profiles
+    fun getOfficialRomanceCharacters(): List<CharacterProfile> {
+        refresh()
+        return OFFICIAL_ROMANCE_IDS.map(::resolveProfile)
     }
 
     fun getAllCards(): List<CharacterCard> {
@@ -110,7 +121,7 @@ object CharacterRegistry {
         val finalizedCard = card.copy(
             data = card.data.copy(
                 id = targetId,
-                avatarReference = card.data.avatarReference.ifBlank { "mira" }
+                avatarReference = card.data.avatarReference.ifBlank { targetId }
             )
         )
 
@@ -120,19 +131,18 @@ object CharacterRegistry {
     }
 
     fun deleteCustomCharacter(characterId: String) {
-        if (characterId == "mira" || characterId == "yuna" || characterId == "noa") return
+        if (characterId in builtInCards) return
         AiluaLocalStore.deleteCustomCard(characterId)
         refresh()
     }
 
     fun duplicateCharacter(characterId: String): CharacterCard {
-        val source = getCard(characterId) ?: WorldData.cardMira
-        val newId = "${source.data.id}_copy_${System.currentTimeMillis() % 1000}"
+        val source = getCard(characterId) ?: WorldData.cardYan
+        val newId = "${source.data.id}_copy_${UUID.randomUUID()}"
         val copyCard = source.copy(
             data = source.data.copy(
                 id = newId,
-                name = "${source.data.name} (副本)",
-                creatorNotes = "基于 ${source.data.name} 复制创建"
+                name = "${source.data.name} (副本)"
             )
         )
         saveCharacterCard(copyCard)

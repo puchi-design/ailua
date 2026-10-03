@@ -4,6 +4,7 @@ import com.example.data.model.CharacterCardData
 import com.example.data.model.LifeEvent
 import com.example.data.model.sortedChronologically
 import com.example.data.projection.CharacterPresence
+import com.example.data.character.CharacterBehaviorRuntime
 
 /**
  * PromptAssembler — the single Prompt Assembly Boundary (spec §6/§9).
@@ -72,6 +73,9 @@ object PromptAssembler {
         }
 
         val examples = macros.resolve(character.exampleMessages.trim())
+        CharacterBehaviorRuntime.prompt(character)?.let { behavior ->
+            stack.add(PromptBlock.of(PromptCategory.CHARACTER, "ailua_behavior", macros.resolve(behavior)))
+        }
         if (examples.isNotEmpty()) {
             stack.add(
                 PromptBlock.of(

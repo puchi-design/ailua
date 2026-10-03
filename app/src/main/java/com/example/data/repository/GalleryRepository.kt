@@ -1,6 +1,7 @@
 package com.example.data.repository
 
 import com.example.data.engine.UserActivityRecorder
+import com.example.data.mock.OfficialCharacters
 import com.example.data.model.GalleryAsset
 import com.example.data.model.GalleryAssetType
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,6 +12,8 @@ object GalleryRepository {
 
     val albums = listOf(
         "全部",
+        "沈砚的书店",
+        "周野的相机",
         "小弥的生活",
         "悠奈的相机",
         "诺亚的书阁",
@@ -82,7 +85,7 @@ object GalleryRepository {
         )
     )
 
-    private val _assets = MutableStateFlow<List<GalleryAsset>>(initialAssets)
+    private val _assets = MutableStateFlow<List<GalleryAsset>>(OfficialCharacters.galleryAssets + initialAssets)
     val assets: StateFlow<List<GalleryAsset>> = _assets.asStateFlow()
 
     fun addImportedAsset(uriString: String, title: String = "本地导入参考照片") {

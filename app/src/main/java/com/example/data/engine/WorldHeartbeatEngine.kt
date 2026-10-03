@@ -10,6 +10,8 @@ import com.example.data.model.WorldClock
 import com.example.data.model.PlannedWorldAction
 import com.example.data.model.WorldPlan
 import com.example.data.repository.MailboxRepository
+import com.example.data.registry.CharacterRegistry
+import com.example.data.context.CharacterContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -52,7 +54,7 @@ enum class TimeOfDayPhase(val label: String, val icon: String, val atmosphere: S
 data class WorldHeartbeatState(
     val currentPhase: TimeOfDayPhase = TimeOfDayPhase.RAINY_NIGHT,
     val activePlaceId: String = "place_street_23",
-    val activeCharacterId: String = "mira",
+    val activeCharacterId: String = CharacterContext.currentId(),
     val isProactiveTakeoverActive: Boolean = false,
     val proactiveMessage: String? = null,
     val initiativeScores: Map<String, Int> = mapOf("mira" to 88, "yuna" to 75, "noa" to 65),
@@ -70,10 +72,12 @@ data class WorldHeartbeatState(
  */
 object WorldHeartbeatEngine {
 
+    const val DEFAULT_MINUTES_OF_DAY = 21 * 60 + 30
+
     private val _worldClock = MutableStateFlow(
         WorldClock(
             dateLabel = "9月25日",
-            minutesOfDay = 21 * 60 + 30, // 21:30
+            minutesOfDay = DEFAULT_MINUTES_OF_DAY,
             dayPhase = DayPhase.EVENING,
             weather = WeatherState.RAIN
         )
@@ -84,28 +88,32 @@ object WorldHeartbeatEngine {
         WorldHeartbeatState(
             currentPhase = TimeOfDayPhase.DUSK,
             isProactiveTakeoverActive = false,
-            activeCharacterId = "mira",
+            activeCharacterId = CharacterContext.currentId(),
             lastPulseTime = "21:30",
             proactiveMessage = null
         )
     )
     val heartbeatState: StateFlow<WorldHeartbeatState> = _heartbeatState.asStateFlow()
 
-    private val initialActions = DemoSeedWorldPlan.actions
-
-
     private val _scheduledActions = MutableStateFlow<List<ScheduledWorldAction>>(emptyList())
     val scheduledActions: StateFlow<List<ScheduledWorldAction>> = _scheduledActions.asStateFlow()
 
     init {
         // Sync clock and actions with local store
-        val savedMinutes = AiluaLocalStore.getVirtualMinutes(21 * 60 + 30)
+        val savedMinutes = AiluaLocalStore.getVirtualMinutes(DEFAULT_MINUTES_OF_DAY)
         val savedDate = AiluaLocalStore.getVirtualDate("9月25日")
         val firedIds = AiluaLocalStore.getFiredWorldActionIds()
 
-        val savedPlan = AiluaLocalStore.savedWorldPlan.value
+        val hasProvider = com.example.data.ai.repository.ProviderGraph.isReady &&
+            com.example.data.ai.runtime.ActiveProfileProviderResolver(com.example.data.ai.repository.ProviderGraph.repository).resolve() != null
+        val officialCharacter = CharacterContext.currentId() in CharacterRegistry.OFFICIAL_ROMANCE_IDS
+        val savedPlan = AiluaLocalStore.savedWorldPlan.value ?: if (!hasProvider && officialCharacter) {
+            // futureActions() reads the persisted plan. Keeping this only in _scheduledActions
+            // would let cold-start maybePlan() replace the introductory schedule immediately.
+            OfficialDemoWorldPlan.createPlan(savedDate, savedMinutes).takeIf(AiluaLocalStore::saveWorldPlan)
+        } else null
         val sourceActions = savedPlan?.actions?.map { it.toScheduledAction() }
-            ?: if (com.example.data.ai.repository.ProviderGraph.isReady && com.example.data.ai.runtime.ActiveProfileProviderResolver(com.example.data.ai.repository.ProviderGraph.repository).resolve() != null) emptyList() else initialActions
+            ?: if (hasProvider || officialCharacter) emptyList() else DemoSeedWorldPlan.actions
         val restoredActions = sourceActions.map { action ->
             if (firedIds.contains(action.id)) {
                 action.copy(fired = true)
@@ -241,7 +249,7 @@ object WorldHeartbeatEngine {
                         action = action,
                         eventId = "pulse_sched_${action.id}",
                         type = lifeEventTypeFor(action),
-                        location = action.location ?: if (action.characterId == "yuna") "街角全家便利店" else if (action.characterId == "noa") "月光书阁" else "青石街23号"
+                        location = action.location ?: CharacterRegistry.getCharacter(action.characterId).location
                     )
                 )
             }
@@ -252,7 +260,7 @@ object WorldHeartbeatEngine {
                 // CallStateEngine is the sole authority
                 CallStateEngine.triggerIncomingCall(
                     characterId = action.characterId,
-                    callerName = if (action.characterId == "yuna") "悠奈" else if (action.characterId == "noa") "诺亚" else "小弥",
+                    callerName = CharacterRegistry.getCharacter(action.characterId).name,
                     reason = action.description,
                     timeLabel = action.triggerTimeString
                 )
@@ -271,7 +279,7 @@ object WorldHeartbeatEngine {
                         action = action,
                         eventId = "pulse_loc_${action.id}",
                         type = LifeEventType.LOCATION_CHANGE,
-                        location = action.location ?: "青石街23号 · 卧房"
+                        location = action.location ?: CharacterRegistry.getCharacter(action.characterId).location
                     )
                 )
             }
@@ -332,8 +340,8 @@ object WorldHeartbeatEngine {
         advanceTime(90)
     }
 
-    fun triggerScheduledTakeover(characterId: String = "mira"): LifeEvent {
-        val character = MockData.allCharacters[characterId] ?: MockData.sampleCharacter
+    fun triggerScheduledTakeover(characterId: String = CharacterContext.currentId()): LifeEvent {
+        val character = CharacterRegistry.getCharacter(characterId)
         val newEvent = LifeEvent(
             id = "pulse_${System.currentTimeMillis()}",
             characterId = character.id,
@@ -343,7 +351,8 @@ object WorldHeartbeatEngine {
             description = when (characterId) {
                 "yuna" -> "悠奈在心网发来提示：刚才看到天边有彩虹，一定要提醒你抬头看！🌈"
                 "noa" -> "诺亚在书阁整理笔记时，摘录了一句适合今晚心绪的诗句发到了你的便签。"
-                else -> "小弥伸手轻触飘窗风铃，为你把保温垫上的红茶温度调整到最佳。"
+                "mira" -> "小弥伸手轻触飘窗风铃，为你把保温垫上的红茶温度调整到最佳。"
+                else -> "${character.name}${character.currentActivity}。"
             },
             location = character.location,
             worldDateLabel = _worldClock.value.dateLabel,

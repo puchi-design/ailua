@@ -14,6 +14,8 @@ import com.example.data.model.PlannedWorldAction
 import com.example.data.model.WorldClock
 import com.example.data.model.WorldPlan
 import com.example.data.registry.CharacterRegistry
+import com.example.data.character.CharacterBehaviorRuntime
+import com.example.data.character.CharacterWorldPolicy
 import com.example.data.projection.projectPresence
 import com.example.data.relationship.repository.RelationshipStateRepository
 import kotlinx.coroutines.flow.firstOrNull
@@ -47,6 +49,9 @@ class WorldActionPlanner(
             characters.forEach { character ->
                 val presence = projectPresence(character, events)
                 appendLine("${character.id} ${character.name}；${character.bio.take(160)}；当前位置 ${presence.currentLocation}；当前活动 ${presence.currentActivity}")
+                CharacterRegistry.getCard(character.id)?.data?.let { card ->
+                    CharacterBehaviorRuntime.worldGuidance(card)?.let { appendLine(it.take(850)) }
+                }
                 val memories = memoryRepository?.getMemoriesForPrompt(character.id, 4).orEmpty()
                 memories.forEach { appendLine("记忆：${it.content.take(120)}") }
                 val turns = runCatching {
@@ -83,7 +88,8 @@ class WorldActionPlanner(
         if (completion is AiStreamEvent.Failed && responseFormatUnsupported(completion.error)) {
             completion = complete(resolved, request.copy(jsonResponse = false))
         }
-        val actions = (completion as? AiStreamEvent.Completed)?.text?.let(::parse) ?: return null
+        val proposed = (completion as? AiStreamEvent.Completed)?.text?.let(::parse) ?: return null
+        val actions = CharacterWorldPolicy.select(proposed, existing, events) { CharacterRegistry.getCard(it)?.data }
         val plan = WorldPlan(clock.dateLabel, clock.minutesOfDay, actions)
         return if (WorldPlanValidator.validate(plan, clock, existing, events, characters.map { it.id }.toSet())) plan else null
     }

@@ -18,6 +18,11 @@ import com.example.data.model.ProactiveSettings
 import com.example.data.model.ProactiveState
 import com.example.data.model.WeatherState
 import com.example.data.registry.CharacterRegistry
+import com.example.data.context.CharacterContext
+import com.example.data.codec.AiluaCharacterExtensionCodec
+import com.example.data.character.CharacterBehaviorRuntime
+import com.example.data.ai.prompt.PromptAssembler
+import com.example.data.ai.prompt.PromptAssemblyInput
 import com.example.data.systemui.notification.NotificationEvents
 import com.example.data.systemui.notification.VirtualNotification
 import com.example.data.systemui.notification.VirtualNotificationGraph
@@ -97,6 +102,7 @@ class ProactiveMessageEngine(
     private val realityContext: suspend () -> String? = { null },
     private val recentWorldEvents: () -> List<LifeEvent> = { WorldStateRepository.latestEvents(20) },
     private val postNotification: suspend (VirtualNotification) -> Unit = { VirtualNotificationGraph.post(it) },
+    private val activeCharacterId: () -> String = { CharacterContext.currentId() },
 ) {
 
     private val inFlight = AtomicBoolean(false)
@@ -129,7 +135,10 @@ class ProactiveMessageEngine(
     /** One synchronous evaluation; returns true when a message was sent. */
     suspend fun fireIfDue(force: Boolean = false): Boolean {
         val now = clock.nowEpochMs()
-        val settings = loadSettings()
+        val characterId = activeCharacterId()
+        val card = CharacterRegistry.getCard(characterId)
+        val extension = card?.data?.let(AiluaCharacterExtensionCodec::readOrNull)
+        val settings = CharacterBehaviorRuntime.proactiveSettings(loadSettings(), extension)
         val calendar = Calendar.getInstance(timeZone).apply { timeInMillis = now }
         val minuteOfDay = calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE)
         val today = SimpleDateFormat("yyyy-MM-dd", Locale.US)
@@ -138,12 +147,12 @@ class ProactiveMessageEngine(
         val state = loadState()
 
         if (!force && !ProactiveRules.shouldFire(settings, state, now, minuteOfDay, today)) return false
+        if (!force && CharacterBehaviorRuntime.isSleeping(extension, WorldHeartbeatEngine.worldClock.value.minutesOfDay)) return false
         if (!force && UserContactCooldown.recentlyContacted(WorldHeartbeatEngine.worldClock.value, recentWorldEvents())) return false
         val reality = realityContext()
         if (!force && reality?.contains("电量较低") == true) return false
         val resolved = providerResolver.resolve() ?: return false
 
-        val characterId = WorldHeartbeatEngine.heartbeatState.value.activeCharacterId
         val character = CharacterRegistry.getCharacter(characterId)
         val session = chatRepository.getOrCreatePrivateSession(characterId)
 
@@ -226,7 +235,10 @@ class ProactiveMessageEngine(
             if (reality != null) add(reality.take(300))
         }.joinToString("\n")
 
-        return listOf(AiMessage(AiRole.SYSTEM, system), AiMessage(AiRole.USER, context))
+        val characterMessages = CharacterRegistry.getCard(characterId)?.let { card ->
+            PromptAssembler.assemble(PromptAssemblyInput(character = card.data)).messages
+        }.orEmpty()
+        return characterMessages + listOf(AiMessage(AiRole.SYSTEM, system), AiMessage(AiRole.USER, context))
     }
 
     /** One non-streaming call; `null` on any failure (nothing is written). */

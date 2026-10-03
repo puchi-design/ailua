@@ -16,7 +16,7 @@ import com.example.data.registry.CharacterRegistry
  *
  * Production ([WorldChatPromptContext]) reads ONLY real sources: the
  * CharacterRegistry card, WorldStateRepository life events, projectPresence,
- * and WorldData.getActiveLore. Tests inject fixed values.
+ * and the current card's lore book plus public world settings. Tests inject fixed values.
  *
  * Memory (P3C-5) is deliberately absent here — runtime passes
  * `emptyList()` until the memory DB exists. No fake memories, ever.
@@ -49,7 +49,7 @@ interface ChatPromptContext {
 /**
  * Production prompt context over the existing real sources (P3C-4 §6).
  * Never reads MockData for chat content — cards come from CharacterRegistry,
- * lore from WorldData's world book, events from WorldStateRepository.
+ * lore from the current card and public world book, events from WorldStateRepository.
  */
 object WorldChatPromptContext : ChatPromptContext {
 
@@ -69,11 +69,14 @@ object WorldChatPromptContext : ChatPromptContext {
         locationId: String?,
         recentUserText: String,
         lifeEventTitle: String?,
-    ): List<LoreActivationResult> = WorldData.getActiveLore(
+    ): List<LoreActivationResult> = CharacterLoreResolver.resolve(
         characterId = characterId,
+        card = CharacterRegistry.getCard(characterId)?.data,
+        worldBook = WorldData.defaultWorldBook,
         locationId = locationId,
         recentText = recentUserText,
         lifeEventTitle = lifeEventTitle,
+        allowLegacyCharacterLore = CharacterRegistry.isUnmodifiedBuiltIn(characterId),
     )
 
     override fun temporal(): Pair<String, String> {

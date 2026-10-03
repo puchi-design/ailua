@@ -22,6 +22,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.engine.CallStateEngine
+import com.example.data.context.CharacterContext
+import com.example.data.registry.CharacterRegistry
 import com.example.data.model.CallAction
 import com.example.data.model.CallSession
 import com.example.ui.components.VirtualPhoneStatusBar
@@ -36,7 +38,8 @@ fun CallScreen(
     previewCallSession: CallSession? = null,
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
-    onCallEnded: () -> Unit = {}
+    onCallEnded: () -> Unit = {},
+    characterId: String = CharacterContext.currentId(),
 ) {
     val theme = LocalAiluaTheme.current
     val isPreview = LocalInspectionMode.current
@@ -59,9 +62,9 @@ fun CallScreen(
         horizontalAlignment = Alignment.CenterHorizontally) {
         VirtualPhoneStatusBar(isDarkTheme = isDarkTheme, onToggleTheme = onToggleTheme)
         Spacer(Modifier.weight(0.65f))
-        CharacterPortrait(currentCall?.characterId ?: "mira", PortraitVariant.HERO)
+        CharacterPortrait(currentCall?.characterId ?: characterId, PortraitVariant.HERO)
         Spacer(Modifier.height(theme.layout.sectionGap.dp))
-        Text(currentCall?.callerName ?: "小弥", style = theme.text.display, color = theme.palette.onSurface)
+        Text(currentCall?.callerName ?: CharacterRegistry.getCharacter(characterId).name, style = theme.text.display, color = theme.palette.onSurface)
         Spacer(Modifier.height(12.dp))
         Text(durationText, style = theme.text.title, color = theme.palette.onSurface)
         Text("正在通话", style = theme.text.secondary, color = theme.palette.onSurfaceMuted)

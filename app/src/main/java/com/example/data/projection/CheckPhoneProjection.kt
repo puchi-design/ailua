@@ -1,6 +1,7 @@
 package com.example.data.projection
 
 import com.example.data.mock.MockData
+import com.example.data.mock.OfficialCharacters
 import com.example.data.model.CheckPhoneData
 import com.example.data.model.LifeEvent
 import com.example.data.model.LifeEventType
@@ -42,6 +43,7 @@ fun projectCheckPhone(
     seedData: CheckPhoneData? = null
 ): CheckPhoneData {
     val seed = seedData
+        ?: OfficialCharacters.checkPhoneByCharacter[characterId]
         ?: if (characterId == "mira") MockData.checkPhoneData else EMPTY_CHECK_PHONE_DATA
 
     val runtime = runtimeEvents

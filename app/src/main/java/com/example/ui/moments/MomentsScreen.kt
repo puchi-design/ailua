@@ -29,6 +29,7 @@ import com.example.data.engine.WorldStateRepository
 import com.example.data.model.MomentPost
 import com.example.data.model.MomentComment
 import com.example.data.mock.MockData
+import com.example.data.registry.CharacterRegistry
 import com.example.data.projection.projectMoments
 import com.example.data.relationship.repository.RelationshipStateRepository
 import com.example.ui.designsystem.*
@@ -55,14 +56,8 @@ fun MomentsScreen(
             comments = post.comments + comments)
     }
     var selectedFilter by remember { mutableStateOf("全部") }
-    val filterOptions = listOf("全部", "小弥", "悠奈", "诺亚")
-    val filteredPosts = when (selectedFilter) {
-        "全部" -> posts
-        "小弥", "Mira" -> posts.filter { it.authorId == "mira" }
-        "悠奈", "Yuna" -> posts.filter { it.authorId == "yuna" }
-        "诺亚", "Noa" -> posts.filter { it.authorId == "noa" }
-        else -> posts.filter { it.authorName == selectedFilter }
-    }
+    val filterOptions = listOf("全部" to "全部") + CharacterRegistry.getAllCharacters().map { it.id to it.name }
+    val filteredPosts = if (selectedFilter == "全部") posts else posts.filter { it.authorId == selectedFilter }
 
     val theme = LocalAiluaTheme.current
     AiluaScreenScaffold(
@@ -75,7 +70,7 @@ fun MomentsScreen(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         ) {
             items(filterOptions) { filter ->
-                AiluaChip(filter, selected = selectedFilter == filter, onClick = { selectedFilter = filter })
+                AiluaChip(filter.second, selected = selectedFilter == filter.first, onClick = { selectedFilter = filter.first })
             }
         }
         LazyColumn(Modifier.weight(1f).fillMaxWidth().padding(horizontal = theme.layout.screenHorizontalPadding.dp)) {
