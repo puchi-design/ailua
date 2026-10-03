@@ -39,5 +39,7 @@ data class CallSession(
     val scheduledAtTime: String = "22:45",
     var startedAt: Long = 0L,
     var endedAt: Long = 0L,
-    var durationSeconds: Int = 0
+    var durationSeconds: Int = 0,
+    /** False for scheduled/incoming and legacy sessions; only a real user call action sets this. */
+    val userInitiated: Boolean = false,
 )

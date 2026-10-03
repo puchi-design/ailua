@@ -25,6 +25,7 @@ import com.example.data.model.LifeEventType
 import com.example.data.model.LIFE_EVENT_ACTOR_USER
 import com.example.data.registry.CharacterRegistry
 import com.example.data.relationship.repository.RelationshipStateRepository
+import com.example.data.relationship.romance.RomanceRepository
 import com.example.data.model.CharacterCardData
 import com.example.data.projection.CharacterPresence
 import com.example.data.reality.RealityContextPolicy
@@ -172,8 +173,8 @@ class ChatGenerationRuntime(
         val (date, time) = promptContext.temporal()
         val relationships = RelationshipStateRepository.states.value.filter { state ->
             speaker in listOf(state.fromCharacterId, state.toCharacterId) &&
-                (state.fromCharacterId in participants || state.fromCharacterId == "user") &&
-                (state.toCharacterId in participants || state.toCharacterId == "user")
+                state.fromCharacterId != "user" && state.toCharacterId != "user" &&
+                state.fromCharacterId in participants && state.toCharacterId in participants
         }.take(4).joinToString("；") { "${it.fromCharacterId}与${it.toCharacterId}:${it.stage.name}" }
         val groupRule = "这是群聊，成员：${participants.joinToString("、") { CharacterRegistry.getCharacter(it).name }}。" +
             "本轮只由${CharacterRegistry.getCharacter(speaker).name}发言。你只能代表自己，不能替其他角色声明心理。" +
@@ -185,6 +186,7 @@ class ChatGenerationRuntime(
                 PromptMemory(id = it.id, content = it.content, characterIds = listOf(speaker))
             },
             history = history, currentDate = date, currentTime = time,
+            relationshipInstructions = RomanceRepository.groupPromptInstructions(speaker),
             activeLore = promptContext.activeLore(speaker, presence?.currentLocation, recentUserText, null).take(2),
         )
         val request = AiChatRequest(resolved.model, listOf(AiMessage(AiRole.SYSTEM, groupRule)) + PromptAssembler.assemble(input).messages)
@@ -246,7 +248,9 @@ class ChatGenerationRuntime(
 
         val session = repository.getOrCreatePrivateSession(characterId)
         repository.recoverInterruptedVariants(session.id)
-        repository.appendUserTurn(session.id, userContent)
+        val userTurn = repository.appendUserTurn(session.id, userContent)
+        // A user's boundary needs no AI acknowledgement and survives a failed/cancelled generation.
+        RomanceRepository.observeUserBoundary(characterId, userTurn.id, userContent, userTurn.createdAtEpochMs)
 
         val history = repository.getResolvedTurns(session.id)
         return generate(
@@ -319,6 +323,7 @@ class ChatGenerationRuntime(
             currentDate = date,
             currentTime = time,
             userName = promptContext.userName(),
+            relationshipInstructions = RomanceRepository.promptInstructions(characterId),
             realityContext = RealityContextPolicy.context(RealityRepository.refresh(), RealityRepository.settings.value),
         )
         val assembly = PromptAssembler.assemble(input)
@@ -390,6 +395,15 @@ class ChatGenerationRuntime(
                             )
                             terminal = true
                             result = SendResult.Completed
+                            // Only a newly completed private reply establishes mutual evidence. Regeneration
+                            // changes presentation of an existing exchange and must never advance a relationship.
+                            if (targetTurnId == null) {
+                                history.lastOrNull { it.role == ChatTurnRole.USER }?.let { userTurn ->
+                                    runCatching { RomanceRepository.observeExchange(
+                                        characterId, userTurn.id, recentUserText, event.text, System.currentTimeMillis(),
+                                    ) }
+                                }
+                            }
                         }
                     }
                     is AiStreamEvent.Failed -> {

@@ -21,6 +21,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -39,6 +40,7 @@ import com.example.data.model.TheaterBookmark
 import com.example.data.model.TheaterChoice
 import com.example.data.model.TheaterDialogueNode
 import com.example.data.model.TheaterHistoryStep
+import com.example.data.relationship.romance.RomanceRepository
 import com.example.ui.designsystem.AiluaChip
 import com.example.ui.designsystem.AiluaMediaFrame
 import com.example.ui.designsystem.AiluaScreenScaffold
@@ -67,6 +69,13 @@ fun TheaterScreen(
     val history = remember { mutableStateListOf<TheaterHistoryStep>() }
     var showHistory by remember { mutableStateOf(false) }
     val currentNode: TheaterDialogueNode? = story.nodes[currentNodeId]
+    LaunchedEffect(story.id, currentNodeId) {
+        if (currentNode?.isEnding == true && history.isNotEmpty()) {
+            history.mapNotNull { story.nodes[it.nodeId]?.avatarId }.distinct().forEach { characterId ->
+                RomanceRepository.recordSharedStory(characterId, story.id)
+            }
+        }
+    }
 
     fun isChoiceAvailable(choice: TheaterChoice): Boolean {
         val reqKey = choice.requiredVariableKey
@@ -167,9 +176,8 @@ fun TheaterScreen(
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
                             AiluaSectionHeader(title = currentNode.endingTitle ?: "故事落幕")
-                            val change = bondScore - 50
                             Text(
-                                "关系变化 ${if (change >= 0) "+$change" else "$change"}",
+                                "这段共同经历，已经留在故事里。",
                                 style = theme.text.secondary, color = theme.palette.onSurfaceMuted
                             )
                             AiluaChip(

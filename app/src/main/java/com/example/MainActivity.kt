@@ -194,6 +194,30 @@ fun AiluaAppRoot() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    // A user tapping Call starts an engine-owned session. Opening its old empty
+    // presentation alone could never produce evidence of a real user-initiated call.
+    fun openUserRoute(route: String) {
+        if (!route.startsWith("call/")) {
+            navController.navigate(route) { launchSingleTop = true }
+            return
+        }
+        val requestedId = android.net.Uri.decode(route.substringAfter("call/"))
+        if (CallStateEngine.currentCall.value == null) {
+            CallStateEngine.triggerIncomingCall(
+                characterId = requestedId,
+                callerName = CharacterRegistry.getCharacter(requestedId).name,
+                reason = "你发起了通话",
+                timeLabel = WorldHeartbeatEngine.worldClock.value.timeFormatted,
+                userInitiated = true,
+            )
+            CallStateEngine.handleAction(CallAction.ANSWER)
+        }
+        val session = CallStateEngine.currentCall.value
+        val target = if (session?.state == CallState.INCOMING) AiluaDestinations.INCOMING_CALL
+            else AiluaDestinations.callRoute(session?.characterId ?: requestedId)
+        navController.navigate(target) { launchSingleTop = true }
+    }
+
     LaunchedEffect(firstSession.onboardingComplete, postWelcomeRoute) {
         val route = postWelcomeRoute
         if (firstSession.onboardingComplete && route != null) {
@@ -247,7 +271,7 @@ fun AiluaAppRoot() {
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
                 onToggleDarkMode = { isDarkTheme = !isDarkTheme },
-                onLaunchRoute = { route -> navController.navigate(route) { launchSingleTop = true } },
+                onLaunchRoute = ::openUserRoute,
             ) {
             NavHost(
                 navController = navController,
@@ -303,11 +327,11 @@ fun AiluaAppRoot() {
                         },
                         onOpenProfile = { navController.navigate(AiluaDestinations.profileRoute(selectedCharacterId)) },
                         onNavigateToMailbox = { navController.navigate(AiluaDestinations.MAILBOX) },
-                        onNavigateToCall = { navController.navigate(AiluaDestinations.callRoute(selectedCharacterId)) },
+                        onNavigateToCall = { openUserRoute(AiluaDestinations.callRoute(selectedCharacterId)) },
                         onNavigateToCallHistory = { navController.navigate(AiluaDestinations.CALL_HISTORY) },
                         onNavigateToGallery = { navController.navigate(AiluaDestinations.GALLERY) },
                         onAppClick = { appId ->
-                            navController.navigate(
+                            openUserRoute(
                                 AppRouter.launchRouteOrNull(appId, selectedCharacterId)
                                     ?: AppRouter.resolve(appId)
                             )
@@ -443,7 +467,7 @@ fun AiluaAppRoot() {
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBackToHome = { navController.popBackStack() },
                         onNavigateToChat = { navController.navigate(AiluaDestinations.chatRoute(selectedCharacter.id)) },
-                        onNavigateToCall = { navController.navigate(AiluaDestinations.callRoute(selectedCharacter.id)) },
+                        onNavigateToCall = { openUserRoute(AiluaDestinations.callRoute(selectedCharacter.id)) },
                         onNavigateToMailbox = { navController.navigate(AiluaDestinations.MAILBOX) },
                         onOpenProfile = { navController.navigate(AiluaDestinations.profileRoute(selectedCharacter.id)) }
                     )
@@ -466,7 +490,7 @@ fun AiluaAppRoot() {
                         onBackToHome = { navController.popBackStack() },
                         onOpenApp = { appId ->
                             AppRouter.launchRouteOrNull(appId, selectedCharacterId)?.let { route ->
-                                navController.navigate(route)
+                                openUserRoute(route)
                             }
                         }
                     )
@@ -598,15 +622,7 @@ fun AiluaAppRoot() {
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBack = { navController.popBackStack() },
-                        onStartCall = { charId ->
-                            CallStateEngine.triggerIncomingCall(
-                                characterId = charId,
-                                callerName = CharacterRegistry.getCharacter(charId).name,
-                                reason = "主动拨通伴生语音倾听"
-                            )
-                            CallStateEngine.handleAction(CallAction.ANSWER)
-                            navController.navigate(AiluaDestinations.callRoute(charId))
-                        }
+                        onStartCall = { charId -> openUserRoute(AiluaDestinations.callRoute(charId)) }
                     )
                 }
 

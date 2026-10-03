@@ -80,7 +80,7 @@ class LivingWorldEngineTest {
         assertEquals(CallState.INCOMING, initialCurrent?.state)
 
         // 2. Answer Call -> CONNECTED
-        CallStateEngine.handleAction(CallAction.ANSWER)
+        CallStateEngine.handleAction(CallAction.ANSWER, nowEpochMs = 10_000L)
         val answeredCurrent = CallStateEngine.currentCall.value
         assertEquals(CallState.CONNECTED, answeredCurrent?.state)
         assertTrue((answeredCurrent?.startedAt ?: 0L) > 0L)
@@ -91,7 +91,7 @@ class LivingWorldEngineTest {
 
         // 4. End Call -> Clears current call, records to history, appends LifeEvent
         val beforeHistorySize = CallStateEngine.callHistory.value.size
-        CallStateEngine.handleAction(CallAction.END)
+        CallStateEngine.handleAction(CallAction.END, nowEpochMs = 52_000L)
 
         assertNull(CallStateEngine.currentCall.value)
         assertEquals(beforeHistorySize + 1, CallStateEngine.callHistory.value.size)

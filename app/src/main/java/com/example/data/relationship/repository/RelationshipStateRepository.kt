@@ -8,6 +8,7 @@ import com.example.data.model.isUserActivity
 import com.example.data.model.sortedChronologically
 import com.example.data.relationship.engine.RelationshipReducer
 import com.example.data.relationship.model.RelationshipState
+import com.example.data.relationship.romance.RomanceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +17,10 @@ object RelationshipStateRepository {
     private val _states = MutableStateFlow<List<RelationshipState>>(emptyList())
     val states: StateFlow<List<RelationshipState>> = _states.asStateFlow()
 
-    fun restore() { _states.value = AiluaLocalStore.savedRelationships.value }
+    fun restore() {
+        _states.value = AiluaLocalStore.savedRelationships.value
+        RomanceRepository.restore()
+    }
 
     fun rebuild(events: List<LifeEvent>) {
         if (_states.value.isNotEmpty()) return
@@ -28,7 +32,7 @@ object RelationshipStateRepository {
             id = "relationship_memory_${characterId}_$sourceId", characterId = characterId,
             time = time, type = LifeEventType.MEMORY, title = "共同记忆", description = content.take(160),
             worldDateLabel = date, relatedCharacterIds = listOf("user"), sourceAppId = "memory",
-            metadata = mapOf("actor" to LIFE_EVENT_ACTOR_USER),
+            metadata = mapOf("actor" to LIFE_EVENT_ACTOR_USER, "interaction_epoch_ms" to System.currentTimeMillis().toString()),
         ))
     }
 
@@ -43,6 +47,7 @@ object RelationshipStateRepository {
     }
 
     fun observe(event: LifeEvent) {
+        RomanceRepository.observeLifeEvent(event)
         val targets = event.relatedCharacterIds.filter { it != event.characterId }.toMutableSet()
         if (event.type == LifeEventType.MESSAGE && targets.isEmpty()) targets += "user"
         if (event.isUserActivity() && event.type != LifeEventType.MESSAGE && event.sourceAppId !in setOf("memory", "moments")) return

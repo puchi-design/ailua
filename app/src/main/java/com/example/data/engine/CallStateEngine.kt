@@ -7,6 +7,7 @@ import com.example.data.model.CallState
 import com.example.data.model.CallType
 import com.example.data.model.LifeEvent
 import com.example.data.model.LifeEventType
+import com.example.data.relationship.romance.RomanceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -63,7 +64,8 @@ object CallStateEngine {
         characterId: String = "mira",
         callerName: String = "小弥",
         reason: String = "窗外雨下得很大，要不要陪我听一会儿？",
-        timeLabel: String = "22:45"
+        timeLabel: String = "22:45",
+        userInitiated: Boolean = false,
     ): CallSession {
         val session = CallSession(
             id = "call_${System.currentTimeMillis()}",
@@ -74,7 +76,8 @@ object CallStateEngine {
             state = CallState.INCOMING,
             reason = reason,
             scheduledAtMinutes = 22 * 60 + 45,
-            scheduledAtTime = timeLabel
+            scheduledAtTime = timeLabel,
+            userInitiated = userInitiated,
         )
         _currentCall.value = session
         return session
@@ -83,19 +86,19 @@ object CallStateEngine {
     /**
      * Single action handling API for all call state transitions.
      */
-    fun handleAction(action: CallAction) {
+    fun handleAction(action: CallAction, nowEpochMs: Long = System.currentTimeMillis()) {
         val session = _currentCall.value ?: return
         when (action) {
             CallAction.ANSWER -> {
                 _currentCall.value = session.copy(
                     state = CallState.CONNECTED,
-                    startedAt = System.currentTimeMillis()
+                    startedAt = nowEpochMs
                 )
             }
             CallAction.DECLINE -> {
                 val finished = session.copy(
                     state = CallState.DECLINED,
-                    endedAt = System.currentTimeMillis()
+                    endedAt = nowEpochMs
                 )
                 _currentCall.value = null
                 val updated = listOf(finished) + _callHistory.value
@@ -104,16 +107,20 @@ object CallStateEngine {
                 AiluaLocalStore.saveCallHistory(updated)
             }
             CallAction.END -> {
+                val endedAt = nowEpochMs
+                val actualDuration = if (session.state == CallState.CONNECTED && session.startedAt > 0L)
+                    ((endedAt - session.startedAt).coerceAtLeast(0L) / 1_000L).toInt() else 0
                 val finished = session.copy(
                     state = CallState.ENDED,
-                    endedAt = System.currentTimeMillis(),
-                    durationSeconds = if (session.durationSeconds > 0) session.durationSeconds else 45
+                    endedAt = endedAt,
+                    durationSeconds = actualDuration,
                 )
                 _currentCall.value = null
                 val updated = listOf(finished) + _callHistory.value
                 _callHistory.value = updated
                 AiluaLocalStore.appendCallHistory(finished)
                 AiluaLocalStore.saveCallHistory(updated)
+                RomanceRepository.recordUserCall(finished.characterId, finished.id, actualDuration, finished.userInitiated, endedAt)
 
                 // Record life event into unified timeline
                 WorldStateRepository.appendLifeEvent(
@@ -122,9 +129,8 @@ object CallStateEngine {
                         characterId = finished.characterId,
                         time = finished.scheduledAtTime,
                         type = LifeEventType.SOCIAL,
-                        title = "与${finished.callerName}的温存夜话",
-                        description = "在秋雨夜与${finished.callerName}通了电话（时长 ${finished.durationSeconds} 秒），心契共鸣度提升。",
-                        location = "青石街23号",
+                        title = if (actualDuration > 0) "与${finished.callerName}结束了通话" else "与${finished.callerName}的通话已取消",
+                        description = if (actualDuration > 0) "通话持续了 ${finished.durationSeconds} 秒。" else "未建立持续通话。",
                         sourceAppId = "call",
                         sourceRefId = finished.id,
                         relatedCharacterIds = listOf("user")
