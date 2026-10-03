@@ -4,6 +4,7 @@ import com.example.data.ai.prompt.PromptAssembler
 import com.example.data.ai.prompt.PromptAssemblyInput
 import com.example.data.character.CharacterBehaviorRuntime
 import com.example.data.character.CharacterWorldPolicy
+import com.example.data.character.runtime.CharacterRuntimeResolver
 import com.example.data.codec.AiluaCharacterExtensionCodec
 import com.example.data.engine.ProactiveRules
 import com.example.data.engine.ScheduledActionType
@@ -35,15 +36,18 @@ class CharacterBehaviorRuntimeTest {
     private val hero = "custom"
 
     @Test
-    fun plainV2AndFutureSchemasDoNotAddBehaviorBlocks() {
+    fun plainV2AndFutureSchemasUseConservativeRuntimeWithoutInterpretingFutureFields() {
         val plain = CharacterCardData(id = hero, name = "Imported", personality = "Original personality")
         val future = plain.copy(extensions = jsonObject("""{"ailua":{"schema":9,"behavior":{"core_desire":"FUTURE_SECRET"}}}"""))
         val baseline = PromptAssembler.assemble(PromptAssemblyInput(character = plain))
         for (data in listOf(plain, future)) {
-            assertNull(runtime.prompt(data))
-            assertNull(runtime.worldGuidance(data))
+            val profile = CharacterRuntimeResolver.resolve(data)
+            assertFalse(profile.relationship.romanceEnabled)
+            assertEquals("medium", profile.initiative.messageFrequency)
+            assertTrue(runtime.prompt(profile).contains("当前未启用恋爱路线"))
+            assertFalse(runtime.prompt(profile).contains("FUTURE_SECRET"))
             val assembled = PromptAssembler.assemble(PromptAssemblyInput(character = data))
-            assertFalse(assembled.includedBlocks.any { it.id == "ailua_behavior" })
+            assertTrue(assembled.includedBlocks.any { it.id == "ailua_behavior" })
             assertEquals(baseline.messages, assembled.messages)
         }
     }
@@ -84,11 +88,11 @@ class CharacterBehaviorRuntimeTest {
 
     @Test
     fun officialFrequenciesAndSleepWindowsAreMachineReadable() {
-        val frequencies = setOf("none", "never", "off", "low", "medium", "high")
+        val frequencies = setOf("none", "never", "off", "very_low", "low", "low_medium", "medium", "medium_high", "high")
         OfficialCharacters.cards.forEach { card ->
             val extension = AiluaCharacterExtensionCodec.read(card.data)
             with(extension.initiative) {
-                listOf(messageFrequency, callFrequency, photoFrequency, momentFrequency).forEach {
+                listOf(messageFrequency, callFrequency, photoFrequency, momentFrequency, letterFrequency).forEach {
                     assertTrue("${card.data.id} has an unsupported frequency: $it", it in frequencies)
                 }
             }
@@ -155,11 +159,14 @@ class CharacterBehaviorRuntimeTest {
     }
 
     @Test
-    fun missingOrMalformedSleepWindowsDoNotInventSleepingPeriods() {
+    fun missingOrMalformedSleepWindowsUseConservativeDefaultSchedule() {
         assertFalse(runtime.isSleeping(null, 0))
         listOf("", "whenever", "25:00-07:00", "23:75-07:00", "23:00-23:00").forEach { window ->
             val extension = preferences().copy(life = AiluaLife(sleepWindow = window))
-            assertFalse("Invalid sleep window: $window", runtime.isSleeping(extension, 0))
+            val profile = CharacterRuntimeResolver.fromExtension(extension)
+            assertEquals("00:00-08:00", profile.life.sleepWindow)
+            assertTrue("Default sleep window: $window", runtime.isSleeping(profile, 0))
+            assertFalse(runtime.isSleeping(profile, 12 * 60))
         }
     }
 
@@ -231,17 +238,19 @@ class CharacterBehaviorRuntimeTest {
     }
 
     @Test
-    fun ordinaryAndFutureCardsRetainLegacyPlanningLimitsAndFallbackKinds() {
-        val legacyKinds = listOf(LifeEventType.THOUGHT, LifeEventType.MEAL, LifeEventType.PHOTO, LifeEventType.TRAVEL, LifeEventType.SOCIAL, LifeEventType.MEMORY, LifeEventType.SLEEP)
+    fun ordinaryAndFutureCardsApplyConservativePlanningLimitsWithoutUsingUnknownFields() {
         val plain = CharacterCardData(id = hero, name = "Plain")
         val future = plain.copy(extensions = jsonObject("""{"ailua":{"schema":7,"initiative":{"call_frequency":"off"},"life":{"sleep_window":"00:00-23:59"}}}"""))
-        val candidates = (0..6).flatMap { index -> listOf("call", "photo", "moment").map { action("$it-$index", it, minute = 3 * 60 + index * 30) } }
+        val candidates = (0..6).flatMap { index -> listOf("call", "photo", "moment").map { action("$it-$index", it, minute = 12 * 60 + index * 30) } }
         for (data in listOf(plain, future)) {
             val extension = AiluaCharacterExtensionCodec.readOrNull(data)
             assertNull(extension)
-            listOf("call", "photo", "moment").forEach { assertEquals(Int.MAX_VALUE, runtime.dailyActionLimit(extension, it)) }
-            assertEquals(legacyKinds, runtime.fallbackKinds(extension))
-            assertEquals(candidates, CharacterWorldPolicy.select(candidates, emptyList(), emptyList()) { data })
+            val profile = CharacterRuntimeResolver.resolve(data)
+            listOf("call", "photo", "moment").forEach { assertEquals(1, runtime.dailyActionLimit(profile, it)) }
+            assertTrue(LifeEventType.MEAL in runtime.fallbackKinds(profile))
+            assertTrue(LifeEventType.PHOTO in runtime.fallbackKinds(profile))
+            assertEquals(listOf("call-0", "photo-0", "moment-0"), CharacterWorldPolicy.select(candidates, emptyList(), emptyList()) { data }.map { it.id })
+            assertTrue(CharacterWorldPolicy.select(candidates.map { it.copy(triggerMinutes = 3 * 60) }, emptyList(), emptyList()) { data }.isEmpty())
         }
     }
 

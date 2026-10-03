@@ -28,10 +28,9 @@ class PromptEmptyBlockTest {
 
         assertEquals(1, result.messages.size)
         assertEquals(AiRole.SYSTEM, result.messages[0].role)
-        assertEquals(
-            PromptAssembler.DEFAULT_GLOBAL_SYSTEM + "\n\n" + "Character: Nami",
-            result.messages[0].content,
-        )
+        assertTrue(result.messages[0].content.startsWith(PromptAssembler.DEFAULT_GLOBAL_SYSTEM + "\n\nCharacter: Nami"))
+        assertEquals(setOf("global_system", "character_core", "ailua_behavior"), result.includedBlocks.map { it.id }.toSet())
+        assertTrue(result.messages[0].content.contains("当前未启用恋爱路线"))
         assertTrue(result.messages.all { it.content.isNotBlank() })
     }
 

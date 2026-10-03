@@ -5,6 +5,8 @@ import com.example.data.model.LifeEvent
 import com.example.data.model.sortedChronologically
 import com.example.data.projection.CharacterPresence
 import com.example.data.character.CharacterBehaviorRuntime
+import com.example.data.character.runtime.CharacterRuntimeResolver
+import com.example.data.character.runtime.RuntimeSource
 
 /**
  * PromptAssembler — the single Prompt Assembly Boundary (spec §6/§9).
@@ -73,8 +75,13 @@ object PromptAssembler {
         }
 
         val examples = macros.resolve(character.exampleMessages.trim())
-        CharacterBehaviorRuntime.prompt(character)?.let { behavior ->
-            stack.add(PromptBlock.of(PromptCategory.CHARACTER, "ailua_behavior", macros.resolve(behavior)))
+        val runtime = CharacterRuntimeResolver.resolve(character)
+        CharacterBehaviorRuntime.prompt(runtime).let { behavior ->
+            stack.add(PromptBlock.of(
+                PromptCategory.CHARACTER, "ailua_behavior", macros.resolve(behavior),
+                // Conservative defaults yield before authored V2 fields when the budget is tight.
+                required = runtime.source == RuntimeSource.OFFICIAL || runtime.source == RuntimeSource.IMPORTED,
+            ))
         }
         if (examples.isNotEmpty()) {
             stack.add(
