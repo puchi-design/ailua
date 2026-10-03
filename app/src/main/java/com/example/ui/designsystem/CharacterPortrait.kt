@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import com.example.ui.components.AiluaAvatar
 import com.example.data.registry.CharacterRegistry
-import com.example.data.codec.AiluaCharacterExtensionCodec
+import com.example.data.character.runtime.CharacterRuntimeResolver
 import com.example.ui.themeengine.LocalAiluaTheme
 
 enum class PortraitVariant { AVATAR, HERO, PROFILE }
@@ -35,7 +35,7 @@ fun CharacterPortrait(
 ) {
     val cards by CharacterRegistry.allCards.collectAsState()
     val card = cards[characterId]
-    val visual = card?.data?.let(AiluaCharacterExtensionCodec::readOrNull)?.visual
+    val visual = card?.data?.let(CharacterRuntimeResolver::resolve)?.visual
     val standardReference = card?.data?.avatarReference.orEmpty()
     val visualReference = if (variant == PortraitVariant.AVATAR) visual?.avatar.orEmpty() else visual?.portrait.orEmpty()
     val reference = avatarReferenceOverride ?: standardReference.takeIf { it.contains("://") }

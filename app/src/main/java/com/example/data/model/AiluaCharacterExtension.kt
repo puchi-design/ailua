@@ -35,6 +35,7 @@ data class AiluaRelationship(
     val possessiveness: Double = 0.0,
     @SerialName("physical_distance") val physicalDistance: String = "",
     @SerialName("confession_threshold") val confessionThreshold: Double = 0.5,
+    @SerialName("progression_style") val progressionStyle: String = "balanced",
 )
 
 @Serializable
@@ -67,6 +68,9 @@ data class AiluaInitiative(
     @SerialName("photo_frequency") val photoFrequency: String = "",
     @SerialName("moment_frequency") val momentFrequency: String = "",
     @SerialName("preferred_triggers") val preferredTriggers: List<String> = emptyList(),
+    @SerialName("letter_frequency") val letterFrequency: String = "",
+    @SerialName("trigger_weights") val triggerWeights: Map<String, Double> = emptyMap(),
+    @SerialName("max_text_burst") val maxTextBurst: Int = 1,
 )
 
 @Serializable

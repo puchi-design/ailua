@@ -51,6 +51,7 @@ object AiluaCharacterExtensionCodec {
                 possessiveness = relationship.ratio("possessiveness", 0.0),
                 physicalDistance = relationship.text("physical_distance"),
                 confessionThreshold = relationship.ratio("confession_threshold", 0.5),
+                progressionStyle = relationship.text("progression_style").ifBlank { "balanced" },
             ),
             behavior = AiluaBehavior(
                 coreDesire = behavior.text("core_desire"),
@@ -77,6 +78,11 @@ object AiluaCharacterExtensionCodec {
                 photoFrequency = initiative.text("photo_frequency"),
                 momentFrequency = initiative.text("moment_frequency"),
                 preferredTriggers = initiative.strings("preferred_triggers"),
+                letterFrequency = initiative.text("letter_frequency"),
+                triggerWeights = (initiative?.get("trigger_weights") as? JsonObject).orEmpty().mapNotNull { (key, value) ->
+                    (value as? JsonPrimitive)?.doubleOrNull?.takeIf { it.isFinite() && it in 0.0..1.0 }?.let { key to it }
+                }.toMap(),
+                maxTextBurst = initiative.integer("max_text_burst")?.coerceIn(1, 3) ?: 1,
             ),
             life = AiluaLife(
                 home = life.text("home"),

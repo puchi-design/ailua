@@ -1,6 +1,6 @@
 package com.example.data.mock
 
-import com.example.data.codec.AiluaCharacterExtensionCodec
+import com.example.data.character.runtime.CharacterRuntimeResolver
 import com.example.data.model.CharacterCard
 import com.example.data.model.CharacterCardData
 import com.example.data.model.CharacterProfile
@@ -532,7 +532,7 @@ object WorldData {
      */
     fun cardToProfile(card: CharacterCard): CharacterProfile {
         val d = card.data
-        val extension = AiluaCharacterExtensionCodec.read(d)
+        val extension = CharacterRuntimeResolver.resolve(d)
         return CharacterProfile(
             id = if (d.id.isNotBlank()) d.id else "custom_${System.currentTimeMillis()}",
             name = d.name.substringBefore(" (").ifBlank { d.name },
