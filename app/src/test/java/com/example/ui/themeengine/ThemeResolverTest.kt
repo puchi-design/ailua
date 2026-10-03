@@ -52,6 +52,19 @@ class ThemeResolverTest {
     }
 
     @Test
+    fun officialIconStylesDoNotAddMaterialBordersOrShadowsToBitmapAssets() {
+        for (style in listOf("default_icons", "soft_home_icons", "midnight_icons", "y2k_icons")) {
+            val theme = ThemeResolver.resolve(ThemeSelection("default", iconStyleOverrideId = style),
+                false, DayPhase.NOON, WeatherState.CLEAR)
+            assertEquals(0f, theme.icons.border.widthDp)
+            assertEquals(0f, theme.icons.shadow.elevationDp)
+            assertEquals(1f, theme.icons.containerScale)
+            assertEquals(if (style == "y2k_icons") IconShapeSpec.NONE else IconShapeSpec.SQUIRCLE,
+                theme.icons.shape)
+        }
+    }
+
+    @Test
     fun glassSystemForegroundsStayReadableOverBrightWallpaperAndPaletteOverrides() {
         fun contrast(foreground: Color, background: Color): Float {
             val first = foreground.compositeOver(background).luminance()

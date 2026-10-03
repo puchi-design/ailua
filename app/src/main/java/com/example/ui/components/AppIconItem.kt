@@ -68,6 +68,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -91,7 +92,10 @@ import com.example.ui.themeengine.IdentityColorMode
 import com.example.ui.themeengine.LocalAiluaTheme
 import com.example.ui.themeengine.TypographyFamily
 import com.example.ui.themeengine.ThemeStore
+import com.example.ui.themeengine.ThemeSelection
+import com.example.ui.themeengine.icon.BundledIconCatalog
 import com.example.ui.themeengine.icon.IconResolver
+import com.example.ui.themeengine.icon.ResolvedIconBitmap
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
@@ -140,7 +144,7 @@ fun iconShapeFor(shape: IconShapeSpec): Shape = when (shape) {
 data class AppVisualIdentity(val glyph: ImageVector, val identityColors: List<Color>)
 
 fun getAppIdentity(iconKey: String): AppVisualIdentity {
-    val (glyph, colors) = getAppVisuals(iconKey)
+    val (glyph, colors) = getAppVisuals(BundledIconCatalog.canonicalIconKey(iconKey) ?: iconKey)
     return AppVisualIdentity(glyph, colors)
 }
 
@@ -155,6 +159,7 @@ fun AppIconItem(
     showLabel: Boolean = true,
     editMode: Boolean = false,
     isDragging: Boolean = false,
+    selection: ThemeSelection = ThemeStore.selection,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null
 ) {
@@ -164,15 +169,14 @@ fun AppIconItem(
     val identity = getAppIdentity(iconKey)
     val context = LocalContext.current
     val density = LocalDensity.current
-    val selection = ThemeStore.selection
     val targetSizePx = with(density) { size.roundToPx() }.coerceIn(1, 1024)
-    val externalBitmap by produceState<android.graphics.Bitmap?>(
+    val iconBitmap by produceState<ResolvedIconBitmap?>(
         initialValue = null,
-        context, iconKey, targetSizePx, selection.iconSourceOverrideId,
-        selection.manualIconOverrides
+        context, iconKey, targetSizePx, selection
     ) {
+        value = null
         value = withContext(Dispatchers.IO) {
-            IconResolver.get(context).resolveBitmap(iconKey, selection, targetSizePx)
+            IconResolver.get(context).resolveIcon(iconKey, selection, targetSizePx)
         }
     }
     val shape = iconShapeFor(iconSpec.shape)
@@ -244,12 +248,14 @@ fun AppIconItem(
                     EditMotion.NONE -> Unit
                 }
             }
-            val resolvedBitmap = externalBitmap
+            val resolvedBitmap = iconBitmap
             if (resolvedBitmap != null) {
                 Image(
-                    bitmap = resolvedBitmap.asImageBitmap(),
+                    bitmap = resolvedBitmap.bitmap.asImageBitmap(),
                     contentDescription = name,
                     modifier = Modifier.size(containerSize).then(editModifier)
+                        .then(resolvedBitmap.maskShape?.let { Modifier.clip(iconShapeFor(it)) } ?: Modifier),
+                    filterQuality = if (resolvedBitmap.isPixelArt) FilterQuality.None else FilterQuality.Low,
                 )
             } else if (iconSpec.containerStyle == IconContainerStyle.GLYPH_ONLY) {
                 Icon(

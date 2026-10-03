@@ -109,7 +109,11 @@ object IconStyleCatalog {
         IconStyleOption("glass", "玻璃配套图标", "Glass"),
         IconStyleOption("diary", "手账纸页", "Diary"),
         IconStyleOption("mono", "极简图形", "Mono"),
-        IconStyleOption("identity", "经典应用图标", "Identity")
+        IconStyleOption("identity", "经典应用图标", "Identity"),
+        IconStyleOption("default_icons", "清透日常图标", "AILUA Default"),
+        IconStyleOption("soft_home_icons", "暖意午后图标", "Soft Home"),
+        IconStyleOption("midnight_icons", "深蓝微光图标", "Midnight Glass"),
+        IconStyleOption("y2k_icons", "Y2K 图标原型", "Y2K Prototype")
     )
     fun byId(id: String?): IconStyleOption =
         options.firstOrNull { it.id == id } ?: options.first()

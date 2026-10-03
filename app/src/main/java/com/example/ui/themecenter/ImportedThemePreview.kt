@@ -124,13 +124,18 @@ private fun PreviewExternalIcon(
         ?: icons?.allIcons?.getOrNull(index)?.asset
         ?: icons?.mappings?.values?.elementAtOrNull(index)
     val size = sizeDp.dp
+    // Applying a candidate with icons replaces the old external source and clears manual choices.
+    val fallbackSelection = ThemeStore.selection.copy(
+        iconSourceOverrideId = if (icons != null) null else ThemeStore.selection.iconSourceOverrideId,
+        manualIconOverrides = emptyMap(),
+    )
     if (chosen == null) {
-        ThemePreviewIcon(runtime, key, size)
+        ThemePreviewIcon(runtime, key, size, fallbackSelection)
     } else {
-        Box(Modifier.size(size).clip(RoundedCornerShape((sizeDp * 0.22f).dp))) {
+        Box(Modifier.size(size)) {
             ExternalAssetImage(chosen, draftAssets, sizeDp * 4, Modifier.fillMaxSize(),
                 ContentScale.Crop) {
-                ThemePreviewIcon(runtime, key, size)
+                ThemePreviewIcon(runtime, key, size, fallbackSelection)
             }
         }
     }

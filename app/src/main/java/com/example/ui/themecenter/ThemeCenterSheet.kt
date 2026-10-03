@@ -162,15 +162,16 @@ fun ThemeCenterSheet(
                         ExternalWallpaperChoices(runtime)
                     }
                     ThemeCenterSection.ICONS -> {
+                        val followTheme = selection.copy(iconStyleOverrideId = null, iconSourceOverrideId = null, manualIconOverrides = emptyMap())
                         IconRow("跟随主题", "使用当前主题的默认图标",
-                            ThemeResolver.resolve(selection.copy(iconStyleOverrideId = null, iconSourceOverrideId = null, manualIconOverrides = emptyMap()), isDarkTheme, dayPhase, weather),
+                            ThemeResolver.resolve(followTheme, isDarkTheme, dayPhase, weather), followTheme,
                             selection.iconStyleOverrideId == null && selection.iconSourceOverrideId == null, "icon_option_default") {
                             ThemeStore.update(selection.copy(iconStyleOverrideId = null, iconSourceOverrideId = null, manualIconOverrides = emptyMap()))
                         }
                         IconStyleCatalog.options.forEach { option ->
                             val candidate = selection.copy(iconStyleOverrideId = option.id, iconSourceOverrideId = null, manualIconOverrides = emptyMap())
                             IconRow(option.name, option.nameEn,
-                                ThemeResolver.resolve(candidate, isDarkTheme, dayPhase, weather),
+                                ThemeResolver.resolve(candidate, isDarkTheme, dayPhase, weather), candidate,
                                 selection.iconStyleOverrideId == option.id && selection.iconSourceOverrideId == null, "icon_option_" + option.id) {
                                 ThemeStore.update(candidate)
                             }
@@ -218,16 +219,16 @@ private fun WallpaperRow(title: String, subtitle: String, colors: List<Color>, s
 }
 
 @Composable
-private fun IconRow(title: String, subtitle: String, preview: AiluaThemeRuntime, selected: Boolean, tag: String, onClick: () -> Unit) {
+private fun IconRow(title: String, subtitle: String, preview: AiluaThemeRuntime, selection: ThemeSelection, selected: Boolean, tag: String, onClick: () -> Unit) {
     val shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.medium.dp)
     Row(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(shape)
         .background(LocalAiluaTheme.current.surfaces.inset)
         .border(1.dp, if (selected) preview.palette.accent else Color.Transparent, shape)
         .clickable(onClick = onClick).padding(11.dp).testTag(tag),
         verticalAlignment = Alignment.CenterVertically) {
-        ThemePreviewIcon(preview, "chat", 31.dp)
+        ThemePreviewIcon(preview, "chat", 31.dp, selection)
         Spacer(Modifier.width(5.dp))
-        ThemePreviewIcon(preview, "gallery", 31.dp)
+        ThemePreviewIcon(preview, "gallery", 31.dp, selection)
         Spacer(Modifier.width(10.dp))
         ChoiceText(title, subtitle, Modifier.weight(1f))
         if (selected) Icon(Icons.Default.Check, "已选", tint = preview.palette.accent, modifier = Modifier.size(18.dp))

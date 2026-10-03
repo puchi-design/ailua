@@ -20,9 +20,10 @@ object AiluaIconAliasRegistry {
         "diary" to listOf("com.google.android.keep", "com.samsung.android.app.notes"),
         "creator" to listOf("com.android.camera2", "com.sec.android.app.camera"),
         "theater" to listOf("com.google.android.youtube"),
-        "agent" to listOf("com.google.android.googlequicksearchbox")
+        "assistant" to listOf("com.google.android.googlequicksearchbox")
     )
 
     /** Unknown AILUA-specific apps deliberately fall back to their built-in identity. */
-    fun aliasesFor(iconKey: String): List<String> = aliases[iconKey].orEmpty()
+    fun aliasesFor(iconKey: String): List<String> =
+        aliases[BundledIconCatalog.canonicalIconKey(iconKey) ?: iconKey].orEmpty()
 }

@@ -17,6 +17,12 @@ object WorldReactiveWallpaperResolver {
 }
 
 object ThemeResolver {
+    /** Shared by runtime projection and bitmap resolution, including candidate previews. */
+    fun resolveIconStyleId(selection: ThemeSelection): String =
+        selection.iconStyleOverrideId
+            ?.takeIf { option -> IconStyleCatalog.options.any { it.id == option } }
+            ?: ThemeCatalog.byId(selection.themePresetId).iconStyleId
+
     fun resolve(
         selection: ThemeSelection,
         darkMode: Boolean,
@@ -53,9 +59,7 @@ object ThemeResolver {
             "builtin/midnight_glass" -> Color(0xFFF5F8FC)
             else -> palette.onSurface
         }
-        val iconStyleId = selection.iconStyleOverrideId
-            ?.takeIf { option -> IconStyleCatalog.options.any { it.id == option } }
-            ?: preset.iconStyleId
+        val iconStyleId = resolveIconStyleId(selection)
 
         return AiluaThemeRuntime(
             id = preset.id,
@@ -159,6 +163,16 @@ object ThemeResolver {
     }
 
     private fun iconSpec(id: String, p: PaletteSpec): IconVisualSpec = when (id) {
+        "default_icons", "soft_home_icons", "midnight_icons" -> IconVisualSpec(
+            IconShapeSpec.SQUIRCLE, IconContainerStyle.GRADIENT, 1f, 0.48f,
+            IdentityColorMode.CONTAINER, GlyphTintMode.WHITE,
+            ShadowSpec(0f), BorderSpec(Color.Transparent, 0f), p.onSurface
+        )
+        "y2k_icons" -> IconVisualSpec(
+            IconShapeSpec.NONE, IconContainerStyle.GRADIENT, 1f, 0.48f,
+            IdentityColorMode.CONTAINER, GlyphTintMode.WHITE,
+            ShadowSpec(0f), BorderSpec(Color.Transparent, 0f), p.onSurface
+        )
         "identity" -> IconVisualSpec(
             IconShapeSpec.SQUIRCLE, IconContainerStyle.GRADIENT, 1f, 0.48f,
             IdentityColorMode.CONTAINER, GlyphTintMode.WHITE,
