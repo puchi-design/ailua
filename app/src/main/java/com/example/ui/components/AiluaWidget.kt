@@ -1,16 +1,11 @@
 package com.example.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -20,7 +15,6 @@ import com.example.ui.designsystem.AiluaSurface
 import com.example.ui.designsystem.CharacterPortrait
 import com.example.ui.designsystem.PortraitVariant
 import com.example.ui.themeengine.LocalAiluaTheme
-import com.example.ui.themeengine.WidgetBackgroundStyle
 
 /** Companion presentation; workspace placement and sizing remain with the widget host. */
 @Composable
@@ -60,24 +54,7 @@ fun LivingCharacterWidget(
     }
 }
 
-/** Keep the selected widget skin's surface and contrast, with the shared shape scale. */
-@Composable
-private fun Modifier.themedSnippetSurface(): Modifier {
-    val runtime = LocalAiluaTheme.current
-    return clip(RoundedCornerShape(runtime.shapes.large.dp))
-        .background(runtime.widgets.backgroundColor.copy(alpha = runtime.widgets.surfaceAlpha))
-}
-
-@Composable
-private fun snippetAccent(): Color {
-    val runtime = LocalAiluaTheme.current
-    return when (runtime.widgets.backgroundStyle) {
-        WidgetBackgroundStyle.FLAT, WidgetBackgroundStyle.TRANSPARENT -> runtime.widgets.foregroundColor
-        else -> runtime.palette.accent
-    }
-}
-
-/** The user-added relationship widget retains its level, progress and days together. */
+/** A relationship glance; the widget host supplies the material and placement. */
 @Composable
 fun BondProgressWidget(
     character: CharacterProfile,
@@ -87,26 +64,17 @@ fun BondProgressWidget(
     val runtime = LocalAiluaTheme.current
     val foreground = runtime.widgets.foregroundColor
     val muted = foreground.copy(alpha = 0.72f)
-    val accent = snippetAccent()
     Box(
-        modifier.themedSnippetSurface().clickable(onClick = onClick)
-            .padding(runtime.widgets.contentPaddingDp.dp).testTag("bond_progress_widget"),
+        modifier.clickable(onClick = onClick).testTag("bond_progress_widget"),
     ) {
-        Column {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("关系 Lv.${character.bondLevel}", style = runtime.text.secondary, color = foreground)
-                Text("${character.daysTogether}天相伴", style = runtime.text.caption, color = muted)
-            }
-            Spacer(Modifier.height(8.dp))
-            LinearProgressIndicator(
-                progress = { character.bondProgress / 100f },
-                modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(runtime.shapes.pill.dp)),
-                color = accent,
-                trackColor = foreground.copy(alpha = 0.14f),
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(character.bondName, style = runtime.text.caption, color = muted,
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(character.bondName, style = runtime.text.section, color = foreground,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text("与你相伴的第${character.daysTogether}天", style = runtime.text.caption, color = muted)
+            character.memories.firstOrNull()?.snippet?.takeIf { it.isNotBlank() }?.let { snippet ->
+                Text(snippet, style = runtime.text.secondary, color = foreground,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
         }
     }
 }
@@ -121,11 +89,10 @@ fun MemorySnippetWidget(
     val runtime = LocalAiluaTheme.current
     val foreground = runtime.widgets.foregroundColor
     Box(
-        modifier.themedSnippetSurface().clickable(onClick = onClick)
-            .padding(runtime.widgets.contentPaddingDp.dp).testTag("memory_snippet_widget"),
+        modifier.clickable(onClick = onClick).testTag("memory_snippet_widget"),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, style = runtime.text.secondary, color = foreground,
+            Text(title, style = runtime.text.section, color = foreground,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(snippet, style = runtime.text.secondary, color = foreground.copy(alpha = 0.78f),
                 maxLines = 2, overflow = TextOverflow.Ellipsis)

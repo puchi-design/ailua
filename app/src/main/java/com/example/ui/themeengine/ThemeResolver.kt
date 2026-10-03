@@ -28,8 +28,8 @@ object ThemeResolver {
         val paletteId = selection.paletteOverrideId
             ?.takeIf { option -> PaletteCatalog.palettes.any { it.id == option } }
             ?: preset.paletteId
-        val paletteBase = PaletteCatalog.resolve(paletteId, darkMode, world.colors)
-        val palette = if (preset.id == "glass") {
+        val paletteBase = PaletteCatalog.resolve(paletteId, darkMode || preset.id == "midnight_glass", world.colors)
+        val palette = if (preset.id == "glass" || preset.id == "midnight_glass") {
             paletteBase.copy(
                 // Glass uses light foregrounds in both appearance modes. Its system
                 // scrims must therefore stay dark even with a light/world palette.
@@ -47,6 +47,12 @@ object ThemeResolver {
             ?.takeIf { option -> WallpaperCatalog.options.any { it.id == option } }
             ?: if (paletteId == "world" && selection.paletteOverrideId != null) "world" else preset.wallpaperId
         val wallpaper = resolveWallpaper(wallpaperId, selection.wallpaperOverrideId == null, palette, world, darkMode)
+        // Wallpaper legibility is independent of an App's light/dark surface palette.
+        val homeForeground = when (wallpaper.key) {
+            "builtin/default", "builtin/soft_home" -> Color(0xFF283039)
+            "builtin/midnight_glass" -> Color(0xFFF5F8FC)
+            else -> palette.onSurface
+        }
         val iconStyleId = selection.iconStyleOverrideId
             ?.takeIf { option -> IconStyleCatalog.options.any { it.id == option } }
             ?: preset.iconStyleId
@@ -65,12 +71,12 @@ object ThemeResolver {
             layout = LayoutSpec(),
             text = uiTextSpec(preset.typographyId),
             wallpaper = wallpaper,
-            icons = iconSpec(iconStyleId, palette),
+            icons = iconSpec(iconStyleId, palette).copy(labelColor = homeForeground),
             widgets = widgetSpec(preset.widgetStyleId, palette),
             dock = dockSpec(preset.dockStyleId, palette),
             typography = typographySpec(preset.typographyId),
             statusBar = statusSpec(preset.statusBarStyleId, palette, darkMode),
-            lockscreen = lockscreenSpec(preset.id, palette),
+            lockscreen = lockscreenSpec(preset.id, palette).copy(foregroundColor = homeForeground),
             shade = shadeSpec(preset.id, palette),
             controlCenter = controlCenterSpec(preset.id, palette),
             liveActivity = liveActivitySpec(preset.id, palette),
@@ -102,6 +108,14 @@ object ThemeResolver {
         darkMode: Boolean
     ): WallpaperSpec {
         if (id == "world") return world
+        if (id in setOf("default", "soft_home", "midnight_glass")) {
+            val colors = when (id) {
+                "default" -> listOf(Color(0xFFDCE8F0), Color(0xFFAFC5D2), Color(0xFFECCBB3))
+                "soft_home" -> listOf(Color(0xFFF2E6D4), Color(0xFFDCC4A3), Color(0xFFB39872))
+                else -> listOf(Color(0xFF071322), Color(0xFF173956), Color(0xFF0B192C))
+            }
+            return WallpaperSpec("builtin/$id", colors)
+        }
         val option = PaletteCatalog.palettes.firstOrNull { it.id == id }
         if (option != null) {
             val colors = if (usePaletteTint && palette.id != "world") {
@@ -145,10 +159,15 @@ object ThemeResolver {
     }
 
     private fun iconSpec(id: String, p: PaletteSpec): IconVisualSpec = when (id) {
+        "identity" -> IconVisualSpec(
+            IconShapeSpec.SQUIRCLE, IconContainerStyle.GRADIENT, 1f, 0.48f,
+            IdentityColorMode.CONTAINER, GlyphTintMode.WHITE,
+            ShadowSpec(2f), BorderSpec(Color.Transparent, 0f), p.onSurface
+        )
         "glass" -> IconVisualSpec(
-            IconShapeSpec.CIRCLE, IconContainerStyle.GLASS, 0.95f, 0.48f,
-            IdentityColorMode.GLYPH, GlyphTintMode.IDENTITY,
-            ShadowSpec(8f), BorderSpec(p.highlight.copy(alpha = 0.7f), 1f), p.onSurface
+            IconShapeSpec.SOFT_SQUARE, IconContainerStyle.SOLID, 0.95f, 0.48f,
+            IdentityColorMode.CONTAINER, GlyphTintMode.WHITE,
+            ShadowSpec(2f), BorderSpec(Color.Transparent, 0f), p.onSurface
         )
         "diary" -> IconVisualSpec(
             IconShapeSpec.ROUNDED_RECT, IconContainerStyle.PAPER, 0.94f, 0.44f,
@@ -168,10 +187,23 @@ object ThemeResolver {
     }
 
     private fun widgetSpec(id: String, p: PaletteSpec): WidgetVisualSpec = when (id) {
+        "light_glass", "soft_glass", "dark_glass" -> {
+            val dark = id == "dark_glass"
+            WidgetVisualSpec(
+                WidgetShape.ROUNDED_RECT, WidgetBackgroundStyle.GLASS,
+                if (dark) Color(0xFF152B42) else Color(0xFFFFFBF4),
+                if (dark) Color(0xFFF5F8FC) else Color(0xFF283039),
+                24f, if (dark) 0.24f else 0.14f,
+                BorderSpec(Color.Transparent, 0f), ShadowSpec(0f), 18f,
+                blurRadiusDp = if (dark) 28f else 22f,
+                highlightAlpha = if (dark) 0.10f else 0.20f,
+                fallbackAlpha = if (dark) 0.28f else 0.20f,
+            )
+        }
         "glass" -> WidgetVisualSpec(
             WidgetShape.ROUNDED_RECT, WidgetBackgroundStyle.GLASS, p.surface,
-            p.onSurface, 24f, 0.32f, BorderSpec(p.highlight.copy(alpha = 0.7f), 1f),
-            ShadowSpec(12f), 14f
+            p.onSurface, 24f, 0.24f, BorderSpec(Color.Transparent, 0f),
+            ShadowSpec(0f), 14f, blurRadiusDp = 28f, highlightAlpha = 0.10f, fallbackAlpha = 0.28f
         )
         "diary" -> WidgetVisualSpec(
             WidgetShape.ROUNDED_RECT, WidgetBackgroundStyle.PAPER, p.surface,
@@ -190,10 +222,22 @@ object ThemeResolver {
     }
 
     private fun dockSpec(id: String, p: PaletteSpec): DockVisualSpec = when (id) {
+        "light_glass", "soft_glass", "dark_glass" -> {
+            val dark = id == "dark_glass"
+            DockVisualSpec(
+                DockContainerMode.ISLAND, DockBackgroundStyle.GLASS,
+                if (dark) Color(0xFF142A40) else Color(0xFFFFFBF4),
+                30f, if (dark) 0.22f else 0.16f, 0f,
+                BorderSpec(Color.Transparent, 0f), ShadowSpec(0f), 12f, 12f, 0.92f,
+                blurRadiusDp = 28f, highlightAlpha = if (dark) 0.10f else 0.20f,
+                fallbackAlpha = if (dark) 0.28f else 0.22f,
+            )
+        }
         "glass" -> DockVisualSpec(
             DockContainerMode.ISLAND, DockBackgroundStyle.GLASS, p.surface,
-            30f, 0.28f, 0.08f, BorderSpec(p.highlight.copy(alpha = 0.72f), 1f),
-            ShadowSpec(16f), 18f, 11f, 0.95f
+            30f, 0.22f, 0f, BorderSpec(Color.Transparent, 0f),
+            ShadowSpec(0f), 18f, 11f, 0.95f,
+            blurRadiusDp = 28f, highlightAlpha = 0.10f, fallbackAlpha = 0.28f
         )
         "diary" -> DockVisualSpec(
             DockContainerMode.PAPER_STRIP, DockBackgroundStyle.PAPER, p.surface,
@@ -220,6 +264,7 @@ object ThemeResolver {
     }
 
     private fun statusSpec(id: String, p: PaletteSpec, darkMode: Boolean): StatusBarVisualSpec = when (id) {
+        "light_home" -> StatusBarVisualSpec(StatusForegroundMode.DARK, Color(0xFF283039), 0f, false)
         "glass" -> StatusBarVisualSpec(StatusForegroundMode.LIGHT, Color.White, 0f, false)
         "diary" -> StatusBarVisualSpec(
             if (darkMode) StatusForegroundMode.LIGHT else StatusForegroundMode.DARK,

@@ -3,8 +3,6 @@ package com.example.ui.themecenter
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -14,12 +12,19 @@ import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.ui.themeengine.AiluaThemeRuntime
+import com.example.ui.themeengine.DockContainerMode
+import com.example.ui.themeengine.ThemeSelection
+import com.example.ui.themeengine.ThemeStore
+import com.example.ui.themeengine.ThemeWallpaper
+import com.example.ui.themeengine.material.AiluaBackdropProvider
+import com.example.ui.themeengine.material.ailuaBackdropSource
+import com.example.ui.themeengine.material.ailuaMaterialSurface
+import com.example.ui.themeengine.material.surfaceMaterial
 import com.example.ui.themeengine.external.ExternalThemePackage
 import com.example.ui.themeengine.external.ExternalThemeRepository
 import com.example.ui.themeengine.external.ThemeAssetRef
@@ -41,56 +46,55 @@ fun ImportedThemePreview(
     modifier: Modifier = Modifier
 ) {
     val labels = runtime.icons.labelColor
-    val colors = runtime.wallpaper.colors.ifEmpty {
-        listOf(runtime.palette.backgroundPrimary, runtime.palette.backgroundSecondary)
-    }
     val apps = listOf("chat" to "消息", "gallery" to "相册",
         "moments" to "动态", "living" to "生活")
     val wallpaper = theme.wallpapers.firstOrNull()
-    Box(modifier.clip(RoundedCornerShape(runtime.shapes.medium.dp))
-        .background(Brush.verticalGradient(colors))) {
-        if (wallpaper != null) {
-            ExternalAssetImage(wallpaper, draftAssets, 640,
-                Modifier.fillMaxSize(), ContentScale.Crop)
-        }
-        Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("9:41", color = labels, style = runtime.text.caption, fontWeight = FontWeight.Bold)
-                Text("●  ▰", color = labels, style = runtime.text.caption)
-            }
-            Spacer(Modifier.height(8.dp))
-            Text("今天也和你一起", color = labels, style = runtime.text.caption,
-                fontWeight = FontWeight.Medium)
-            Spacer(Modifier.height(8.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                apps.forEachIndexed { index, (key, name) ->
-                    PreviewExternalApp(theme, runtime, draftAssets, key, name, index, 30)
+    val wallpaperSelection = if (wallpaper == null) ThemeStore.selection else ThemeSelection(runtime.id)
+    AiluaBackdropProvider {
+        Box(modifier.clip(RoundedCornerShape(runtime.shapes.medium.dp))) {
+            Box(Modifier.fillMaxSize().ailuaBackdropSource()) {
+                ThemeWallpaper(Modifier.fillMaxSize(), runtime, wallpaperSelection)
+                if (wallpaper != null) {
+                    ExternalAssetImage(wallpaper, draftAssets, 640,
+                        Modifier.fillMaxSize(), ContentScale.Crop)
                 }
             }
-            Spacer(Modifier.weight(1f))
-            val widget = runtime.widgets
-            val widgetShape = RoundedCornerShape(widget.cornerRadiusDp.dp.coerceAtLeast(0.dp))
-            Column(Modifier.fillMaxWidth().height(44.dp).clip(widgetShape)
-                .background(widget.backgroundColor.copy(alpha = widget.surfaceAlpha))
-                .border(widget.border.widthDp.dp, widget.border.color, widgetShape)
-                .padding(horizontal = 9.dp, vertical = 4.dp)) {
-                Text("10月 · AILUA", color = widget.foregroundColor,
-                    style = runtime.text.caption, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                Text("把喜欢的日子收进这里 ✦", color = widget.foregroundColor, style = runtime.text.caption, maxLines = 1)
-            }
-            Spacer(Modifier.height(6.dp))
-            val dock = runtime.dock
-            val dockShape = RoundedCornerShape(dock.cornerRadiusDp.dp.coerceAtLeast(0.dp))
-            Row(Modifier.fillMaxWidth().height(33.dp).clip(dockShape)
-                .background(dock.backgroundColor.copy(alpha = dock.surfaceAlpha))
-                .border(dock.border.widthDp.dp, dock.border.color, dockShape),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly) {
-                apps.forEachIndexed { index, (key, _) ->
-                    PreviewExternalIcon(theme, runtime, draftAssets, key, index, 24)
+            Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("9:41", color = labels, style = runtime.text.caption, fontWeight = FontWeight.Bold)
+                    Text("●  ▰", color = labels, style = runtime.text.caption)
                 }
+                Spacer(Modifier.height(8.dp))
+                Text("今天也和你一起", color = labels, style = runtime.text.caption,
+                    fontWeight = FontWeight.Medium)
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    apps.forEachIndexed { index, (key, name) ->
+                        PreviewExternalApp(theme, runtime, draftAssets, key, name, index, 30)
+                    }
+                }
+                Spacer(Modifier.weight(1f))
+                val widget = runtime.widgets
+                Column(Modifier.fillMaxWidth().height(44.dp)
+                    .ailuaMaterialSurface(widget.surfaceMaterial())
+                    .padding(horizontal = 9.dp, vertical = 4.dp)) {
+                    Text("10月 · AILUA", color = widget.foregroundColor,
+                        style = runtime.text.caption, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                    Text("把喜欢的日子收进这里 ✦", color = widget.foregroundColor, style = runtime.text.caption, maxLines = 1)
+                }
+                Spacer(Modifier.height(6.dp))
+                val dock = runtime.dock
+                Row(Modifier.fillMaxWidth().height(33.dp)
+                    .then(if (dock.containerMode != DockContainerMode.NONE)
+                        Modifier.ailuaMaterialSurface(dock.surfaceMaterial()) else Modifier),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceEvenly) {
+                    apps.forEachIndexed { index, (key, _) ->
+                        PreviewExternalIcon(theme, runtime, draftAssets, key, index, 24)
+                    }
+                }
+                Spacer(Modifier.height(3.dp))
             }
-            Spacer(Modifier.height(3.dp))
         }
     }
 }

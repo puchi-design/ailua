@@ -25,6 +25,7 @@ import com.example.ui.components.AppIconItem
 import com.example.ui.components.AppIconDefaults
 import com.example.ui.design.launcher.WorkspaceAppLabel
 import com.example.ui.themeengine.LocalAiluaTheme
+import com.example.ui.themeengine.WidgetBackgroundStyle
 
 /** Folder previews use AppIconItem, and therefore the same IconResolver as Home and Drawer. */
 @Composable
@@ -41,6 +42,7 @@ fun WorkspaceFolderItem(
     val theme = LocalAiluaTheme.current
     val shape = RoundedCornerShape(theme.shapes.medium.dp)
     val preview = children.take(4)
+    val glass = theme.widgets.backgroundStyle == WidgetBackgroundStyle.GLASS
     Column(
         modifier = modifier.clickable { if (!isEditing) onClick() }
             .testTag("workspace_folder_${folder.id}"),
@@ -48,8 +50,9 @@ fun WorkspaceFolderItem(
     ) {
         Box(
             modifier = Modifier.size(size).clip(shape)
-                .background(theme.surfaces.raised.copy(alpha = theme.widgets.surfaceAlpha.coerceAtLeast(0.55f)))
-                .border(1.dp, theme.palette.border, shape),
+                .background(if (glass) theme.widgets.backgroundColor.copy(alpha = 0.24f)
+                    else theme.surfaces.raised.copy(alpha = theme.widgets.surfaceAlpha.coerceAtLeast(0.55f)))
+                .then(if (glass) Modifier else Modifier.border(1.dp, theme.palette.border, shape)),
             contentAlignment = Alignment.Center,
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {

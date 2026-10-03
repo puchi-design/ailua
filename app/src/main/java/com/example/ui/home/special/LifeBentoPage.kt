@@ -40,11 +40,9 @@ import com.example.data.model.isUserActivity
 import com.example.data.model.sortedChronologically
 import com.example.data.projection.projectPresence
 import com.example.data.registry.CharacterRegistry
-import com.example.ui.designsystem.AiluaMediaFrame
-import com.example.ui.designsystem.AiluaSectionHeader
-import com.example.ui.designsystem.AiluaSurface
 import com.example.ui.designsystem.CharacterPortrait
 import com.example.ui.designsystem.PortraitVariant
+import com.example.ui.home.widget.ThemeWidgetFrame
 import com.example.ui.themeengine.LocalAiluaTheme
 
 /** A quiet view into the current companion's day; the workspace owns navigation and layout. */
@@ -59,6 +57,8 @@ fun LifeBentoPage(
     onAppClick: (String) -> Unit
 ) {
     val theme = LocalAiluaTheme.current
+    val wallpaperForeground = theme.icons.labelColor
+    val wallpaperSecondary = wallpaperForeground.copy(alpha = 0.8f)
     val allLifeEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
     val worldClock by WorldHeartbeatEngine.worldClock.collectAsStateWithLifecycle()
     val selectedCharacterId by CharacterContext.selectedId.collectAsStateWithLifecycle()
@@ -74,7 +74,8 @@ fun LifeBentoPage(
     }
     val latestLine = characterEvents.lastOrNull()?.description ?: character.contextualQuote
 
-    BoxWithConstraints(Modifier.fillMaxSize().background(theme.surfaces.screen).testTag("life_bento_page")) {
+    // This is a launcher page: the wallpaper remains the page's canvas.
+    BoxWithConstraints(Modifier.fillMaxSize().testTag("life_bento_page")) {
         val heroHeight = (maxHeight * 0.43f).coerceIn(236.dp, 300.dp)
         Column(
             modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
@@ -83,70 +84,74 @@ fun LifeBentoPage(
             verticalArrangement = Arrangement.spacedBy(theme.layout.sectionGap.dp),
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("生活", style = theme.text.title, color = theme.palette.onSurface,
+                Text("生活", style = theme.text.title, color = wallpaperForeground,
                     modifier = Modifier.weight(1f))
                 Text("${worldClock.dateLabel} · ${worldClock.timeFormatted}",
-                    style = theme.text.caption, color = theme.palette.onSurfaceMuted)
+                    style = theme.text.caption, color = wallpaperSecondary)
             }
 
-            AiluaMediaFrame(modifier = Modifier.fillMaxWidth().height(heroHeight)) {
+            ThemeWidgetFrame(selected = false,
+                modifier = Modifier.fillMaxWidth().height(heroHeight).clickable(onClick = onNavigateToLiving)) {
                 Column(Modifier.fillMaxSize().padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    CharacterPortrait(
-                        characterId = character.id,
-                        variant = PortraitVariant.HERO,
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
-                    )
+                    verticalArrangement = Arrangement.SpaceBetween) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Text(character.name, style = theme.text.title, color = theme.palette.onSurface)
-                        Column(Modifier.weight(1f)) {
-                            Text(presence.currentActivity, style = theme.text.secondary,
-                                color = theme.palette.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(character.name, style = theme.text.title, color = theme.widgets.foregroundColor)
                             Text(presence.currentLocation, style = theme.text.caption,
-                                color = theme.palette.onSurfaceMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                color = theme.widgets.foregroundColor.copy(alpha = 0.78f),
+                                maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
+                        CharacterPortrait(
+                            characterId = character.id,
+                            variant = PortraitVariant.HERO,
+                            modifier = Modifier.size(108.dp),
+                            onClick = onNavigateToLiving,
+                        )
                     }
-                    Text(latestLine, style = theme.text.secondary, color = theme.palette.onSurfaceMuted,
-                        maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(latestLine, style = theme.text.section, color = theme.widgets.foregroundColor,
+                            maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(presence.currentActivity, style = theme.text.caption,
+                            color = theme.widgets.foregroundColor.copy(alpha = 0.78f),
+                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
                 }
             }
 
-            AiluaSurface(modifier = Modifier.fillMaxWidth()) {
-                Row(Modifier.fillMaxWidth().padding(6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    LifeEntry("消息", Icons.Default.ChatBubbleOutline, { onAppClick("messages") },
-                        Modifier.weight(1f).testTag("life_bento_messages"))
-                    LifeEntry("生活", Icons.Default.WbSunny, onNavigateToLiving,
-                        Modifier.weight(1f).testTag("life_bento_living"))
-                    LifeEntry("相册", Icons.Default.PhotoLibrary, { onAppClick("gallery") },
-                        Modifier.weight(1f).testTag("life_bento_gallery"))
-                }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
+                LifeEntry("消息", Icons.Default.ChatBubbleOutline, { onAppClick("messages") },
+                    Modifier.weight(1f).testTag("life_bento_messages"))
+                LifeEntry("生活", Icons.Default.WbSunny, onNavigateToLiving,
+                    Modifier.weight(1f).testTag("life_bento_living"))
+                LifeEntry("相册", Icons.Default.PhotoLibrary, { onAppClick("gallery") },
+                    Modifier.weight(1f).testTag("life_bento_gallery"))
             }
 
             Column(Modifier.fillMaxWidth()) {
-                AiluaSectionHeader(title = "今日动态")
+                Text("今日动态", style = theme.text.section, color = wallpaperForeground)
                 if (todayEvents.isEmpty()) {
                     Text("今天还没有新的动态", style = theme.text.secondary,
-                        color = theme.palette.onSurfaceMuted, modifier = Modifier.padding(vertical = 18.dp))
+                        color = wallpaperSecondary, modifier = Modifier.padding(vertical = 18.dp))
                 }
                 todayEvents.forEachIndexed { index, event ->
                     Row(Modifier.fillMaxWidth().padding(vertical = 14.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Text(event.time, style = theme.text.caption, color = theme.palette.onSurfaceMuted,
+                        Text(event.time, style = theme.text.caption, color = wallpaperSecondary,
                             modifier = Modifier.width(42.dp).padding(top = 3.dp))
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                             Text("${CharacterRegistry.getCharacter(event.characterId).name} · ${event.title}",
-                                style = theme.text.body, color = theme.palette.onSurface,
+                                style = theme.text.body, color = wallpaperForeground,
                                 maxLines = 2, overflow = TextOverflow.Ellipsis)
                             if (event.description.isNotBlank() && event.description != event.title) {
-                                Text(event.description, style = theme.text.secondary, color = theme.palette.onSurfaceMuted,
+                                Text(event.description, style = theme.text.secondary, color = wallpaperSecondary,
                                     maxLines = 2, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }
                     if (index != todayEvents.lastIndex) {
                         Box(Modifier.fillMaxWidth().padding(start = 58.dp).height(0.5.dp)
-                            .background(theme.surfaces.divider))
+                            .background(wallpaperForeground.copy(alpha = 0.12f)))
                     }
                 }
             }
@@ -160,7 +165,7 @@ private fun LifeEntry(label: String, icon: ImageVector, onClick: () -> Unit, mod
     Column(modifier.clip(RoundedCornerShape(theme.shapes.small.dp)).clickable(onClick = onClick)
         .padding(vertical = 14.dp), horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Icon(icon, contentDescription = null, tint = theme.palette.accent, modifier = Modifier.size(22.dp))
-        Text(label, style = theme.text.secondary, color = theme.palette.onSurface)
+        Icon(icon, contentDescription = null, tint = theme.icons.labelColor, modifier = Modifier.size(22.dp))
+        Text(label, style = theme.text.secondary, color = theme.icons.labelColor)
     }
 }

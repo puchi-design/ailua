@@ -13,6 +13,45 @@ import org.junit.Test
 
 class ThemeResolverTest {
     @Test
+    fun brightImageWallpaperKeepsDarkHomeLabelsWhenAppsUseDarkMode() {
+        for (id in listOf("default", "soft_home")) {
+            val theme = ThemeResolver.resolve(ThemeSelection(id), true, DayPhase.NOON, WeatherState.CLEAR)
+            assertTrue(theme.palette.onSurface.luminance() > 0.8f)
+            assertTrue(theme.icons.labelColor.luminance() < 0.1f)
+            assertEquals(theme.icons.labelColor, theme.lockscreen.foregroundColor)
+        }
+    }
+
+    @Test
+    fun glassIconsHaveOpaqueIdentityAndNoWhiteOutline() {
+        val theme = ThemeResolver.resolve(ThemeSelection("glass"), false, DayPhase.NOON, WeatherState.CLEAR)
+        assertEquals(IconContainerStyle.SOLID, theme.icons.containerStyle)
+        assertEquals(IdentityColorMode.CONTAINER, theme.icons.identityColorMode)
+        assertEquals(0f, theme.icons.border.widthDp)
+        assertEquals(0f, theme.widgets.border.widthDp)
+        assertEquals(0f, theme.dock.border.widthDp)
+    }
+
+    @Test
+    fun rescueSamplesUseImagesAndGlassWithoutChangingOverrideSemantics() {
+        for (id in listOf("default", "soft_home", "midnight_glass")) {
+            val sample = ThemeResolver.resolve(ThemeSelection(id), false, DayPhase.NOON, WeatherState.CLEAR)
+            assertEquals("builtin/$id", sample.wallpaper.key)
+            assertTrue(builtInWallpaperResource(sample.wallpaper.key) != null)
+            assertEquals(WidgetBackgroundStyle.GLASS, sample.widgets.backgroundStyle)
+            assertTrue(sample.widgets.surfaceAlpha <= 0.30f)
+            assertTrue(sample.dock.surfaceAlpha <= 0.30f)
+            assertTrue(sample.widgets.blurRadiusDp > 0f)
+            assertTrue(sample.dock.blurRadiusDp > 0f)
+            assertEquals(IconContainerStyle.GRADIENT, sample.icons.containerStyle)
+            val mixed = ThemeResolver.resolve(ThemeSelection(id, wallpaperOverrideId = "world"),
+                false, DayPhase.NOON, WeatherState.CLEAR)
+            assertTrue(mixed.wallpaper.key.startsWith("world/"))
+            assertEquals(sample.widgets.backgroundStyle, mixed.widgets.backgroundStyle)
+        }
+    }
+
+    @Test
     fun glassSystemForegroundsStayReadableOverBrightWallpaperAndPaletteOverrides() {
         fun contrast(foreground: Color, background: Color): Float {
             val first = foreground.compositeOver(background).luminance()

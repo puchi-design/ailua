@@ -30,6 +30,25 @@ object ThemeCatalog {
             paletteId = "mono", wallpaperId = "mono", iconStyleId = "mono",
             widgetStyleId = "mono", dockStyleId = "mono", typographyId = "mono",
             statusBarStyleId = "mono", motionStyleId = "mono"
+        ),
+        // First visual-review samples. Existing selections and the legacy default stay valid.
+        AiluaThemePreset(
+            id = "default", name = "AILUA Default", nameEn = "清透日常",
+            paletteId = "mist", wallpaperId = "default", iconStyleId = "identity",
+            widgetStyleId = "light_glass", dockStyleId = "light_glass", typographyId = "milk",
+            statusBarStyleId = "light_home", motionStyleId = "milk"
+        ),
+        AiluaThemePreset(
+            id = "soft_home", name = "Soft Home", nameEn = "书与茶的午后",
+            paletteId = "cream", wallpaperId = "soft_home", iconStyleId = "identity",
+            widgetStyleId = "soft_glass", dockStyleId = "soft_glass", typographyId = "milk",
+            statusBarStyleId = "light_home", motionStyleId = "milk"
+        ),
+        AiluaThemePreset(
+            id = "midnight_glass", name = "Midnight Glass", nameEn = "深蓝微光",
+            paletteId = "mist", wallpaperId = "midnight_glass", iconStyleId = "identity",
+            widgetStyleId = "dark_glass", dockStyleId = "dark_glass", typographyId = "milk",
+            statusBarStyleId = "glass", motionStyleId = "glass"
         )
     )
 

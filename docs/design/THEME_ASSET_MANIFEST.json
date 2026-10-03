@@ -1,0 +1,62 @@
+{
+  "manifestVersion": 1,
+  "project": "AILUA",
+  "phase": "P5.V UI-0 to UI-2 visual-review samples",
+  "baselineHead": "9246aa046ab11f1e8deed2bae3ecdd41ccbc41d8",
+  "generationScript": "scripts/render_theme_wallpapers.py",
+  "source": "Original procedural geometry, palette, lighting and still-life illustration authored for this project in the generation script",
+  "thirdPartyAssetsUsed": false,
+  "downloadedAssetsUsed": false,
+  "generativeApiUsed": false,
+  "formalCharacterArtStarted": false,
+  "assets": [
+    {
+      "themeId": "default",
+      "displayName": "AILUA Default",
+      "path": "app/src/main/res/drawable-nodpi/wallpaper_default.webp",
+      "resourceName": "wallpaper_default",
+      "sha256": "8b1f9a5a82982de0e58856ac0110a8e31d96d11a84745b2bf354f6c1227ca89b",
+      "widthPx": 1080,
+      "heightPx": 2340,
+      "sizeBytes": 1099316,
+      "encoding": "lossless WebP RGB",
+      "source": "Project script render_default(): original blue, cream and coral curved paper geometry with mathematical lighting",
+      "status": "temporary visual-review sample",
+      "isPhotograph": false,
+      "containsCharacterPortrait": false,
+      "containsUiText": false
+    },
+    {
+      "themeId": "soft_home",
+      "displayName": "Soft Home",
+      "path": "app/src/main/res/drawable-nodpi/wallpaper_soft_home.webp",
+      "resourceName": "wallpaper_soft_home",
+      "sha256": "7d7de9347a6e1da184190f7c3fa1feda04afc27a90e9bb01616a459a15f5ed24",
+      "widthPx": 1080,
+      "heightPx": 2340,
+      "sizeBytes": 1286994,
+      "encoding": "lossless WebP RGB",
+      "source": "Project script render_soft_home(): original drawing of a warm wood desk, open book, two cups of tea and potted plant",
+      "status": "temporary still-life illustration; not a real photograph or formal production photography asset",
+      "isPhotograph": false,
+      "containsCharacterPortrait": false,
+      "containsUiText": false
+    },
+    {
+      "themeId": "midnight_glass",
+      "displayName": "Midnight Glass",
+      "path": "app/src/main/res/drawable-nodpi/wallpaper_midnight_glass.webp",
+      "resourceName": "wallpaper_midnight_glass",
+      "sha256": "92592dcc129acb8a45739f6d32c72d49ab4e7a265d72a2e85e5719411f536448",
+      "widthPx": 1080,
+      "heightPx": 2340,
+      "sizeBytes": 1005722,
+      "encoding": "lossless WebP RGB",
+      "source": "Project script render_midnight(): original deep-blue curved ribbon geometry with mathematical rim lighting",
+      "status": "temporary visual-review sample",
+      "isPhotograph": false,
+      "containsCharacterPortrait": false,
+      "containsUiText": false
+    }
+  ]
+}

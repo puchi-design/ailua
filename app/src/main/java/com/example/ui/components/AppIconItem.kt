@@ -261,7 +261,11 @@ fun AppIconItem(
             } else {
                 val fill = when (iconSpec.containerStyle) {
                     IconContainerStyle.GRADIENT -> Brush.linearGradient(identity.identityColors)
-                    IconContainerStyle.SOLID -> Brush.linearGradient(listOf(theme.palette.surface, theme.palette.surface))
+                    IconContainerStyle.SOLID -> {
+                        val color = if (iconSpec.identityColorMode == IdentityColorMode.CONTAINER)
+                            identityColor else theme.palette.surface
+                        Brush.linearGradient(listOf(color, color))
+                    }
                     IconContainerStyle.OUTLINE -> Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
                     IconContainerStyle.GLASS -> Brush.verticalGradient(
                         listOf(Color.White.copy(alpha = 0.30f), theme.palette.surface.copy(alpha = 0.14f))

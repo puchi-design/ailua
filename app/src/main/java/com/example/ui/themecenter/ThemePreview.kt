@@ -25,36 +25,48 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.ui.themeengine.*
+import com.example.ui.themeengine.material.AiluaBackdropProvider
+import com.example.ui.themeengine.material.ailuaBackdropSource
+import com.example.ui.themeengine.material.ailuaMaterialSurface
+import com.example.ui.themeengine.material.surfaceMaterial
 
 /** Mini desktop drawn from the resolved runtime, so palette overrides update its visuals live. */
 @Composable
-fun ThemePreview(theme: AiluaThemeRuntime, modifier: Modifier = Modifier) {
+fun ThemePreview(
+    theme: AiluaThemeRuntime,
+    modifier: Modifier = Modifier,
+    selection: ThemeSelection = ThemeSelection(theme.id),
+) {
     val label = theme.icons.labelColor
-    val wallpaper = theme.wallpaper.colors.ifEmpty {
-        listOf(theme.palette.backgroundPrimary, theme.palette.backgroundSecondary)
-    }
-    Box(modifier.clip(RoundedCornerShape(theme.shapes.medium.dp)).background(Brush.verticalGradient(wallpaper))) {
-        Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 7.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("9:41", color = label, style = theme.text.caption, fontWeight = FontWeight.Bold)
-                Text("●  ▰", color = label, style = theme.text.caption)
+    AiluaBackdropProvider {
+        Box(modifier.clip(RoundedCornerShape(theme.shapes.medium.dp))) {
+            ThemeWallpaper(
+                modifier = Modifier.fillMaxSize().ailuaBackdropSource(),
+                runtime = theme,
+                selection = selection,
+            )
+            Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 7.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("9:41", color = label, style = theme.text.caption, fontWeight = FontWeight.Bold)
+                    Text("●  ▰", color = label, style = theme.text.caption)
+                }
+                Spacer(Modifier.height(6.dp))
+                Text("今天也和你一起", color = label, style = theme.text.caption, fontWeight = FontWeight.Medium)
+                Spacer(Modifier.height(7.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    PreviewApp(theme, "chat", "聊天")
+                    PreviewApp(theme, "gallery", "相册")
+                    PreviewApp(theme, "moments", "动态")
+                    PreviewApp(theme, "living", "生活")
+                }
+                Spacer(Modifier.weight(1f))
+                ThemePreviewWidget(theme)
+                Spacer(Modifier.height(5.dp))
+                ThemePreviewDock(theme)
+                Spacer(Modifier.height(2.dp))
+                Box(Modifier.size(width = 35.dp, height = 2.dp).clip(RoundedCornerShape(2.dp))
+                    .background(label.copy(alpha = 0.65f)).align(Alignment.CenterHorizontally))
             }
-            Spacer(Modifier.height(6.dp))
-            Text("今天也和你一起", color = label, style = theme.text.caption, fontWeight = FontWeight.Medium)
-            Spacer(Modifier.height(7.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                PreviewApp(theme, "chat", "聊天")
-                PreviewApp(theme, "gallery", "相册")
-                PreviewApp(theme, "moments", "动态")
-                PreviewApp(theme, "living", "生活")
-            }
-            Spacer(Modifier.weight(1f))
-            ThemePreviewWidget(theme)
-            Spacer(Modifier.height(5.dp))
-            ThemePreviewDock(theme)
-            Spacer(Modifier.height(2.dp))
-            Box(Modifier.size(width = 35.dp, height = 2.dp).clip(RoundedCornerShape(2.dp))
-                .background(label.copy(alpha = 0.65f)).align(Alignment.CenterHorizontally))
         }
     }
 }
@@ -120,11 +132,8 @@ fun ThemePreviewIcon(theme: AiluaThemeRuntime, key: String, size: Dp) {
 @Composable
 private fun ThemePreviewWidget(theme: AiluaThemeRuntime) {
     val spec = theme.widgets
-    val shape = RoundedCornerShape(spec.cornerRadiusDp.dp.coerceAtLeast(0.dp))
     Column(Modifier.fillMaxWidth().height(44.dp)
-        .then(if (spec.shadow.elevationDp > 0f) Modifier.shadow(spec.shadow.elevationDp.dp, shape) else Modifier)
-        .clip(shape).background(spec.backgroundColor.copy(alpha = spec.surfaceAlpha))
-        .border(spec.border.widthDp.dp, spec.border.color, shape)
+        .ailuaMaterialSurface(spec.surfaceMaterial())
         .padding(horizontal = 9.dp, vertical = 4.dp)) {
         Text("10月 · AILUA", color = spec.foregroundColor, style = theme.text.caption, fontWeight = FontWeight.SemiBold, maxLines = 1)
         Text("把喜欢的日子收进这里 ✦", color = spec.foregroundColor, style = theme.text.caption, maxLines = 1)
@@ -135,11 +144,8 @@ private fun ThemePreviewWidget(theme: AiluaThemeRuntime) {
 private fun ThemePreviewDock(theme: AiluaThemeRuntime) {
     val spec = theme.dock
     val hasContainer = spec.containerMode != DockContainerMode.NONE
-    val shape = RoundedCornerShape(spec.cornerRadiusDp.dp.coerceAtLeast(0.dp))
     Row(Modifier.fillMaxWidth().height(32.dp)
-        .then(if (hasContainer && spec.shadow.elevationDp > 0f) Modifier.shadow(spec.shadow.elevationDp.dp, shape) else Modifier)
-        .then(if (hasContainer) Modifier.clip(shape).background(spec.backgroundColor.copy(alpha = spec.surfaceAlpha)) else Modifier)
-        .then(if (hasContainer) Modifier.border(spec.border.widthDp.dp, spec.border.color, shape) else Modifier),
+        .then(if (hasContainer) Modifier.ailuaMaterialSurface(spec.surfaceMaterial()) else Modifier),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceEvenly) {
         ThemePreviewIcon(theme, "chat", 24.dp)

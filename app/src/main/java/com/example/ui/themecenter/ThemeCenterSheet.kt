@@ -92,7 +92,7 @@ fun ThemeCenterSheet(
             Spacer(Modifier.height(12.dp))
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 if (tab in setOf(ThemeCenterSection.PALETTES, ThemeCenterSection.WALLPAPERS, ThemeCenterSection.ICONS)) {
-                    ThemePreview(runtime, Modifier.fillMaxWidth().height(200.dp))
+                    ThemePreview(runtime, Modifier.fillMaxWidth().height(200.dp), selection = selection)
                     Spacer(Modifier.height(14.dp))
                 }
                 when (tab) {
@@ -108,7 +108,7 @@ fun ThemeCenterSheet(
                                     .border(1.5.dp, if (selected) preview.palette.accent else Color.Transparent, shape)
                                     .clickable { ThemeStore.update(candidate) }.padding(7.dp)
                                     .testTag("theme_option_" + preset.id)) {
-                                    ThemePreview(preview, Modifier.fillMaxWidth().height(200.dp))
+                                    ThemePreview(preview, Modifier.fillMaxWidth().height(200.dp), selection = candidate)
                                     Spacer(Modifier.height(6.dp))
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Column(Modifier.weight(1f)) {

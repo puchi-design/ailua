@@ -92,7 +92,10 @@ object WallpaperCatalog {
         WallpaperOption("starry", "星夜渐变", "Starry"),
         WallpaperOption("glass", "深色玻璃", "Glass"),
         WallpaperOption("diary", "暖纸张", "Diary Paper"),
-        WallpaperOption("mono", "极简", "Mono")
+        WallpaperOption("mono", "极简", "Mono"),
+        WallpaperOption("default", "清透日常", "AILUA Default"),
+        WallpaperOption("soft_home", "书与茶的午后", "Soft Home"),
+        WallpaperOption("midnight_glass", "深蓝微光", "Midnight Glass")
     )
     fun byId(id: String?): WallpaperOption =
         options.firstOrNull { it.id == id } ?: options.first()
@@ -103,9 +106,10 @@ data class IconStyleOption(val id: String, val name: String, val nameEn: String)
 object IconStyleCatalog {
     val options = listOf(
         IconStyleOption("milk", "柔和渐变", "Milk"),
-        IconStyleOption("glass", "透明玻璃", "Glass"),
+        IconStyleOption("glass", "玻璃配套图标", "Glass"),
         IconStyleOption("diary", "手账纸页", "Diary"),
-        IconStyleOption("mono", "极简图形", "Mono")
+        IconStyleOption("mono", "极简图形", "Mono"),
+        IconStyleOption("identity", "经典应用图标", "Identity")
     )
     fun byId(id: String?): IconStyleOption =
         options.firstOrNull { it.id == id } ?: options.first()

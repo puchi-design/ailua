@@ -113,6 +113,9 @@ import com.example.ui.components.VirtualPhoneStatusBar
 import com.example.ui.components.WorldTimeDevSheet
 import com.example.ui.themeengine.LocalAiluaTheme
 import com.example.ui.themeengine.rememberThemeWallpaperBitmap
+import com.example.ui.themeengine.ThemeWallpaper
+import com.example.ui.themeengine.material.AiluaBackdropProvider
+import com.example.ui.themeengine.material.ailuaBackdropSource
 import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
 import com.example.ui.themecenter.ThemeCenterSheet
@@ -416,18 +419,16 @@ fun VirtualHomeScreen(
         }
     }
 
-    val importedWallpaper by rememberThemeWallpaperBitmap()
-
     // Long press the wallpaper enters edit mode, tapping blank space leaves it
     BackHandler(enabled = isEditing || dragState.isDragging) {
         if (dragState.isDragging) scope.launch { finishDrag(restoreSourcePage = true) }
         else isEditing = false
     }
 
+    AiluaBackdropProvider {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Brush.verticalGradient(themeRuntime.wallpaper.colors))
             .onGloballyPositioned {
                 rootOrigin = it.positionInRoot()
                 rootWidth = it.size.width
@@ -536,13 +537,7 @@ fun VirtualHomeScreen(
             }
             .testTag("virtual_home_screen")
     ) {
-        val wallpaperBitmap = importedWallpaper
-        if (wallpaperBitmap != null) {
-            Image(
-                bitmap = wallpaperBitmap, contentDescription = null,
-                modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop
-            )
-        }
+        ThemeWallpaper(Modifier.fillMaxSize().ailuaBackdropSource(), runtime = themeRuntime)
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
@@ -669,11 +664,11 @@ fun VirtualHomeScreen(
                     modifier = Modifier.fillMaxWidth()
                         .padding(horizontal = themeRuntime.layout.screenHorizontalPadding.dp, vertical = 4.dp)
                         .clip(RoundedCornerShape(themeRuntime.shapes.small.dp))
-                        .background(themeRuntime.surfaces.raised)
+                        .background(themeRuntime.widgets.backgroundColor.copy(alpha = 0.14f))
                         .clickable { if (firstSession.receivedFirstReply) onNavigateToLiving() else onNavigateToChat() }
                         .padding(12.dp).testTag("first_session_guide"),
                     style = themeRuntime.text.secondary,
-                    color = themeRuntime.palette.onSurface,
+                    color = themeRuntime.widgets.foregroundColor,
                 )
             }
 
@@ -836,6 +831,7 @@ fun VirtualHomeScreen(
             )
         }
     }
+    }
 }
 
 @Composable
@@ -873,40 +869,51 @@ internal fun LivingPresenceStrip(
     character: CharacterProfile,
     onOpenChat: () -> Unit,
     onOpenLiving: () -> Unit,
-    onOpenProfile: () -> Unit
+    onOpenProfile: () -> Unit,
+    compact: Boolean = false,
 ) {
     val theme = LocalAiluaTheme.current
     val events by WorldStateRepository.events.collectAsStateWithLifecycle()
     val presence = projectPresence(character, events)
     val latest = events.filter { it.characterId == character.id && !it.isUserActivity() }
         .sortedChronologically().lastOrNull()
-    Row(
+    val latestDescription = latest?.description?.takeIf { it.isNotBlank() } ?: character.contextualQuote
+    val sentenceEnd = latestDescription.indexOfAny(charArrayOf('，', '。', '\n', '\r', ',', '.'))
+    val latestSentence = (if (sentenceEnd >= 0) latestDescription.take(sentenceEnd) else latestDescription).trim()
+    Column(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenLiving).testTag("living_character_widget"),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        CharacterPortrait(
-            characterId = character.id,
-            variant = PortraitVariant.AVATAR,
-            modifier = Modifier.size(58.dp),
-            onClick = onOpenProfile,
-        )
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text(character.name, style = theme.text.section, color = theme.palette.onSurface,
-                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-            Text(presence.currentActivity, style = theme.text.secondary, color = theme.palette.onSurface,
-                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-            Text(latest?.description ?: character.contextualQuote,
-                style = theme.text.secondary, color = theme.palette.onSurfaceMuted,
-                maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-        }
-        Box(
-            modifier = Modifier.size(38.dp).clip(RoundedCornerShape(theme.shapes.small.dp))
-                .background(theme.surfaces.inset).clickable(onClick = onOpenChat).testTag("home_quick_chat"),
-            contentAlignment = Alignment.Center,
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Icon(Icons.Default.ChatBubbleOutline, contentDescription = "发消息",
-                modifier = Modifier.size(18.dp), tint = theme.palette.accent)
+            CharacterPortrait(
+                characterId = character.id,
+                variant = if (compact) PortraitVariant.AVATAR else PortraitVariant.HERO,
+                modifier = Modifier.size(if (compact) 44.dp else 82.dp),
+                onClick = onOpenProfile,
+            )
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text(character.name, style = theme.text.section, color = theme.widgets.foregroundColor,
+                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                Text(presence.currentActivity,
+                    style = theme.text.secondary, color = theme.widgets.foregroundColor,
+                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            }
+            Box(
+                modifier = Modifier.size(44.dp).clickable(onClick = onOpenChat).testTag("home_quick_chat"),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Default.ChatBubbleOutline, contentDescription = "发消息",
+                    modifier = Modifier.size(22.dp), tint = theme.widgets.foregroundColor)
+            }
+        }
+        if (!compact && latestSentence.isNotBlank()) {
+            Text(latestSentence,
+                style = theme.text.secondary, color = theme.widgets.foregroundColor.copy(alpha = 0.80f),
+                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
     }
 }

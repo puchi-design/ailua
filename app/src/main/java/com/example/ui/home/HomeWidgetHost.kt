@@ -9,10 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.clickable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.style.TextOverflow
@@ -96,7 +92,7 @@ object WidgetRegistry {
         .map { WidgetSize(it.first, it.second) }
 
     private val specs: Map<String, WidgetSpec> = listOf(
-        WidgetSpec(HomeWidgetId.CHARACTER_LIVING, "小弥状态", WidgetSize(4, 2),
+        WidgetSpec(HomeWidgetId.CHARACTER_LIVING, "角色近况", WidgetSize(4, 2),
             sizes(HomeWidgetId.CHARACTER_LIVING)) { context, size ->
             val theme = LocalAiluaTheme.current
             if (size.spanX == 2) {
@@ -108,23 +104,23 @@ object WidgetRegistry {
                 }
                 Column(Modifier.fillMaxWidth().clickable { context.onOpenLiving() },
                     verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(context.character.name, style = theme.text.section, color = theme.palette.onSurface,
+                    Text(context.character.name, style = theme.text.section, color = theme.widgets.foregroundColor,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(presence.currentActivity, style = theme.text.secondary,
-                        color = theme.palette.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        color = theme.widgets.foregroundColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(latest?.description ?: context.character.contextualQuote, style = theme.text.secondary,
-                        color = theme.palette.onSurfaceMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text("发消息", style = theme.text.caption, color = context.accent,
+                        color = theme.widgets.foregroundColor.copy(alpha = 0.78f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text("发消息", style = theme.text.caption, color = theme.widgets.foregroundColor,
                         modifier = Modifier.clickable { context.onOpenChat() })
                 }
             } else {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.CenterStart) {
                     LivingPresenceStrip(context.character, context.onOpenChat,
-                        context.onOpenLiving, context.onOpenProfile)
+                        context.onOpenLiving, context.onOpenProfile, compact = size.spanY == 1)
                 }
             }
         },
-        WidgetSpec(HomeWidgetId.WORLD_CLOCK, "世界时钟", WidgetSize(4, 1),
+        WidgetSpec(HomeWidgetId.WORLD_CLOCK, "时间与天气", WidgetSize(4, 1),
             sizes(HomeWidgetId.WORLD_CLOCK)) { context, size ->
             val theme = LocalAiluaTheme.current
             if (size.spanX == 4) {
@@ -132,38 +128,40 @@ object WidgetRegistry {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(context.worldClock.timeFormatted,
-                        style = theme.text.display, color = theme.palette.onSurface)
+                        style = theme.text.display, color = theme.widgets.foregroundColor)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Text(context.worldClock.dateLabel,
-                            style = theme.text.secondary, color = theme.palette.onSurface, maxLines = 1)
+                            style = theme.text.secondary, color = theme.widgets.foregroundColor, maxLines = 1)
                         Text("${context.worldClock.dayPhase.label} · ${context.worldClock.weather.label}",
-                            style = theme.text.caption, color = theme.palette.onSurfaceMuted,
+                            style = theme.text.caption, color = theme.widgets.foregroundColor.copy(alpha = 0.78f),
                             maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                    Icon(Icons.Default.ChevronRight, contentDescription = "调整世界时间", tint = context.accent)
                 }
             } else {
                 Column(Modifier.clickable { context.onOpenDevTime() }) {
                     Text(context.worldClock.timeFormatted,
-                        style = theme.text.display, color = theme.palette.onSurface)
+                        style = theme.text.display, color = theme.widgets.foregroundColor)
                     Text(context.worldClock.weather.label, style = theme.text.secondary,
-                        color = theme.palette.onSurfaceMuted)
+                        color = theme.widgets.foregroundColor.copy(alpha = 0.78f))
                     if (size.spanY == 2) {
                         Spacer(Modifier.height(8.dp))
                         Text(context.worldClock.dateLabel, style = theme.text.caption,
-                            color = theme.palette.onSurfaceMuted)
+                            color = theme.widgets.foregroundColor.copy(alpha = 0.78f))
                     }
                 }
             }
         },
         WidgetSpec(HomeWidgetId.MEMORY_ECHO, "记忆回响", WidgetSize(2, 2),
             sizes(HomeWidgetId.MEMORY_ECHO)) { context, size ->
+            val theme = LocalAiluaTheme.current
             if (size.spanX == 4) {
-                Column(Modifier.clickable { context.onNavigateToMemories() }) {
-                    Text("记忆回响", style = MaterialTheme.typography.labelMedium,
-                        color = context.accent)
+                Column(Modifier.clickable { context.onNavigateToMemories() },
+                    verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("记忆回响", style = theme.text.section,
+                        color = theme.widgets.foregroundColor)
                     Text(context.character.memories.firstOrNull()?.snippet.orEmpty(),
-                        style = MaterialTheme.typography.bodySmall, maxLines = 2)
+                        style = theme.text.secondary, color = theme.widgets.foregroundColor.copy(alpha = 0.78f),
+                        maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             } else MemorySnippetWidget(
                 title = "记忆回响",
@@ -171,13 +169,13 @@ object WidgetRegistry {
                 onClick = context.onNavigateToMemories
             )
         },
-        WidgetSpec(HomeWidgetId.BOND, "心契", WidgetSize(2, 2),
+        WidgetSpec(HomeWidgetId.BOND, "关系近况", WidgetSize(2, 2),
             sizes(HomeWidgetId.BOND)) { context, size ->
+            val theme = LocalAiluaTheme.current
             if (size.spanY == 1) {
                 Row(Modifier.fillMaxWidth().clickable { context.onOpenProfile() },
                     verticalAlignment = Alignment.CenterVertically) {
-                    Text("心契", style = MaterialTheme.typography.titleSmall, color = context.accent)
-                    Text("  ·  查看关系 ›", style = MaterialTheme.typography.labelSmall)
+                    Text("你们之间", style = theme.text.secondary, color = theme.widgets.foregroundColor)
                 }
             } else BondProgressWidget(context.character, onClick = context.onOpenProfile)
         }

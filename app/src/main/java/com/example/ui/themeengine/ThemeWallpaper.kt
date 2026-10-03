@@ -14,19 +14,27 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import com.example.R
 import com.example.ui.themeengine.external.ExternalThemeRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /** Home and System UI use the same source selection and bounded Android 10 decoder. */
 @Composable
-fun rememberThemeWallpaperBitmap(selection: ThemeSelection = ThemeStore.selection): State<ImageBitmap?> =
-    produceState<ImageBitmap?>(null, selection.wallpaperSourceId, ExternalThemeRepository.themes) {
+fun rememberThemeWallpaperBitmap(
+    selection: ThemeSelection = ThemeStore.selection,
+    runtime: AiluaThemeRuntime = LocalAiluaTheme.current,
+): State<ImageBitmap?> {
+    val resources = LocalContext.current.resources
+    return produceState<ImageBitmap?>(null, selection.wallpaperSourceId, runtime.wallpaper.key, ExternalThemeRepository.themes) {
         value = null
         value = withContext(Dispatchers.IO) {
             runCatching {
-                val bytes = selection.wallpaperSourceId?.let(ExternalThemeRepository::get)
+                val importedBytes = selection.wallpaperSourceId?.let(ExternalThemeRepository::get)
                     ?.wallpapers?.firstOrNull()?.let(ExternalThemeRepository::assetBytes)
+                val bytes = importedBytes ?: builtInWallpaperResource(runtime.wallpaper.key)
+                    ?.let { resource -> resources.openRawResource(resource).use { it.readBytes() } }
                     ?: return@runCatching null
                 val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
@@ -38,13 +46,23 @@ fun rememberThemeWallpaperBitmap(selection: ThemeSelection = ThemeStore.selectio
             }.getOrNull()
         }
     }
+}
+
+/** Asset lookup is part of the existing wallpaper renderer, not a second theme store. */
+internal fun builtInWallpaperResource(key: String): Int? = when (key) {
+    "builtin/default" -> R.drawable.wallpaper_default
+    "builtin/soft_home" -> R.drawable.wallpaper_soft_home
+    "builtin/midnight_glass" -> R.drawable.wallpaper_midnight_glass
+    else -> null
+}
 
 @Composable
 fun ThemeWallpaper(
     modifier: Modifier = Modifier,
-    runtime: AiluaThemeRuntime = LocalAiluaTheme.current
+    runtime: AiluaThemeRuntime = LocalAiluaTheme.current,
+    selection: ThemeSelection = ThemeStore.selection,
 ) {
-    val wallpaper by rememberThemeWallpaperBitmap()
+    val wallpaper by rememberThemeWallpaperBitmap(selection, runtime)
     Box(modifier.background(Brush.verticalGradient(runtime.wallpaper.colors))) {
         wallpaper?.let { bitmap ->
             Image(bitmap, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
