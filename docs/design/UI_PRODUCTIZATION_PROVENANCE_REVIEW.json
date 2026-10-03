@@ -1,0 +1,13 @@
+{
+  "sourceUrl": "https://www.vibework.live/",
+  "checkedAtLocal": "2026-10-04",
+  "method": "Read public homepage embedded __APP_CONFIG__.login_agreement_documents; no API credentials sent",
+  "termsVersion": "v2026.08.07",
+  "termsSha256": "aca99c4cf4a967bbc0d7734d2017edef3db92dd4058ae439dd1c5cd282e299db",
+  "serviceSpecificTermsSha256": "37e770395cade7163a69099cd1bd2b7f9e3f0bb13a58b744832dafb47325f9a3",
+  "observedOutputRightsClause": "Output rights depend on applicable law, upstream service terms and third-party rights.",
+  "commercialOutputAuthorizationEvidence": "not established for this provider and requested image model",
+  "decision": "Await provider commercial-output terms or user-supplied authorization evidence before production assets.",
+  "existingIconLicenseStatus": "pending-rights-review",
+  "rawPublicDocumentsSavedLocally": "output/uir-productization/license-check/"
+}

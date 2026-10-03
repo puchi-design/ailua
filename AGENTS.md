@@ -3,7 +3,8 @@
 ## 当前施工与冻结基线
 
 - 分支 `local-pass3c-ai-runtime`。UIR-0→2 首轮基线为 `161fa130f683d0c85368971e384583d410731aec`。
-- 本轮任务书：[P5V_UIR3_5_TASKBOOK.md](docs/design/P5V_UIR3_5_TASKBOOK.md)。UIR-3A→3D 已完成：三套正式图标候选、Y2K 图标原型、同一 Workspace 真机对照。当前停在视觉评审点，等待用户看图，不自行开始 UIR-4/5。
+- UIR-3A→3D 已完成：三套正式图标候选、Y2K 图标原型、同一 Workspace 真机对照。新任务书：[P5V_UIR3D_6_TASKBOOK.md](docs/design/P5V_UIR3D_6_TASKBOOK.md) 已授权继续 UIR-3D→6；基线为已同步远端的 `9ee6887eb77fd3b2f709c6e60eb7e16a72461e99`。
+- 新任务书第43节规定资源合法来源无法确认时停止。当前停在开工商用授权核查：服务公开条款将输出权利关联到上游条款，仍缺该服务图片商用授权证据；已向用户请求条款/书面授权或其已有授权来源。不要擅自将候选资产改标production。状态与恢复范围见 `docs/design/P5_V_UI_PRODUCTIZATION_REPORT.md`。
 - 该基线的 Home 视觉骨架、Widget 位置、Character Widget 信息结构、Workspace 网格/Pager/Drag/Folder/Dock 数据结构、Character/World/Chat/Memory/Call/关系 Runtime 和数据库 schema 冻结。
 - 继续原 ThemeStore→ThemeSelection→ThemeResolver→AiluaThemeRuntime 与 IconResolver；图标资产通过既有 iconStyleId 选择，不创建新 Launcher/Theme/Icon Engine。
 - 用户 manual / 外部图标源优先，切换主题不能清用户覆盖。`ThemeCatalog.DEFAULT_ID=milk` 与四个 legacy theme 保留。
