@@ -119,7 +119,10 @@ data class WidgetVisualSpec(
     val surfaceAlpha: Float,
     val border: BorderSpec,
     val shadow: ShadowSpec,
-    val contentPaddingDp: Float
+    val contentPaddingDp: Float,
+    val blurRadiusDp: Float = 24f,
+    val highlightAlpha: Float = 0.16f,
+    val fallbackAlpha: Float = surfaceAlpha,
 )
 
 enum class DockContainerMode { CAPSULE, ISLAND, PAPER_STRIP, NONE }
@@ -135,7 +138,10 @@ data class DockVisualSpec(
     val shadow: ShadowSpec,
     val horizontalPaddingDp: Float,
     val verticalPaddingDp: Float,
-    val iconScale: Float
+    val iconScale: Float,
+    val blurRadiusDp: Float = 28f,
+    val highlightAlpha: Float = 0.16f,
+    val fallbackAlpha: Float = surfaceAlpha,
 )
 
 enum class TypographyFamily { SYSTEM_SANS, SOFT_SANS, SERIF, MONO }

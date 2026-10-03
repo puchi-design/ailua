@@ -113,6 +113,8 @@ dependencies {
   implementation(libs.androidx.compose.ui)
   implementation(libs.androidx.compose.ui.graphics)
   implementation(libs.androidx.compose.ui.tooling.preview)
+  // Pinned to Compose 1.7 / Kotlin 2.1-compatible APIs; the blur backend stays in the renderer.
+  implementation("dev.chrisbanes.haze:haze:1.3.1")
   implementation(libs.androidx.core.ktx)
   // implementation(libs.androidx.datastore.preferences)
   implementation(libs.androidx.lifecycle.runtime.compose)

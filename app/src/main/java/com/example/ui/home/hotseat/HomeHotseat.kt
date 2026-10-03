@@ -1,11 +1,11 @@
 package com.example.ui.home.hotseat
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -13,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.boundsInRoot
@@ -29,6 +28,8 @@ import com.example.ui.design.launcher.WorkspaceAppLabel
 import com.example.ui.home.folder.WorkspaceFolderItem
 import com.example.ui.themeengine.DockContainerMode
 import com.example.ui.themeengine.LocalAiluaTheme
+import com.example.ui.themeengine.material.ailuaMaterialSurface
+import com.example.ui.themeengine.material.surfaceMaterial
 
 /** Five real slots projected from DesktopItem(HOTSEAT); gaps remain usable cells. */
 @Composable
@@ -49,20 +50,20 @@ fun HomeHotseat(
 ) {
     val runtime = LocalAiluaTheme.current
     val dock = runtime.dock
-    val shape = RoundedCornerShape(runtime.shapes.large.dp)
     val hasContainer = dock.containerMode != DockContainerMode.NONE
     val containerModifier = if (hasContainer) {
-        Modifier
-            .clip(shape)
-            .background(runtime.surfaces.raised.copy(alpha = dock.surfaceAlpha.coerceIn(0.78f, 0.96f)))
+        Modifier.ailuaMaterialSurface(dock.surfaceMaterial())
     } else Modifier
 
     Box(Modifier.fillMaxWidth().padding(horizontal = runtime.layout.screenHorizontalPadding.dp, vertical = 8.dp)) {
+        if (hasContainer) {
+            Box(Modifier.matchParentSize().then(containerModifier))
+        }
         Row(
             modifier = Modifier.fillMaxWidth()
-                .then(containerModifier)
-                .padding(horizontal = dock.horizontalPaddingDp.coerceIn(6f, 10f).dp,
-                    vertical = dock.verticalPaddingDp.coerceIn(8f, 10f).dp)
+                .heightIn(min = if (hasContainer) 82.dp else 0.dp)
+                .padding(horizontal = dock.horizontalPaddingDp.coerceAtLeast(0f).dp,
+                    vertical = dock.verticalPaddingDp.coerceAtLeast(0f).dp)
                 .onGloballyPositioned { onBounds(it.boundsInRoot()) }
                 .testTag("virtual_phone_dock"),
             horizontalArrangement = Arrangement.SpaceEvenly,
