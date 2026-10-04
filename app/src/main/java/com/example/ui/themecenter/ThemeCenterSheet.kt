@@ -1,7 +1,8 @@
 package com.example.ui.themecenter
 
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,19 +16,28 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.data.model.DayPhase
 import com.example.data.model.WeatherState
 import com.example.ui.components.HideDialogStatusBar
 import com.example.ui.themeengine.*
 
+// Legacy entry points remain source compatible; only four product sections are displayed.
 enum class ThemeCenterSection(val title: String) {
-    THEMES("内置"), MINE("我的主题"), PACKS("图标包"), IMPORT("导入"),
-    PALETTES("配色"), WALLPAPERS("壁纸"), ICONS("图标样式")
+    THEMES("主题"), MINE("我的"), PACKS("图标"), IMPORT("我的"),
+    PALETTES("我的"), WALLPAPERS("壁纸"), ICONS("图标")
+}
+
+private fun ThemeCenterSection.consumerSection(): ThemeCenterSection = when (this) {
+    ThemeCenterSection.PACKS -> ThemeCenterSection.ICONS
+    ThemeCenterSection.IMPORT, ThemeCenterSection.PALETTES -> ThemeCenterSection.MINE
+    else -> this
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,146 +50,277 @@ fun ThemeCenterSheet(
     initialSection: ThemeCenterSection = ThemeCenterSection.THEMES,
 ) {
     val selection = ThemeStore.selection
-    var tab by remember(initialSection) { mutableStateOf(initialSection) }
+    val context = LocalContext.current
+    var tab by remember(initialSection) { mutableStateOf(initialSection.consumerSection()) }
+    var detailId by remember { mutableStateOf<String?>(null) }
+    var wallpaperCandidate by remember { mutableStateOf<ThemeSelection?>(null) }
+    var wallpaperTitle by remember { mutableStateOf("") }
+    var iconCandidate by remember { mutableStateOf<ThemeSelection?>(null) }
+    var iconTitle by remember { mutableStateOf("") }
+    var recent by remember { mutableStateOf(ThemeRecentHistory.read(context)) }
     val runtime = ThemeResolver.resolve(selection, isDarkTheme, dayPhase, weather)
+    val theme = LocalAiluaTheme.current
+    fun applyTheme(id: String) {
+        ThemeStore.update(ThemeStore.selection.withOfficialTheme(id))
+        ThemeRecentHistory.record(context, id)
+        recent = ThemeRecentHistory.read(context)
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = runtime.surfaces.raised,
+        properties = ModalBottomSheetProperties(shouldDismissOnBackPress = false),
+        containerColor = theme.surfaces.raised,
         modifier = Modifier.testTag("theme_center_sheet"),
     ) {
+        // Handle navigation inside the dialog before dismissing the whole theme center.
+        ThemeSheetBackHandler {
+            when {
+                detailId != null -> detailId = null
+                wallpaperCandidate != null -> wallpaperCandidate = null
+                iconCandidate != null -> iconCandidate = null
+                else -> onDismiss()
+            }
+        }
         HideDialogStatusBar()
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-            Text("主题中心", style = LocalAiluaTheme.current.text.title,
-                fontWeight = FontWeight.Bold, modifier = Modifier.testTag("theme_center_title"))
-            Text("选择主题、壁纸和图标",
-                style = LocalAiluaTheme.current.text.secondary,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(14.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                ThemeCenterSection.entries.take(4).forEach { item ->
+            Text("主题中心", style = theme.text.title, fontWeight = FontWeight.Bold,
+                color = theme.palette.onSurface, modifier = Modifier.testTag("theme_center_title"))
+            Text("让这台手机变成你的世界", style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
+            Spacer(Modifier.height(16.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(ThemeCenterSection.THEMES, ThemeCenterSection.WALLPAPERS, ThemeCenterSection.ICONS, ThemeCenterSection.MINE).forEach { item ->
                     val selected = tab == item
-                    val shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.medium.dp)
-                    Box(Modifier.weight(1f).clip(shape)
-                        .background(if (selected) runtime.palette.accent.copy(alpha = 0.18f) else Color.Transparent)
-                        .border(1.dp, if (selected) runtime.palette.accent.copy(alpha = 0.48f) else Color.Transparent, shape)
-                        .clickable { tab = item }.padding(vertical = 9.dp)
-                        .testTag("theme_center_tab_" + item.name.lowercase()),
-                        contentAlignment = Alignment.Center) {
-                        Text(item.title,
-                            color = if (selected) runtime.palette.accent else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, style = LocalAiluaTheme.current.text.secondary)
-                    }
-                }
-            }
-            Spacer(Modifier.height(7.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                ThemeCenterSection.entries.drop(4).forEach { item ->
-                    val selected = tab == item
-                    val shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.small.dp)
-                    Box(Modifier.weight(1f).clip(shape)
-                        .background(if (selected) runtime.palette.accent.copy(alpha = 0.18f) else LocalAiluaTheme.current.surfaces.inset)
-                        .clickable { tab = item }.padding(vertical = 6.dp)
-                        .testTag("theme_center_tab_" + item.name.lowercase()),
-                        contentAlignment = Alignment.Center) {
-                        Text(item.title,
-                            color = if (selected) runtime.palette.accent else MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = LocalAiluaTheme.current.text.caption)
-                    }
+                    Text(item.title, style = theme.text.secondary,
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (selected) theme.palette.onSurface else theme.palette.onSurfaceMuted,
+                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(theme.shapes.small.dp))
+                            .background(if (selected) theme.surfaces.inset else Color.Transparent)
+                            .clickable { tab = item; detailId = null; wallpaperCandidate = null; iconCandidate = null }
+                            .padding(vertical = 12.dp).testTag("theme_center_tab_" + item.name.lowercase()))
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-                if (tab in setOf(ThemeCenterSection.PALETTES, ThemeCenterSection.WALLPAPERS, ThemeCenterSection.ICONS)) {
-                    ThemePreview(runtime, Modifier.fillMaxWidth().height(200.dp), selection = selection)
-                    Spacer(Modifier.height(14.dp))
-                }
-                when (tab) {
-                    ThemeCenterSection.THEMES -> ThemeCatalog.presets.chunked(2).forEach { presets ->
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            presets.forEach { preset ->
-                                val candidate = selection.copy(themePresetId = preset.id)
-                                val preview = ThemeResolver.resolve(candidate, isDarkTheme, dayPhase, weather)
-                                val selected = selection.themePresetId == preset.id
-                                val shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.medium.dp)
-                                Column(Modifier.weight(1f).clip(shape)
-                                    .background(LocalAiluaTheme.current.surfaces.inset)
-                                    .border(1.5.dp, if (selected) preview.palette.accent else Color.Transparent, shape)
-                                    .clickable { ThemeStore.update(candidate) }.padding(7.dp)
-                                    .testTag("theme_option_" + preset.id)) {
-                                    ThemePreview(preview, Modifier.fillMaxWidth().height(200.dp), selection = candidate)
-                                    Spacer(Modifier.height(6.dp))
+            key(tab, detailId, wallpaperCandidate, iconCandidate) {
+                Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+                    val detail = detailId?.let { id -> officialThemeProducts.firstOrNull { it.id == id } }
+                    when {
+                        detail != null -> {
+                            TextButton(onClick = { detailId = null }, modifier = Modifier.testTag("theme_detail_back")) { Text("‹ 主题") }
+                            Column(Modifier.testTag("theme_detail"), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                ProductDescription(detail)
+                                ProductPreview(detail.id, isDarkTheme, dayPhase, weather)
+                                Button(onClick = { applyTheme(detail.id) }, modifier = Modifier.fillMaxWidth().testTag("theme_apply_full")) {
+                                    Text(if (selection.themePresetId == detail.id) "应用完整主题 · 当前" else "应用完整主题")
+                                }
+                                TextButton(onClick = {
+                                    ThemeStore.update(ThemeStore.selection.copy(wallpaperOverrideId = ThemeCatalog.byId(detail.id).wallpaperId, wallpaperSourceId = null))
+                                }, modifier = Modifier.fillMaxWidth().testTag("theme_apply_wallpaper")) { Text("只使用壁纸") }
+                                TextButton(onClick = {
+                                    ThemeStore.update(ThemeStore.selection.copy(iconStyleOverrideId = ThemeCatalog.byId(detail.id).iconStyleId,
+                                        iconSourceOverrideId = null, manualIconOverrides = emptyMap()))
+                                }, modifier = Modifier.fillMaxWidth().testTag("theme_apply_icons")) { Text("只使用图标") }
+                            }
+                        }
+                        wallpaperCandidate != null -> {
+                            val candidate = wallpaperCandidate!!
+                            TextButton(onClick = { wallpaperCandidate = null }, modifier = Modifier.testTag("wallpaper_preview_back")) { Text("‹ 壁纸") }
+                            Text(wallpaperTitle, style = theme.text.section, color = theme.palette.onSurface)
+                            Spacer(Modifier.height(12.dp))
+                            Box(Modifier.fillMaxWidth().aspectRatio(9f / 16f).clip(RoundedCornerShape(theme.shapes.medium.dp)).testTag("wallpaper_preview")) {
+                                ThemeWallpaper(Modifier.fillMaxSize(), ThemeResolver.resolve(candidate, isDarkTheme, dayPhase, weather), candidate)
+                            }
+                            Spacer(Modifier.height(14.dp))
+                            Button(onClick = {
+                                ThemeStore.update(ThemeStore.selection.copy(wallpaperOverrideId = candidate.wallpaperOverrideId,
+                                    wallpaperSourceId = candidate.wallpaperSourceId))
+                            }, modifier = Modifier.fillMaxWidth().testTag("wallpaper_apply")) { Text("应用壁纸") }
+                        }
+                        iconCandidate != null -> {
+                            val candidate = iconCandidate!!
+                            TextButton(onClick = { iconCandidate = null }, modifier = Modifier.testTag("icon_preview_back")) { Text("‹ 图标") }
+                            Text(iconTitle, style = theme.text.section, color = theme.palette.onSurface)
+                            Spacer(Modifier.height(12.dp))
+                            ThemePreview(ThemeResolver.resolve(candidate, isDarkTheme, dayPhase, weather),
+                                Modifier.fillMaxWidth().aspectRatio(9f / 16f).testTag("icon_preview"), candidate)
+                            Spacer(Modifier.height(14.dp))
+                            Button(onClick = {
+                                ThemeStore.update(ThemeStore.selection.copy(iconStyleOverrideId = candidate.iconStyleOverrideId,
+                                    iconSourceOverrideId = candidate.iconSourceOverrideId, manualIconOverrides = candidate.manualIconOverrides))
+                            }, modifier = Modifier.fillMaxWidth().testTag("icon_apply")) { Text("应用图标") }
+                        }
+                        tab == ThemeCenterSection.THEMES -> {
+                            officialThemeProducts.forEach { product ->
+                                Column(Modifier.fillMaxWidth().padding(bottom = 28.dp)
+                                    .clickable { detailId = product.id }.testTag("theme_option_" + product.id),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    ProductDescription(product)
+                                    ProductPreview(product.id, isDarkTheme, dayPhase, weather) { detailId = product.id }
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Column(Modifier.weight(1f)) {
-                                            Text(preset.name, fontWeight = FontWeight.SemiBold, style = LocalAiluaTheme.current.text.secondary)
-                                            Text(preset.nameEn, color = MaterialTheme.colorScheme.onSurfaceVariant, style = LocalAiluaTheme.current.text.caption)
+                                        TextButton(onClick = { detailId = product.id }, modifier = Modifier.weight(1f)) { Text("查看主题") }
+                                        Button(onClick = { applyTheme(product.id) }, modifier = Modifier.testTag("theme_quick_apply_" + product.id)) {
+                                            Text(if (selection.themePresetId == product.id) "已应用" else "应用")
                                         }
-                                        if (selected) Icon(Icons.Default.Check, "当前主题",
-                                            tint = preview.palette.accent, modifier = Modifier.size(17.dp))
                                     }
                                 }
                             }
-                            if (presets.size == 1) Spacer(Modifier.weight(1f))
                         }
-                        Spacer(Modifier.height(10.dp))
-                    }
-                    ThemeCenterSection.MINE -> MyThemesSection(runtime)
-                    ThemeCenterSection.PACKS -> IconPacksSection(runtime)
-                    ThemeCenterSection.IMPORT -> ImportThemeSection(runtime) {
-                        tab = ThemeCenterSection.MINE
-                    }
-                    ThemeCenterSection.PALETTES -> {
-                        ChoiceRow("跟随主题", "使用当前主题的默认配色",
-                            ThemeResolver.resolve(selection.copy(paletteOverrideId = null), isDarkTheme, dayPhase, weather).palette.accent,
-                            selection.paletteOverrideId == null, "palette_option_default") {
-                            ThemeStore.update(selection.copy(paletteOverrideId = null))
-                        }
-                        PaletteCatalog.palettes.forEach { option ->
-                            val candidate = selection.copy(paletteOverrideId = option.id)
-                            ChoiceRow(option.name, option.nameEn,
-                                ThemeResolver.resolve(candidate, isDarkTheme, dayPhase, weather).palette.accent,
-                                selection.paletteOverrideId == option.id, "palette_option_" + option.id) {
-                                ThemeStore.update(candidate)
+                        tab == ThemeCenterSection.WALLPAPERS -> {
+                            ChoiceRow("跟随主题", "使用主题自带壁纸", runtime.palette.accent,
+                                selection.wallpaperOverrideId == null && selection.wallpaperSourceId == null, "wallpaper_follow_theme") {
+                                wallpaperCandidate = selection.copy(wallpaperOverrideId = null, wallpaperSourceId = null)
+                                wallpaperTitle = "跟随主题"
+                            }
+                            val oilWallpapers = WallpaperCatalog.options.filter { it.id.startsWith("oil_") }
+                            if (oilWallpapers.isNotEmpty()) {
+                                SectionLabel("油画壁纸")
+                                oilWallpapers.chunked(2).forEach { wallpapers ->
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        wallpapers.forEach { wallpaper ->
+                                            val candidate = selection.copy(wallpaperOverrideId = wallpaper.id, wallpaperSourceId = null)
+                                            Column(Modifier.weight(1f).clickable {
+                                                wallpaperCandidate = candidate; wallpaperTitle = wallpaper.name
+                                            }.testTag("wallpaper_option_" + wallpaper.id)) {
+                                                Box(Modifier.fillMaxWidth().aspectRatio(3f / 4f).clip(RoundedCornerShape(theme.shapes.medium.dp))) {
+                                                    ThemeWallpaper(Modifier.fillMaxSize(), ThemeResolver.resolve(candidate, isDarkTheme, dayPhase, weather), candidate)
+                                                }
+                                                Text(wallpaper.name, style = theme.text.secondary, color = theme.palette.onSurface,
+                                                    modifier = Modifier.padding(vertical = 10.dp))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            SectionLabel("官方壁纸")
+                            officialThemeProducts.chunked(2).forEach { products ->
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    products.forEach { product ->
+                                        val candidate = selection.copy(wallpaperOverrideId = ThemeCatalog.byId(product.id).wallpaperId, wallpaperSourceId = null)
+                                        Column(Modifier.weight(1f).clickable {
+                                            wallpaperCandidate = candidate; wallpaperTitle = product.title
+                                        }.testTag("wallpaper_option_" + product.id)) {
+                                            Box(Modifier.fillMaxWidth().aspectRatio(3f / 4f).clip(RoundedCornerShape(theme.shapes.medium.dp))) {
+                                                ThemeWallpaper(Modifier.fillMaxSize(), ThemeResolver.resolve(candidate, isDarkTheme, dayPhase, weather), candidate)
+                                            }
+                                            Text(product.title, style = theme.text.secondary, color = theme.palette.onSurface, modifier = Modifier.padding(vertical = 10.dp))
+                                        }
+                                    }
+                                }
+                            }
+                            SectionLabel("我的壁纸")
+                            if (com.example.ui.themeengine.external.ExternalThemeRepository.themes.none { it.wallpapers.isNotEmpty() }) {
+                                Text("你的壁纸会显示在这里。", style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
+                            }
+                            ExternalWallpaperChoices(runtime) { imported ->
+                                wallpaperCandidate = selection.copy(wallpaperSourceId = imported.id)
+                                wallpaperTitle = imported.name
                             }
                         }
-                    }
-                    ThemeCenterSection.WALLPAPERS -> {
-                        val defaultColors = ThemeResolver.resolve(selection.copy(wallpaperOverrideId = null, wallpaperSourceId = null),
-                            isDarkTheme, dayPhase, weather).wallpaper.colors
-                        WallpaperRow("跟随主题", "使用当前主题的默认壁纸", defaultColors,
-                            selection.wallpaperOverrideId == null && selection.wallpaperSourceId == null, "wallpaper_option_default") {
-                            ThemeStore.update(selection.copy(wallpaperOverrideId = null, wallpaperSourceId = null))
-                        }
-                        WallpaperCatalog.options.forEach { option ->
-                            val candidate = selection.copy(wallpaperOverrideId = option.id, wallpaperSourceId = null)
-                            WallpaperRow(option.name, option.nameEn,
-                                ThemeResolver.resolve(candidate, isDarkTheme, dayPhase, weather).wallpaper.colors,
-                                selection.wallpaperOverrideId == option.id && selection.wallpaperSourceId == null, "wallpaper_option_" + option.id) {
-                                ThemeStore.update(candidate)
+                        tab == ThemeCenterSection.ICONS -> {
+                            SectionLabel("官方图标")
+                            val follow = selection.copy(iconStyleOverrideId = null, iconSourceOverrideId = null, manualIconOverrides = emptyMap())
+                            IconRow("跟随主题", "使用主题自带图标", ThemeResolver.resolve(follow, isDarkTheme, dayPhase, weather), follow,
+                                selection.iconStyleOverrideId == null && selection.iconSourceOverrideId == null, "icon_option_default") {
+                                iconCandidate = follow; iconTitle = "跟随主题"
                             }
-                        }
-                        ExternalWallpaperChoices(runtime)
-                    }
-                    ThemeCenterSection.ICONS -> {
-                        val followTheme = selection.copy(iconStyleOverrideId = null, iconSourceOverrideId = null, manualIconOverrides = emptyMap())
-                        IconRow("跟随主题", "使用当前主题的默认图标",
-                            ThemeResolver.resolve(followTheme, isDarkTheme, dayPhase, weather), followTheme,
-                            selection.iconStyleOverrideId == null && selection.iconSourceOverrideId == null, "icon_option_default") {
-                            ThemeStore.update(selection.copy(iconStyleOverrideId = null, iconSourceOverrideId = null, manualIconOverrides = emptyMap()))
-                        }
-                        IconStyleCatalog.options.forEach { option ->
-                            val candidate = selection.copy(iconStyleOverrideId = option.id, iconSourceOverrideId = null, manualIconOverrides = emptyMap())
-                            IconRow(option.name, option.nameEn,
-                                ThemeResolver.resolve(candidate, isDarkTheme, dayPhase, weather), candidate,
-                                selection.iconStyleOverrideId == option.id && selection.iconSourceOverrideId == null, "icon_option_" + option.id) {
-                                ThemeStore.update(candidate)
+                            officialThemeProducts.forEach { product ->
+                                val style = ThemeCatalog.byId(product.id).iconStyleId
+                                val candidate = selection.copy(iconStyleOverrideId = style, iconSourceOverrideId = null, manualIconOverrides = emptyMap())
+                                IconRow(product.title, product.materials, ThemeResolver.resolve(candidate, isDarkTheme, dayPhase, weather), candidate,
+                                    selection.iconStyleOverrideId == style && selection.iconSourceOverrideId == null, "icon_option_" + style) {
+                                    iconCandidate = candidate; iconTitle = product.title
+                                }
                             }
+                            SectionLabel("我的图标包")
+                            ExternalIconChoices(runtime)
+                            IconPacksSection(runtime, showAdvanced = false)
                         }
-                        ExternalIconChoices(runtime)
+                        else -> {
+                            SectionLabel("当前主题")
+                            val current = ThemeCatalog.byId(selection.themePresetId)
+                            ThemePreview(runtime, Modifier.fillMaxWidth().height(230.dp), selection = selection)
+                            Text(current.name, style = theme.text.section, color = theme.palette.onSurface, modifier = Modifier.padding(vertical = 12.dp))
+                            if (recent.isNotEmpty()) {
+                                SectionLabel("最近使用")
+                                recent.forEach { id ->
+                                    val preset = ThemeCatalog.byId(id)
+                                    ChoiceRow(preset.name, preset.nameEn, runtime.palette.accent, id == selection.themePresetId, "recent_theme_" + id) {
+                                        if (officialThemeProducts.any { it.id == id }) detailId = id else applyTheme(id)
+                                    }
+                                }
+                            }
+                            SectionLabel("已导入主题")
+                            MyThemesSection(runtime)
+                            CustomThemeChoices(selection, isDarkTheme, dayPhase, weather)
+                        }
                     }
+                    Spacer(Modifier.height(28.dp))
                 }
-                Spacer(Modifier.height(28.dp))
+            }
+        }
+    }
+}
+
+/** Register dialog navigation on the dialog's START, after Material3's default callback. */
+@Composable
+internal fun ThemeSheetBackHandler(enabled: Boolean = true, onBack: () -> Unit) {
+    val owner = LocalOnBackPressedDispatcherOwner.current as? LifecycleOwner
+        ?: LocalLifecycleOwner.current
+    CompositionLocalProvider(LocalLifecycleOwner provides owner) {
+        BackHandler(enabled = enabled, onBack = onBack)
+    }
+}
+
+@Composable
+private fun ProductPreview(id: String, dark: Boolean, phase: DayPhase, weather: WeatherState, onClick: (() -> Unit)? = null) {
+    val candidate = officialPreviewSelection(id)
+    ThemePreview(ThemeResolver.resolve(candidate, dark, phase, weather),
+        Modifier.fillMaxWidth().aspectRatio(9f / 16f), candidate, onClick)
+}
+
+@Composable
+private fun ProductDescription(product: ThemeProduct) {
+    val theme = LocalAiluaTheme.current
+    Text(product.title, style = theme.text.title, color = theme.palette.onSurface, fontWeight = FontWeight.SemiBold)
+    Text(product.description, style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
+    Text(product.materials, style = theme.text.caption, color = theme.palette.onSurfaceMuted)
+}
+
+@Composable
+internal fun SectionLabel(title: String) {
+    val theme = LocalAiluaTheme.current
+    Text(title, style = theme.text.section, color = theme.palette.onSurface, fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(top = 18.dp, bottom = 12.dp))
+}
+
+@Composable
+private fun CustomThemeChoices(selection: ThemeSelection, dark: Boolean, phase: DayPhase, weather: WeatherState) {
+    val theme = LocalAiluaTheme.current
+    var expanded by remember { mutableStateOf(false) }
+    SectionLabel("自定义搭配")
+    Text("壁纸与图标可以自由组合，桌面位置保持不变。", style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
+    TextButton(onClick = { expanded = !expanded }, modifier = Modifier.testTag("theme_custom_mix")) { Text(if (expanded) "收起搭配" else "调整配色与经典外观") }
+    if (expanded) {
+        ChoiceRow("跟随主题", "默认配色", theme.palette.accent, selection.paletteOverrideId == null, "palette_option_default") {
+            ThemeStore.update(ThemeStore.selection.copy(paletteOverrideId = null))
+        }
+        PaletteCatalog.palettes.forEach { palette ->
+            ChoiceRow(palette.name, "", palette.accent, selection.paletteOverrideId == palette.id, "palette_option_" + palette.id) {
+                ThemeStore.update(ThemeStore.selection.copy(paletteOverrideId = palette.id))
+            }
+        }
+        SectionLabel("经典外观")
+        ThemeCatalog.presets.take(4).forEach { preset ->
+            ChoiceRow(preset.name, "兼容已有搭配", ThemeResolver.resolve(ThemeSelection(preset.id), dark, phase, weather).palette.accent,
+                selection.themePresetId == preset.id, "theme_option_" + preset.id) {
+                ThemeStore.update(ThemeStore.selection.withOfficialTheme(preset.id))
+            }
+        }
+        SectionLabel("纯色与随世界变化")
+        WallpaperCatalog.options.filter { option -> !option.id.startsWith("oil_") && officialThemeProducts.none { it.id == option.id } }.forEach { wallpaper ->
+            ChoiceRow(wallpaper.name, "只更换壁纸", theme.palette.accent,
+                selection.wallpaperOverrideId == wallpaper.id && selection.wallpaperSourceId == null, "wallpaper_option_" + wallpaper.id) {
+                ThemeStore.update(ThemeStore.selection.copy(wallpaperOverrideId = wallpaper.id, wallpaperSourceId = null))
             }
         }
     }
@@ -187,58 +328,32 @@ fun ThemeCenterSheet(
 
 @Composable
 private fun ChoiceRow(title: String, subtitle: String, accent: Color, selected: Boolean, tag: String, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.medium.dp)
-    Row(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(shape)
-        .background(LocalAiluaTheme.current.surfaces.inset)
-        .border(1.dp, if (selected) accent else Color.Transparent, shape)
-        .clickable(onClick = onClick).padding(12.dp).testTag(tag),
-        verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(30.dp).clip(CircleShape).background(accent)
-            .border(1.dp, Color.White.copy(alpha = 0.6f), CircleShape))
+    val theme = LocalAiluaTheme.current
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp).testTag(tag), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(24.dp).clip(CircleShape).background(accent))
         Spacer(Modifier.width(12.dp))
-        ChoiceText(title, subtitle, Modifier.weight(1f))
-        if (selected) Icon(Icons.Default.Check, "已选", tint = accent, modifier = Modifier.size(18.dp))
-    }
-}
-
-@Composable
-private fun WallpaperRow(title: String, subtitle: String, colors: List<Color>, selected: Boolean, tag: String, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.medium.dp)
-    val swatch = colors.ifEmpty { listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surface) }
-    Row(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(shape)
-        .background(LocalAiluaTheme.current.surfaces.inset)
-        .border(1.dp, if (selected) MaterialTheme.colorScheme.primary else Color.Transparent, shape)
-        .clickable(onClick = onClick).padding(9.dp).testTag(tag),
-        verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(width = 48.dp, height = 42.dp).clip(RoundedCornerShape(LocalAiluaTheme.current.shapes.small.dp))
-            .background(Brush.verticalGradient(swatch)))
-        Spacer(Modifier.width(12.dp))
-        ChoiceText(title, subtitle, Modifier.weight(1f))
-        if (selected) Icon(Icons.Default.Check, "已选", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, style = theme.text.secondary, color = theme.palette.onSurface)
+            if (subtitle.isNotEmpty()) Text(subtitle, style = theme.text.caption, color = theme.palette.onSurfaceMuted)
+        }
+        if (selected) Icon(Icons.Default.Check, "已选", tint = theme.palette.accent, modifier = Modifier.size(18.dp))
     }
 }
 
 @Composable
 private fun IconRow(title: String, subtitle: String, preview: AiluaThemeRuntime, selection: ThemeSelection, selected: Boolean, tag: String, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(LocalAiluaTheme.current.shapes.medium.dp)
-    Row(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(shape)
-        .background(LocalAiluaTheme.current.surfaces.inset)
-        .border(1.dp, if (selected) preview.palette.accent else Color.Transparent, shape)
-        .clickable(onClick = onClick).padding(11.dp).testTag(tag),
-        verticalAlignment = Alignment.CenterVertically) {
-        ThemePreviewIcon(preview, "chat", 31.dp, selection)
-        Spacer(Modifier.width(5.dp))
-        ThemePreviewIcon(preview, "gallery", 31.dp, selection)
-        Spacer(Modifier.width(10.dp))
-        ChoiceText(title, subtitle, Modifier.weight(1f))
-        if (selected) Icon(Icons.Default.Check, "已选", tint = preview.palette.accent, modifier = Modifier.size(18.dp))
-    }
-}
-
-@Composable
-private fun ChoiceText(title: String, subtitle: String, modifier: Modifier) {
-    Column(modifier) {
-        Text(title, fontWeight = FontWeight.SemiBold, style = LocalAiluaTheme.current.text.secondary)
-        Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = LocalAiluaTheme.current.text.caption)
+    val theme = LocalAiluaTheme.current
+    Column(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 14.dp).testTag(tag), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(title, style = theme.text.section, color = theme.palette.onSurface)
+                Text(subtitle, style = theme.text.caption, color = theme.palette.onSurfaceMuted)
+            }
+            if (selected) Icon(Icons.Default.Check, "已选", tint = theme.palette.accent, modifier = Modifier.size(18.dp))
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            listOf("chat", "living", "gallery", "settings").forEach { key -> ThemePreviewIcon(preview, key, 44.dp, selection, onClick) }
+        }
+        HorizontalDivider(color = theme.surfaces.divider)
     }
 }

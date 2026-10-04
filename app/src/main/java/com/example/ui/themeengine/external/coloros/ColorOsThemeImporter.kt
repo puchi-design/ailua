@@ -9,7 +9,11 @@ import javax.xml.parsers.DocumentBuilderFactory
 import org.w3c.dom.Element
 import org.w3c.dom.Node
 
-/** Imports static visual assets from a local OPPO/OPlus .theme ZIP. */
+/**
+ * OEM importers are asset adapters, not full OEM theme runtimes.
+ * Imports static wallpaper, icons, preview and metadata from a local OPPO/OPlus .theme ZIP;
+ * does not execute OEM SystemUI, lockscreen scripts, fonts, sounds or framework overlays.
+ */
 class ColorOsThemeImporter : ParsingThemeImporter() {
     override val format = ExternalThemeFormat.COLOROS_THEME
 

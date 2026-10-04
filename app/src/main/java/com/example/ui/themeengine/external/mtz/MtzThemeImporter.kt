@@ -10,7 +10,11 @@ import com.example.ui.themeengine.external.ThemeImportPreview
 import com.example.ui.themeengine.external.assetPath
 import com.example.ui.themeengine.external.externalThemeId
 
-/** Projects local MIUI / HyperOS MTZ visual resources into the shared AILUA package model. */
+/**
+ * OEM importers are asset adapters, not full OEM theme runtimes.
+ * Projects local MIUI / HyperOS wallpaper, icons, preview and metadata into AILUA;
+ * does not execute OEM SystemUI, lockscreen scripts, fonts, sounds or framework overlays.
+ */
 class MtzThemeImporter : ParsingThemeImporter() {
     override val format: ExternalThemeFormat = ExternalThemeFormat.MIUI_MTZ
 

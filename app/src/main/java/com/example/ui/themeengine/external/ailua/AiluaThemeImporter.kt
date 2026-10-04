@@ -56,13 +56,20 @@ class AiluaThemeImporter : ParsingThemeImporter() {
         }
         val basePreset = settings.optString("basePreset").ifBlank { oldPreset?.optString("skin").orEmpty() }
         val palette = settings.optString("palette").ifBlank { oldPreset?.optString("palette").orEmpty() }
+        // Optional schema-v1 UI metadata. The apply UI validates it against its own catalog.
+        val uiMetadata = buildMap {
+            for (key in listOf("iconStyle", "wallpaperStyle")) {
+                settings.optString(key).takeIf { it.isNotBlank() }?.let { put(key, it) }
+            }
+        }
         val theme = ExternalThemePackage(
             id = id, format = format, name = manifest.optString("name", "AILUA Theme"),
             author = manifest.optString("author").takeIf { it.isNotBlank() },
             version = manifest.optString("version").takeIf { it.isNotBlank() },
             previewAssets = previews, wallpapers = wallpapers, icons = icons,
             basePresetId = basePreset.takeIf { it.isNotBlank() },
-            preferredPaletteId = palette.takeIf { it.isNotBlank() }
+            preferredPaletteId = palette.takeIf { it.isNotBlank() },
+            metadata = uiMetadata,
         )
         return ThemeImportPreview(theme, assets)
     }

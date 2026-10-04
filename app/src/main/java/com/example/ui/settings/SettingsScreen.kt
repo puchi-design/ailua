@@ -13,6 +13,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -33,6 +35,8 @@ import com.example.ui.components.AiConnectionSheet
 import com.example.ui.components.WorldTimeDevSheet
 import com.example.ui.designsystem.AiluaScreenScaffold
 import com.example.ui.themeengine.LocalAiluaTheme
+import com.example.ui.themecenter.ThemeLabSheet
+import com.example.ui.components.HideDialogStatusBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,6 +55,8 @@ fun SettingsScreen(
     var showAi by remember { mutableStateOf(false) }
     var showReset by remember { mutableStateOf(false) }
     var showDev by remember { mutableStateOf(false) }
+    var showWorldTime by remember { mutableStateOf(false) }
+    var showThemeLab by remember { mutableStateOf(false) }
     var versionTaps by remember { mutableIntStateOf(0) }
     var devEnabled by remember {
         mutableStateOf(context.getSharedPreferences("ailua_settings", Context.MODE_PRIVATE).getBoolean("developer", false))
@@ -67,7 +73,7 @@ fun SettingsScreen(
             SettingsRow("隐私", "本机存储与 AI 服务商", onPrivacy)
             SettingsRow("数据", "重置本机 AILUA 数据") { showReset = true }
             resetError?.let { Text(it, style = theme.text.secondary, color = theme.palette.onSurface) }
-            if (devEnabled) SettingsRow("开发者", "世界时间调试") { showDev = true }
+            if (devEnabled) SettingsRow("开发者", "世界时间与 Theme Lab") { showDev = true }
             SettingsRow("关于", "AILUA ${BuildConfig.VERSION_NAME}") {
                 versionTaps++
                 if (versionTaps >= 7) {
@@ -78,7 +84,22 @@ fun SettingsScreen(
         }
     }
     if (showAi) AiConnectionSheet(onDismiss = { showAi = false }, onConnected = { showAi = false })
-    if (showDev) WorldTimeDevSheet(onDismiss = { showDev = false })
+    if (showDev) ModalBottomSheet(
+        onDismissRequest = { showDev = false },
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = theme.surfaces.raised,
+        modifier = Modifier.testTag("developer_tools_sheet"),
+    ) {
+        HideDialogStatusBar()
+        Column(Modifier.fillMaxWidth().padding(horizontal = theme.layout.screenHorizontalPadding.dp).padding(bottom = 24.dp)) {
+            Text("开发者", style = theme.text.title, color = theme.palette.onSurface)
+            Text("本机工具", style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
+            SettingsRow("世界时间", "查看并推进虚拟时间") { showDev = false; showWorldTime = true }
+            SettingsRow("Theme Lab", "导入、检查与导出主题素材") { showDev = false; showThemeLab = true }
+        }
+    }
+    if (showWorldTime) WorldTimeDevSheet(onDismiss = { showWorldTime = false })
+    if (showThemeLab) ThemeLabSheet(onDismiss = { showThemeLab = false })
     if (showReset) AlertDialog(
         onDismissRequest = { showReset = false },
         title = { Text("重置 AILUA？", style = theme.text.title) },
@@ -95,10 +116,18 @@ fun SettingsScreen(
 @Composable
 private fun SettingsRow(title: String, detail: String, onClick: (() -> Unit)? = null) {
     val theme = LocalAiluaTheme.current
+    val tag = when (title) {
+        "关于" -> "settings_about"
+        "开发者" -> "settings_developer"
+        "世界时间" -> "developer_world_time"
+        "Theme Lab" -> "developer_theme_lab"
+        else -> null
+    }
     Column {
         Row(
             Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-                .padding(vertical = theme.layout.screenHorizontalPadding.dp),
+                .padding(vertical = theme.layout.screenHorizontalPadding.dp)
+                .then(if (tag != null) Modifier.testTag(tag) else Modifier),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)
         ) {

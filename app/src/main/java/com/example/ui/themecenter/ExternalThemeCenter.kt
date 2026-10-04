@@ -59,17 +59,18 @@ internal fun MyThemesSection(runtime: AiluaThemeRuntime) {
     val themes = ExternalThemeRepository.themes
     var selectedId by remember { mutableStateOf<String?>(null) }
     val selected = selectedId?.let(ExternalThemeRepository::get)
+    ThemeSheetBackHandler(enabled = selected != null) { selectedId = null }
     if (selected != null) {
         TextButton(onClick = { selectedId = null }) { Text("‹ 我的主题") }
         ExternalThemeDetail(selected, runtime, null,
-            onApply = { ExternalThemeRepository.apply(selected.id, preserveShell = true) },
+            onApply = { ThemeStore.update(ThemeStore.selection.withImportedTheme(selected)) },
             onDelete = {
                 if (ExternalThemeRepository.delete(selected.id)) selectedId = null
             })
         return
     }
     if (themes.isEmpty()) {
-        EmptyThemeMessage("还没有导入的主题", "在“导入”中选择 .ailuatheme、.mtz 或 .theme 文件。")
+        EmptyThemeMessage("还没有保存的主题", "保存到这台手机的主题会显示在这里。")
         return
     }
     themes.forEach { theme ->
@@ -87,7 +88,7 @@ internal fun MyThemesSection(runtime: AiluaThemeRuntime) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(theme.name, fontWeight = FontWeight.SemiBold, style = LocalAiluaTheme.current.text.body)
-                    Text(formatTitle(theme.format) + " · " + (theme.author ?: "未知作者"),
+                    Text(theme.author?.takeIf { it.isNotBlank() } ?: "本机主题",
                         color = MaterialTheme.colorScheme.onSurfaceVariant, style = LocalAiluaTheme.current.text.caption)
                 }
                 if (inUse) Text("使用中", color = runtime.palette.accent, style = LocalAiluaTheme.current.text.caption)
@@ -103,22 +104,24 @@ private fun ExternalThemeDetail(
     draftAssets: Map<String, ByteArray>?,
     onApply: () -> Unit,
     onDelete: (() -> Unit)? = null,
-    applyTitle: String = "应用主题"
+    applyTitle: String = "应用主题",
+    technical: Boolean = false,
 ) {
     Text(theme.name, style = LocalAiluaTheme.current.text.section, fontWeight = FontWeight.Bold)
     Spacer(Modifier.height(4.dp))
-    Text("作者：" + (theme.author ?: "未知") + "  ·  格式：" + formatTitle(theme.format),
+    Text(if (technical) "作者：" + (theme.author ?: "未知") + "  ·  格式：" + formatTitle(theme.format)
+        else theme.author?.let { "来自 $it" } ?: "保存在这台手机上的主题",
         color = MaterialTheme.colorScheme.onSurfaceVariant, style = LocalAiluaTheme.current.text.secondary)
     theme.description?.takeIf { it.isNotBlank() }?.let {
         Spacer(Modifier.height(4.dp))
         Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, style = LocalAiluaTheme.current.text.secondary, maxLines = 3)
     }
     Spacer(Modifier.height(12.dp))
-    ImportedThemePreview(theme, runtime, draftAssets, Modifier.fillMaxWidth().height(205.dp))
+    ImportedThemePreview(theme, runtime, draftAssets, Modifier.fillMaxWidth().aspectRatio(9f / 16f))
     Spacer(Modifier.height(9.dp))
     Text("壁纸 " + theme.wallpapers.size + "  ·  图标 " +
         (theme.icons?.allIcons?.size ?: theme.icons?.mappings?.size ?: 0) +
-        "  ·  预览 " + theme.previewAssets.size,
+        (if (technical) "  ·  预览 " + theme.previewAssets.size else ""),
         color = MaterialTheme.colorScheme.onSurfaceVariant, style = LocalAiluaTheme.current.text.secondary)
     Spacer(Modifier.height(12.dp))
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -140,6 +143,7 @@ internal fun ImportThemeSection(runtime: AiluaThemeRuntime, onInstalled: () -> U
     var preview by remember { mutableStateOf<ThemeImportPreview?>(null) }
     var busy by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf<String?>(null) }
+    ThemeSheetBackHandler(enabled = preview != null && !busy) { preview = null; status = null }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             busy = true
@@ -191,7 +195,7 @@ internal fun ImportThemeSection(runtime: AiluaThemeRuntime, onInstalled: () -> U
                     runCatching {
                         withContext(Dispatchers.IO) { ExternalThemeRepository.install(detected) }
                     }.onSuccess { installed ->
-                        ExternalThemeRepository.apply(installed.id, preserveShell = true)
+                        ThemeStore.update(ThemeStore.selection.withImportedTheme(installed))
                         preview = null
                         status = null
                         onInstalled()
@@ -200,12 +204,12 @@ internal fun ImportThemeSection(runtime: AiluaThemeRuntime, onInstalled: () -> U
                     }
                     busy = false
                 }
-            }, applyTitle = "导入并应用")
+            }, applyTitle = "导入并应用", technical = true)
     }
 }
 
 @Composable
-internal fun IconPacksSection(runtime: AiluaThemeRuntime) {
+internal fun IconPacksSection(runtime: AiluaThemeRuntime, showAdvanced: Boolean = true) {
     val context = LocalContext.current
     val resolver = remember(context) { AndroidIconPackResolver(context) }
     var refresh by remember { mutableIntStateOf(0) }
@@ -216,6 +220,7 @@ internal fun IconPacksSection(runtime: AiluaThemeRuntime) {
     val activePackage = selection.iconSourceOverrideId
         ?.takeIf { it.startsWith("android:") }?.removePrefix("android:")
     var editingKey by remember { mutableStateOf<String?>(null) }
+    ThemeSheetBackHandler(enabled = showAdvanced && editingKey != null) { editingKey = null }
     val currentPack = packs.firstOrNull { it.packageName == activePackage }
 
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -224,7 +229,7 @@ internal fun IconPacksSection(runtime: AiluaThemeRuntime) {
         TextButton(onClick = { refresh++ }) { Text("刷新") }
     }
     if (packs.isEmpty()) {
-        EmptyThemeMessage("没有找到图标包", "安装兼容的 Android Launcher 图标包后，点“刷新”。")
+        EmptyThemeMessage("没有找到图标包", "这台手机尚未安装可用的图标包。")
     }
     packs.forEach { pack ->
         val active = pack.packageName == activePackage
@@ -239,6 +244,13 @@ internal fun IconPacksSection(runtime: AiluaThemeRuntime) {
                 editingKey = null
             }.padding(12.dp).testTag("icon_pack_" + pack.packageName),
             verticalAlignment = Alignment.CenterVertically) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                val candidate = selection.copy(iconSourceOverrideId = "android:" + pack.packageName, manualIconOverrides = emptyMap())
+                listOf("chat", "gallery").forEach { key ->
+                    ResolvedPackIcon(context, key, candidate, runtime, Modifier.size(34.dp))
+                }
+            }
+            Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(pack.label, fontWeight = FontWeight.SemiBold, style = LocalAiluaTheme.current.text.secondary)
                 Text(pack.packageName, maxLines = 1, overflow = TextOverflow.Ellipsis,
@@ -248,7 +260,7 @@ internal fun IconPacksSection(runtime: AiluaThemeRuntime) {
                 tint = runtime.palette.accent, modifier = Modifier.size(18.dp))
         }
     }
-    if (currentPack != null) {
+    if (showAdvanced && currentPack != null) {
         Spacer(Modifier.height(10.dp))
         Text("自定义图标 · " + currentPack.label,
             style = LocalAiluaTheme.current.text.section, fontWeight = FontWeight.SemiBold)
@@ -322,7 +334,7 @@ private fun ResolvedPackIcon(
     runtime: AiluaThemeRuntime, modifier: Modifier
 ) {
     val bitmap by produceState<android.graphics.Bitmap?>(
-        null, context, key, selection.iconSourceOverrideId, selection.manualIconOverrides
+        null, context, key, selection
     ) {
         value = withContext(Dispatchers.IO) {
             IconResolver.get(context).resolveBitmap(key, selection, 96)
@@ -393,7 +405,7 @@ private fun readThemeBytes(context: Context, uri: Uri): ByteArray {
 
 
 @Composable
-internal fun ExternalWallpaperChoices(runtime: AiluaThemeRuntime) {
+internal fun ExternalWallpaperChoices(runtime: AiluaThemeRuntime, onPreview: ((ExternalThemePackage) -> Unit)? = null) {
     val themes = ExternalThemeRepository.themes.filter { it.wallpapers.isNotEmpty() }
     if (themes.isEmpty()) return
     Spacer(Modifier.height(10.dp))
@@ -407,7 +419,8 @@ internal fun ExternalWallpaperChoices(runtime: AiluaThemeRuntime) {
             .background(LocalAiluaTheme.current.surfaces.inset)
             .border(1.dp, if (selected) runtime.palette.accent else Color.Transparent, shape)
             .clickable {
-                ThemeStore.update(ThemeStore.selection.copy(wallpaperSourceId = theme.id))
+                if (onPreview != null) onPreview(theme)
+                else ThemeStore.update(ThemeStore.selection.copy(wallpaperSourceId = theme.id))
             }.padding(8.dp).testTag("external_wallpaper_" + theme.id),
             verticalAlignment = Alignment.CenterVertically) {
             ExternalAssetImage(theme.wallpapers.first(), null, 120,
@@ -416,7 +429,7 @@ internal fun ExternalWallpaperChoices(runtime: AiluaThemeRuntime) {
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(theme.name, fontWeight = FontWeight.SemiBold, style = LocalAiluaTheme.current.text.secondary)
-                Text(formatTitle(theme.format), style = LocalAiluaTheme.current.text.caption,
+                Text("本机壁纸", style = LocalAiluaTheme.current.text.caption,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (selected) Icon(Icons.Default.Check, "已选",
@@ -456,7 +469,7 @@ internal fun ExternalIconChoices(runtime: AiluaThemeRuntime) {
             Spacer(Modifier.width(11.dp))
             Column(Modifier.weight(1f)) {
                 Text(theme.name, fontWeight = FontWeight.SemiBold, style = LocalAiluaTheme.current.text.secondary)
-                Text(formatTitle(theme.format), style = LocalAiluaTheme.current.text.caption,
+                Text("保存在这台手机", style = LocalAiluaTheme.current.text.caption,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (selected) Icon(Icons.Default.Check, "已选",

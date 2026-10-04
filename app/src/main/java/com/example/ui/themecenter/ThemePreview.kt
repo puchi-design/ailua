@@ -1,165 +1,250 @@
 package com.example.ui.themecenter
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BatteryFull
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.example.ui.themeengine.*
-import com.example.ui.components.getAppIdentity
-import com.example.ui.components.iconShapeFor
-import com.example.ui.themeengine.icon.IconResolver
-import com.example.ui.themeengine.icon.ResolvedIconBitmap
+import com.example.ui.components.AppIconDefaults
+import com.example.ui.components.AppIconItem
+import com.example.ui.home.hotseat.HomeDockFrame
+import com.example.ui.home.widget.ThemeWidgetFrame
+import com.example.ui.themeengine.AiluaThemeProvider
+import com.example.ui.themeengine.AiluaThemeRuntime
+import com.example.ui.themeengine.DockContainerMode
+import com.example.ui.themeengine.ThemeSelection
+import com.example.ui.themeengine.ThemeWallpaper
 import com.example.ui.themeengine.material.AiluaBackdropProvider
 import com.example.ui.themeengine.material.ailuaBackdropSource
-import com.example.ui.themeengine.material.ailuaMaterialSurface
-import com.example.ui.themeengine.material.surfaceMaterial
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
-/** Mini desktop drawn from the resolved runtime, so palette overrides update its visuals live. */
+private val PreviewWidth = 360.dp
+private val PreviewHeight = 640.dp
+
+/** A fixed 9:16 fixture using the same wallpaper, widget, icon and dock renderers as Home. */
 @Composable
 fun ThemePreview(
     theme: AiluaThemeRuntime,
     modifier: Modifier = Modifier,
     selection: ThemeSelection = ThemeSelection(theme.id),
+    onClick: (() -> Unit)? = null,
 ) {
-    val label = theme.icons.labelColor
-    AiluaBackdropProvider {
-        Box(modifier.clip(RoundedCornerShape(theme.shapes.medium.dp))) {
-            ThemeWallpaper(
-                modifier = Modifier.fillMaxSize().ailuaBackdropSource(),
-                runtime = theme,
-                selection = selection,
-            )
-            Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 7.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("9:41", color = label, style = theme.text.caption, fontWeight = FontWeight.Bold)
-                    Text("●  ▰", color = label, style = theme.text.caption)
+    val fixture = remember(selection) { ThemePreviewFixture(selection) }
+    AiluaThemeProvider(theme) {
+        BoxWithConstraints(
+            modifier.clip(RoundedCornerShape(theme.shapes.medium.dp))
+                .testTag("theme_preview_${theme.id}"),
+            contentAlignment = Alignment.Center,
+        ) {
+            val availableWidth = if (constraints.hasBoundedWidth) maxWidth else PreviewWidth
+            val availableHeight = if (constraints.hasBoundedHeight) maxHeight else PreviewHeight
+            val scale = minOf(availableWidth / PreviewWidth, availableHeight / PreviewHeight)
+                .coerceAtLeast(0.01f)
+            Box(Modifier.scaledPreviewCanvas(scale)) {
+                AiluaBackdropProvider {
+                    Box(
+                        Modifier.fillMaxSize()
+                            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+                    ) {
+                        ThemeWallpaper(
+                            modifier = Modifier.fillMaxSize().ailuaBackdropSource(),
+                            runtime = theme,
+                            selection = fixture.selection,
+                        )
+                        PreviewContent(theme, fixture, onClick)
+                    }
                 }
-                Spacer(Modifier.height(6.dp))
-                Text("今天也和你一起", color = label, style = theme.text.caption, fontWeight = FontWeight.Medium)
-                Spacer(Modifier.height(7.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    PreviewApp(theme, "chat", "聊天", selection)
-                    PreviewApp(theme, "gallery", "相册", selection)
-                    PreviewApp(theme, "moments", "动态", selection)
-                    PreviewApp(theme, "living", "生活", selection)
-                }
-                Spacer(Modifier.weight(1f))
-                ThemePreviewWidget(theme)
-                Spacer(Modifier.height(5.dp))
-                ThemePreviewDock(theme, selection)
-                Spacer(Modifier.height(2.dp))
-                Box(Modifier.size(width = 35.dp, height = 2.dp).clip(RoundedCornerShape(2.dp))
-                    .background(label.copy(alpha = 0.65f)).align(Alignment.CenterHorizontally))
             }
         }
     }
 }
 
-@Composable
-private fun PreviewApp(theme: AiluaThemeRuntime, key: String, name: String, selection: ThemeSelection) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        ThemePreviewIcon(theme, key, 27.dp, selection)
-        Spacer(Modifier.height(2.dp))
-        Text(name, color = theme.icons.labelColor, style = theme.text.caption, maxLines = 1)
+/** Scale the whole measured phone, including type and material, rather than redrawing tiny UI. */
+private fun Modifier.scaledPreviewCanvas(scale: Float): Modifier = layout { measurable, _ ->
+    val width = PreviewWidth.roundToPx()
+    val height = PreviewHeight.roundToPx()
+    val phone = measurable.measure(Constraints.fixed(width, height))
+    layout((width * scale).roundToInt(), (height * scale).roundToInt()) {
+        phone.placeWithLayer(0, 0) {
+            scaleX = scale
+            scaleY = scale
+            transformOrigin = TransformOrigin(0f, 0f)
+        }
     }
 }
 
+@Composable
+private fun PreviewContent(
+    theme: AiluaThemeRuntime,
+    fixture: ThemePreviewFixture,
+    onClick: (() -> Unit)?,
+) {
+    val label = theme.icons.labelColor
+    val horizontalPadding = theme.layout.screenHorizontalPadding.dp
+    Column(Modifier.fillMaxSize().padding(top = 18.dp, bottom = 12.dp)) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = horizontalPadding),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(fixture.time, style = theme.text.secondary, color = label, fontWeight = FontWeight.SemiBold)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Wifi, contentDescription = null, tint = label, modifier = Modifier.size(17.dp))
+                Icon(Icons.Default.BatteryFull, contentDescription = null, tint = label, modifier = Modifier.size(19.dp))
+            }
+        }
+        Spacer(Modifier.height(24.dp))
+        ThemeWidgetFrame(
+            selected = false,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = horizontalPadding).height(88.dp),
+        ) {
+            Row(
+                Modifier.fillMaxSize().padding(theme.widgets.contentPaddingDp.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(fixture.time, style = theme.text.display, color = theme.widgets.foregroundColor)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(fixture.date, style = theme.text.secondary, color = theme.widgets.foregroundColor, maxLines = 1)
+                    Text(fixture.weather, style = theme.text.caption, color = theme.widgets.foregroundColor, maxLines = 1)
+                }
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        ThemeWidgetFrame(
+            selected = false,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = horizontalPadding).height(156.dp),
+        ) {
+            Column(
+                Modifier.fillMaxSize().padding(theme.widgets.contentPaddingDp.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    // The current official portrait is a monogram until the separate ART stage.
+                    Box(
+                        Modifier.size(58.dp).clip(CircleShape).background(theme.surfaces.inset),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(fixture.characterName.take(1), style = theme.text.title, color = theme.palette.onSurface)
+                    }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text(fixture.characterName, style = theme.text.section, color = theme.widgets.foregroundColor, maxLines = 1)
+                        Text(fixture.location, style = theme.text.secondary, color = theme.widgets.foregroundColor, maxLines = 1)
+                    }
+                }
+                Text(
+                    fixture.status,
+                    style = theme.text.secondary,
+                    color = theme.widgets.foregroundColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    "“${fixture.quote}”",
+                    style = theme.text.caption,
+                    color = theme.widgets.foregroundColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        Spacer(Modifier.weight(1f))
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 18.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            fixture.apps.forEach { app ->
+                AppIconItem(
+                    name = app.name,
+                    iconKey = app.iconKey,
+                    selection = fixture.selection,
+                    size = AppIconDefaults.ContainerSize,
+                    onClick = onClick ?: {},
+                )
+            }
+        }
+        Spacer(Modifier.weight(1f))
+        HomeDockFrame(
+            spec = theme.dock,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = horizontalPadding, vertical = 8.dp),
+        ) {
+            Row(
+                Modifier.fillMaxWidth()
+                    .heightIn(min = if (theme.dock.containerMode != DockContainerMode.NONE) 82.dp else 0.dp)
+                    .padding(
+                        horizontal = theme.dock.horizontalPaddingDp.coerceAtLeast(0f).dp,
+                        vertical = theme.dock.verticalPaddingDp.coerceAtLeast(0f).dp,
+                    ),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                fixture.dockApps.forEach { app ->
+                    AppIconItem(
+                        name = app.name,
+                        iconKey = app.iconKey,
+                        selection = fixture.selection,
+                        size = AppIconDefaults.ContainerSize * theme.dock.iconScale * 0.94f,
+                        showLabel = false,
+                        onClick = onClick ?: {},
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        Box(
+            Modifier.size(width = 68.dp, height = 4.dp).clip(RoundedCornerShape(2.dp))
+                .background(label.copy(alpha = 0.55f)).align(Alignment.CenterHorizontally),
+        )
+    }
+}
+
+/** Standalone swatches share the actual icon renderer, including bitmap mask and pixel sampling. */
 @Composable
 fun ThemePreviewIcon(
     theme: AiluaThemeRuntime,
     key: String,
     size: Dp,
     selection: ThemeSelection = ThemeSelection(theme.id),
+    onClick: (() -> Unit)? = null,
 ) {
-    val identity = getAppIdentity(key)
-    val identityColor = identity.identityColors.first()
-    val context = LocalContext.current
-    val targetSizePx = with(LocalDensity.current) { size.roundToPx() }.coerceIn(1, 1024)
-    val bitmap by produceState<ResolvedIconBitmap?>(null, context, key, targetSizePx, selection) {
-        value = null
-        value = withContext(Dispatchers.IO) {
-            IconResolver.get(context).resolveIcon(key, selection, targetSizePx)
-        }
-    }
-    val spec = theme.icons
-    val shape = iconShapeFor(spec.shape)
-    val tint = when (spec.glyphTintMode) {
-        GlyphTintMode.WHITE -> Color.White
-        GlyphTintMode.IDENTITY -> identityColor
-        GlyphTintMode.ON_SURFACE -> theme.palette.onSurface
-    }
-    val container = spec.containerStyle != IconContainerStyle.GLYPH_ONLY
-    val background = when (spec.containerStyle) {
-        IconContainerStyle.GRADIENT -> Brush.linearGradient(identity.identityColors)
-        IconContainerStyle.SOLID -> Brush.linearGradient(listOf(identityColor, identityColor))
-        IconContainerStyle.GLASS -> Brush.linearGradient(listOf(Color.White.copy(alpha = 0.23f), theme.palette.surface.copy(alpha = 0.25f)))
-        IconContainerStyle.PAPER -> Brush.linearGradient(listOf(theme.palette.surface, theme.palette.surfaceVariant))
-        IconContainerStyle.OUTLINE -> Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
-        IconContainerStyle.GLYPH_ONLY -> Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
-    }
-    val containerSize = size * spec.containerScale
-    Box(Modifier.size(size), contentAlignment = Alignment.Center) {
-        val resolvedBitmap = bitmap
-        if (resolvedBitmap != null) {
-            Image(resolvedBitmap.bitmap.asImageBitmap(), key, Modifier.size(containerSize)
-                .then(resolvedBitmap.maskShape?.let { Modifier.clip(iconShapeFor(it)) } ?: Modifier),
-                filterQuality = if (resolvedBitmap.isPixelArt) FilterQuality.None else FilterQuality.Low)
-        } else {
-            Box(Modifier.size(containerSize)
-                .then(if (container && spec.shadow.elevationDp > 0f) Modifier.shadow(spec.shadow.elevationDp.dp, shape) else Modifier)
-                .clip(shape)
-                .then(if (container) Modifier.background(background) else Modifier)
-                .then(if (container && spec.border.widthDp > 0f) Modifier.border(spec.border.widthDp.dp, spec.border.color, shape) else Modifier),
-                contentAlignment = Alignment.Center) {
-                Icon(identity.glyph, key, tint = tint, modifier = Modifier.size(size * spec.glyphScale))
-            }
-        }
-    }
-}
-
-@Composable
-private fun ThemePreviewWidget(theme: AiluaThemeRuntime) {
-    val spec = theme.widgets
-    Column(Modifier.fillMaxWidth().height(44.dp)
-        .ailuaMaterialSurface(spec.surfaceMaterial())
-        .padding(horizontal = 9.dp, vertical = 4.dp)) {
-        Text("10月 · AILUA", color = spec.foregroundColor, style = theme.text.caption, fontWeight = FontWeight.SemiBold, maxLines = 1)
-        Text("把喜欢的日子收进这里 ✦", color = spec.foregroundColor, style = theme.text.caption, maxLines = 1)
-    }
-}
-
-@Composable
-private fun ThemePreviewDock(theme: AiluaThemeRuntime, selection: ThemeSelection) {
-    val spec = theme.dock
-    val hasContainer = spec.containerMode != DockContainerMode.NONE
-    Row(Modifier.fillMaxWidth().height(32.dp)
-        .then(if (hasContainer) Modifier.ailuaMaterialSurface(spec.surfaceMaterial()) else Modifier),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceEvenly) {
-        ThemePreviewIcon(theme, "chat", 24.dp, selection)
-        ThemePreviewIcon(theme, "gallery", 24.dp, selection)
-        ThemePreviewIcon(theme, "moments", 24.dp, selection)
-        ThemePreviewIcon(theme, "living", 24.dp, selection)
+    AiluaThemeProvider(theme) {
+        AppIconItem(
+            name = key,
+            iconKey = key,
+            size = size,
+            showLabel = false,
+            selection = selection,
+            onClick = onClick ?: {},
+        )
     }
 }
