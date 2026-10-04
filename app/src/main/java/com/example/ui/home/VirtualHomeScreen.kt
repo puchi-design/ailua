@@ -319,7 +319,8 @@ fun VirtualHomeScreen(
                 val slot = ((point.x - dockRect.left) / (dockRect.width / 5f)).toInt().coerceIn(0, 4)
                 Triple(DesktopContainer.HOTSEAT, null, CellRect(slot, 0))
             }
-            page != null && pageRect?.contains(point) == true -> {
+            page != null && pageRect?.contains(point) == true &&
+                pagerBounds?.let(::localBounds)?.contains(point) == true -> {
                 val rows = gridRows[page.id] ?: 6
                 val anchor = if (item.type == DesktopItemType.AILUA_WIDGET)
                     point - dragState.grabOffset else point
@@ -456,7 +457,8 @@ fun VirtualHomeScreen(
                             cellHeight = dock.height
                             val slot = ((start.x - dock.left) / cellWidth).toInt().coerceIn(0, 4)
                             item = latestWorkspace.hotseatItems().firstOrNull { it.cellX == slot }
-                        } else if (selectedPage != null && pageGrid?.contains(start) == true) {
+                        } else if (selectedPage != null && pageGrid?.contains(start) == true &&
+                            pagerBounds?.let(::localBounds)?.contains(start) == true) {
                             val rows = gridRows[selectedPage.id] ?: 6
                             cellWidth = pageGrid.width / 4f
                             cellHeight = pageGrid.height / rows.toFloat()

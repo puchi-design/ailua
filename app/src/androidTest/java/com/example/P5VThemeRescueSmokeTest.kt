@@ -84,7 +84,7 @@ class P5VThemeRescueSmokeTest {
                     longClick(Offset(width * 0.90f, height * 0.45f))
                 }
                 compose.onNodeWithTag("home_edit_theme").performClick()
-                compose.onNodeWithTag("theme_option_$id").performScrollTo().performClick()
+                selectTheme(id)
                 compose.waitForIdle()
                 assertEquals(id, ThemeStore.selection.themePresetId)
                 if (id == "default") screenshot("05-theme-center.png")
@@ -105,7 +105,7 @@ class P5VThemeRescueSmokeTest {
                 longClick(Offset(width * 0.90f, height * 0.45f))
             }
             compose.onNodeWithTag("home_edit_theme").performClick()
-            compose.onNodeWithTag("theme_option_default").performScrollTo().performClick()
+            selectTheme("default")
             androidx.test.espresso.Espresso.pressBack()
             compose.onNodeWithTag("home_edit_done").performClick()
             screenshot("11-default-dark.png")
@@ -174,6 +174,18 @@ class P5VThemeRescueSmokeTest {
         assertEquals(before.pages, after.pages)
         assertEquals(before.items, after.items)
         assertEquals(before.folders, after.folders)
+    }
+
+    private fun selectTheme(id: String) {
+        if (id in setOf("milk", "glass", "diary", "mono")) {
+            compose.onNodeWithTag("theme_center_tab_mine").performClick()
+            compose.onNodeWithTag("theme_custom_mix").performScrollTo().performClick()
+        }
+        compose.onNodeWithTag("theme_option_$id").performScrollTo().performClick()
+        if (compose.onAllNodesWithTag("theme_apply_full").fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithTag("theme_apply_full").performScrollTo().performClick()
+            compose.onNodeWithTag("theme_detail_back").performScrollTo().performClick()
+        }
     }
 
     private fun visible(tag: String) = compose.onAllNodesWithTag(tag)

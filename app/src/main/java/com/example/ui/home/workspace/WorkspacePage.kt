@@ -16,7 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -70,7 +70,12 @@ fun WorkspacePageGrid(
 ) {
     val grid = GridSpec(rows = displayRows)
     val theme = LocalAiluaTheme.current
-    BoxWithConstraints(modifier.onGloballyPositioned { onBounds(it.boundsInRoot()) }.testTag("home_app_grid")) {
+    BoxWithConstraints(modifier.onGloballyPositioned {
+        // CellLayout draws the full grid even when the viewport clips its lower rows.
+        // Publish that same geometry so opening the edit panel cannot change cell hit coordinates.
+        onBounds(Rect(it.positionInRoot(), androidx.compose.ui.geometry.Size(
+            it.size.width.toFloat(), it.size.height.toFloat())))
+    }.testTag("home_app_grid")) {
         val cellWidth = constraints.maxWidth.toFloat() / grid.columns
         val cellHeight = constraints.maxHeight.toFloat() / grid.rows
         CellLayout(grid, items, preview, Modifier.fillMaxSize()) { item ->
