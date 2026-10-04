@@ -16,26 +16,36 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.data.model.GalleryAsset
 import com.example.data.repository.GalleryRepository
+import com.example.data.gallery.GalleryImportException
+import com.example.data.model.GalleryAssetType
 import com.example.data.engine.WorldStateRepository
 import com.example.data.projection.projectGalleryAssets
 import com.example.data.registry.CharacterRegistry
 import com.example.ui.designsystem.*
 import com.example.ui.themeengine.LocalAiluaTheme
+import kotlinx.coroutines.launch
 
 @Composable
 fun GalleryScreen(
@@ -44,6 +54,9 @@ fun GalleryScreen(
     onBack: () -> Unit = {},
     onGoHome: () -> Unit = onBack,
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
     val seedAssets by GalleryRepository.assets.collectAsStateWithLifecycle()
     val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
     val assets = remember(seedAssets, worldEvents) {
@@ -52,15 +65,30 @@ fun GalleryScreen(
     val albums = remember(assets) { (GalleryRepository.albums + assets.map { it.album }).distinct() }
     var selectedAlbum by remember { mutableStateOf("全部") }
     var viewingAsset by remember { mutableStateOf<GalleryAsset?>(null) }
+    var pendingDelete by remember { mutableStateOf<GalleryAsset?>(null) }
+    var busy by remember { mutableStateOf(false) }
     val gridState = rememberLazyGridState()
+
+    LaunchedEffect(context) {
+        GalleryRepository.loadUserImports(context).onFailure { error ->
+            snackbar.showSnackbar("无法读取已导入照片：${galleryErrorMessage(error)}")
+        }
+    }
 
     // Android Photo Picker launcher (zero-permission media picker)
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
-        uri?.let {
-            GalleryRepository.addImportedAsset(it.toString(), "自选心契相片")
-            selectedAlbum = "我的导入"
+        if (uri != null) scope.launch {
+            busy = true
+            val result = GalleryRepository.importPickedPhoto(context, uri)
+            busy = false
+            result.onSuccess {
+                selectedAlbum = "我的导入"
+                snackbar.showSnackbar("照片已保存到相册")
+            }.onFailure { error ->
+                snackbar.showSnackbar("导入失败：${galleryErrorMessage(error)}")
+            }
         }
     }
 
@@ -77,6 +105,7 @@ fun GalleryScreen(
                     IconButton(
                         onClick = { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                         modifier = Modifier.testTag("gallery_import_photo_btn"),
+                        enabled = !busy,
                     ) { Icon(Icons.Default.Add, "导入相片", tint = theme.palette.onSurface) }
                 },
             ) {
@@ -105,10 +134,40 @@ fun GalleryScreen(
                 }
             }
         } else {
-            GalleryDetailDialog(checkNotNull(viewingAsset), onDismiss = { viewingAsset = null }, onGoHome = onGoHome)
+            GalleryDetailDialog(checkNotNull(viewingAsset), onDismiss = { viewingAsset = null },
+                onGoHome = onGoHome, onRequestDelete = { pendingDelete = viewingAsset }, isBusy = busy)
         }
+        SnackbarHost(snackbar, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 48.dp))
+    }
+    pendingDelete?.let { photo ->
+        AlertDialog(
+            onDismissRequest = { if (!busy) pendingDelete = null },
+            title = { Text("删除照片？") },
+            text = { Text("这会从 AILUA 相册中永久删除「${photo.title}」。手机原相册中的照片不会受影响。") },
+            confirmButton = {
+                TextButton(enabled = !busy, onClick = {
+                    pendingDelete = null
+                    scope.launch {
+                        busy = true
+                        val result = GalleryRepository.deleteImportedPhoto(context, photo.id)
+                        busy = false
+                        result.onSuccess {
+                            viewingAsset = null
+                            snackbar.showSnackbar("已删除导入的照片")
+                        }.onFailure { error ->
+                            snackbar.showSnackbar("删除失败：${galleryErrorMessage(error)}")
+                        }
+                    }
+                }, modifier = Modifier.testTag("gallery_confirm_delete_btn")) { Text("删除") }
+            },
+            dismissButton = { TextButton(enabled = !busy, onClick = { pendingDelete = null }) { Text("取消") } },
+        )
     }
 }
+
+private fun galleryErrorMessage(error: Throwable): String =
+    if (error is GalleryImportException) error.message ?: "请稍后重试"
+    else "请确认照片仍可读取、手机有足够空间后重试"
 
 @Composable
 private fun GalleryPhotoCard(asset: GalleryAsset, onClick: () -> Unit) {
@@ -122,8 +181,14 @@ private fun GalleryPhotoCard(asset: GalleryAsset, onClick: () -> Unit) {
 @Composable
 private fun GalleryImage(asset: GalleryAsset, crop: Boolean) {
     if (asset.uriString != null) {
-        AsyncImage(model = asset.uriString, contentDescription = asset.title,
-            modifier = Modifier.fillMaxSize(), contentScale = if (crop) ContentScale.Crop else ContentScale.Fit)
+        var loadFailed by remember(asset.uriString) { mutableStateOf(false) }
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            AsyncImage(model = asset.uriString, contentDescription = asset.title,
+                modifier = Modifier.fillMaxSize(), contentScale = if (crop) ContentScale.Crop else ContentScale.Fit,
+                onSuccess = { loadFailed = false }, onError = { loadFailed = true })
+            if (loadFailed) Text("图片文件无法读取", style = LocalAiluaTheme.current.text.caption,
+                color = LocalAiluaTheme.current.palette.onSurfaceMuted)
+        }
     } else {
         // Keep the original procedural artwork on its original dark canvas until real assets exist.
         Box(Modifier.fillMaxSize().background(Color(0xFF23212C))) { GalleryVisualCanvas(asset.visualReference) }
@@ -132,7 +197,13 @@ private fun GalleryImage(asset: GalleryAsset, crop: Boolean) {
 
 /** Full-page media viewer inside the existing SystemUI host, with standard Back handling. */
 @Composable
-private fun GalleryDetailDialog(asset: GalleryAsset, onDismiss: () -> Unit, onGoHome: () -> Unit) {
+private fun GalleryDetailDialog(
+    asset: GalleryAsset,
+    onDismiss: () -> Unit,
+    onGoHome: () -> Unit,
+    onRequestDelete: () -> Unit,
+    isBusy: Boolean,
+) {
     val theme = LocalAiluaTheme.current
     val events by WorldStateRepository.events.collectAsStateWithLifecycle()
     val lifeEvent = events.firstOrNull { it.id == asset.lifeEventId }
@@ -141,7 +212,15 @@ private fun GalleryDetailDialog(asset: GalleryAsset, onDismiss: () -> Unit, onGo
     AiluaScreenScaffold(
         title = "", onBack = onDismiss, onGoHome = onGoHome,
         modifier = Modifier.testTag("gallery_detail_dialog"),
-        trailing = { Text(asset.type.label, style = theme.text.caption, color = theme.palette.onSurfaceMuted) },
+        trailing = {
+            Text(asset.type.label, style = theme.text.caption, color = theme.palette.onSurfaceMuted)
+            if (asset.type == GalleryAssetType.USER_IMPORTED) {
+                IconButton(onClick = onRequestDelete, enabled = !isBusy,
+                    modifier = Modifier.testTag("gallery_delete_photo_btn")) {
+                    Icon(Icons.Default.Delete, contentDescription = "删除导入照片", tint = theme.palette.onSurface)
+                }
+            }
+        },
     ) {
         AiluaMediaFrame(Modifier.weight(1f).fillMaxWidth()) { GalleryImage(asset, crop = false) }
         Column(

@@ -69,15 +69,24 @@ object WorldChatPromptContext : ChatPromptContext {
         locationId: String?,
         recentUserText: String,
         lifeEventTitle: String?,
-    ): List<LoreActivationResult> = CharacterLoreResolver.resolve(
-        characterId = characterId,
-        card = CharacterRegistry.getCard(characterId)?.data,
-        worldBook = WorldData.defaultWorldBook,
-        locationId = locationId,
-        recentText = recentUserText,
-        lifeEventTitle = lifeEventTitle,
-        allowLegacyCharacterLore = CharacterRegistry.isUnmodifiedBuiltIn(characterId),
-    )
+    ): List<LoreActivationResult> {
+        val unmodifiedBuiltIn = CharacterRegistry.isUnmodifiedBuiltIn(characterId)
+        val sourceCard = CharacterRegistry.getCard(characterId)?.data
+        // Official personal entries also appear in the World Book screen. Apply the same
+        // switch to them, while leaving imported and user-edited card books untouched.
+        val card = if (unmodifiedBuiltIn) sourceCard?.copy(
+            characterBook = sourceCard.characterBook?.let { WorldData.withOfficialEnabledOverrides(it) }
+        ) else sourceCard
+        return CharacterLoreResolver.resolve(
+            characterId = characterId,
+            card = card,
+            worldBook = WorldData.activeWorldBook(),
+            locationId = locationId,
+            recentText = recentUserText,
+            lifeEventTitle = lifeEventTitle,
+            allowLegacyCharacterLore = unmodifiedBuiltIn,
+        )
+    }
 
     override fun temporal(): Pair<String, String> {
         val clock = WorldHeartbeatEngine.worldClock.value

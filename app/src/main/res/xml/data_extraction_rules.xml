@@ -11,8 +11,14 @@
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="sharedpref" path="ailua_ai_secrets.xml"/>
+        <exclude domain="sharedpref" path="ailua_personal_memos.xml"/>
+        <exclude domain="sharedpref" path="ailua_social_reactions.xml"/>
+        <exclude domain="file" path="gallery/user_imports/"/>
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="ailua_ai_secrets.xml"/>
+        <exclude domain="sharedpref" path="ailua_personal_memos.xml"/>
+        <exclude domain="sharedpref" path="ailua_social_reactions.xml"/>
+        <exclude domain="file" path="gallery/user_imports/"/>
     </device-transfer>
 </data-extraction-rules>

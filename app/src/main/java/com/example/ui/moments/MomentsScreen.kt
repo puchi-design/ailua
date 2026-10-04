@@ -20,6 +20,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -32,6 +33,8 @@ import com.example.data.mock.MockData
 import com.example.data.registry.CharacterRegistry
 import com.example.data.projection.projectMoments
 import com.example.data.relationship.repository.RelationshipStateRepository
+import com.example.data.social.SocialReactionStore
+import com.example.data.social.withUserLike
 import com.example.ui.designsystem.*
 import com.example.ui.themeengine.LocalAiluaTheme
 
@@ -46,14 +49,14 @@ fun MomentsScreen(
     val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
     val seedPosts = remember { MockData.getMomentsFromLifeEvents() }
     val projectedPosts = remember(worldEvents) { projectMoments(seedPosts, worldEvents) }
-    // Likes are presentation state; comments are sourced from the persisted LifeEvent ledger.
-    val localEdits = remember { mutableStateMapOf<String, MomentPost>() }
+    val context = LocalContext.current
+    val reactions = remember(context.applicationContext) { SocialReactionStore.create(context) }
+    val momentOverrides by reactions.momentOverrides.collectAsStateWithLifecycle()
+    // Comments remain sourced from the persisted LifeEvent ledger.
     val posts = projectedPosts.map { post ->
-        val edited = localEdits[post.id]
         val comments = worldEvents.filter { it.sourceAppId == "moments" && it.sourceRefId == post.id && it.title == "你评论了动态" }
             .map { MomentComment(id = it.id, author = "你", isUser = true, content = it.description, timestamp = it.time) }
-        post.copy(isLiked = edited?.isLiked ?: post.isLiked, likesCount = edited?.likesCount ?: post.likesCount,
-            comments = post.comments + comments)
+        post.withUserLike(momentOverrides[post.id]).copy(comments = post.comments + comments)
     }
     var selectedFilter by remember { mutableStateOf("全部") }
     val filterOptions = listOf("全部" to "全部") + CharacterRegistry.getAllCharacters().map { it.id to it.name }
@@ -77,11 +80,8 @@ fun MomentsScreen(
             items(filteredPosts, key = { it.id }) { post ->
                 MomentCard(post, onOpenProfile,
                     onToggleLike = {
-                        val current = posts.firstOrNull { it.id == post.id }
-                        if (current != null) {
-                            val newLiked = !current.isLiked
-                            val newCount = if (newLiked) current.likesCount + 1 else current.likesCount - 1
-                            localEdits[current.id] = current.copy(isLiked = newLiked, likesCount = newCount)
+                        projectedPosts.firstOrNull { it.id == post.id }?.let { original ->
+                            reactions.toggleMomentLike(original.id, original.isLiked)
                         }
                     },
                     onAddComment = { newCommentText ->

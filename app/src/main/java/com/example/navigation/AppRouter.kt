@@ -44,7 +44,9 @@ object AppRouter {
         "call" to AiluaDestinations.CALL_HISTORY,
         "companion_call" to AiluaDestinations.CALL_HISTORY,
         "gallery" to AiluaDestinations.GALLERY,
+        "notes" to AiluaDestinations.NOTES,
         "reality" to AiluaDestinations.REALITY,
+        "reality_bridge" to AiluaDestinations.REALITY,
         "settings" to AiluaDestinations.SETTINGS,
     )
 

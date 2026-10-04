@@ -17,17 +17,12 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -59,7 +54,6 @@ fun CheckPhoneScreen(
     val data = remember(characterId, worldEvents) {
         projectCheckPhone(characterId = characterId, runtimeEvents = worldEvents)
     }
-    var isMusicPlaying by remember { mutableStateOf(true) }
 
     AiluaScreenScaffold(
         title = "${displayName}的手机",
@@ -80,7 +74,7 @@ fun CheckPhoneScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
                     AiluaSectionHeader("最近在听")
                     if (data.recentlyPlayed.isEmpty()) CheckPhoneEmptyHint()
-                    data.recentlyPlayed.forEachIndexed { index, track ->
+                    data.recentlyPlayed.forEach { track ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
@@ -97,15 +91,6 @@ fun CheckPhoneScreen(
                             Column(Modifier.weight(1f)) {
                                 Text(track.title, style = theme.text.body, color = theme.palette.onSurface)
                                 Text(track.artist, style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
-                            }
-                            if (index == 0) {
-                                IconButton(onClick = { isMusicPlaying = !isMusicPlaying }) {
-                                    Icon(
-                                        if (isMusicPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                        contentDescription = "播放控制",
-                                        tint = theme.palette.accent,
-                                    )
-                                }
                             }
                         }
                     }

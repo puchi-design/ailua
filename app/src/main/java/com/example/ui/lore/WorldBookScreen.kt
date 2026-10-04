@@ -24,9 +24,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -35,6 +33,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.data.ai.runtime.WorldChatPromptContext
+import com.example.data.local.AiluaLocalStore
 import com.example.data.mock.WorldData
 import com.example.data.model.LoreEntry
 import com.example.ui.designsystem.AiluaChip
@@ -52,27 +53,28 @@ fun WorldBookScreen(
     onGoHome: () -> Unit = onBack,
 ) {
     val theme = LocalAiluaTheme.current
-    val loreEntries = remember { mutableStateListOf(*WorldData.sampleLoreEntries.toTypedArray()) }
+    val enabledOverrides by AiluaLocalStore.worldLoreEnabledOverrides.collectAsStateWithLifecycle()
+    val loreEntries = remember(enabledOverrides) { WorldData.activeWorldBook(enabledOverrides).entries }
     var selectedCategory by remember { mutableStateOf("全部") }
     var searchQuery by remember { mutableStateOf("") }
+    var saveError by remember { mutableStateOf(false) }
 
     // Live contextual trigger simulation state
+    var simulatedCharacterId by remember { mutableStateOf("mira") }
     var simulatedLocationId by remember { mutableStateOf("place_street_23") }
-    var simulatedText by remember { mutableStateOf("旧书 唱片 雨夜") }
+    var simulatedText by remember { mutableStateOf("青石街 月光书阁 烘焙") }
     var showSimulatorPanel by remember { mutableStateOf(false) }
 
     val categories = listOf("全部", "世界设定", "地点", "人物关系", "事件", "习惯", "秘密", "共同记忆")
 
-    // Active lore evaluated dynamically via pure helper
-    val activeResults by remember(simulatedLocationId, simulatedText, loreEntries) {
-        derivedStateOf {
-            WorldData.getActiveLore(
-                characterId = "mira",
-                locationId = simulatedLocationId,
-                recentText = simulatedText,
-                lifeEventTitle = "便利店寻宝"
-            )
-        }
+    // Match the same projection used by chat, including saved enabled settings.
+    val activeResults = remember(simulatedCharacterId, simulatedLocationId, simulatedText, enabledOverrides) {
+        WorldChatPromptContext.activeLore(
+            characterId = simulatedCharacterId,
+            locationId = simulatedLocationId,
+            recentUserText = simulatedText,
+            lifeEventTitle = null,
+        )
     }
 
     val activeEntryIds = remember(activeResults) {
@@ -134,6 +136,14 @@ fun WorldBookScreen(
                     actionLabel = if (showSimulatorPanel) "收起高级" else "高级",
                     onAction = { showSimulatorPanel = !showSimulatorPanel },
                 )
+                Text(
+                    "开关会影响官方设定在聊天中的激活。自定义角色卡中的世界书由角色卡自己管理。",
+                    style = theme.text.caption,
+                    color = theme.palette.onSurfaceMuted,
+                )
+                if (saveError) {
+                    Text("保存失败，请重试", style = theme.text.secondary, color = theme.palette.accent)
+                }
                 AnimatedVisibility(showSimulatorPanel) {
                     AiluaSurface(Modifier.fillMaxWidth().padding(top = theme.layout.itemGap.dp), tone = SurfaceTone.INSET) {
                         Column(
@@ -142,6 +152,16 @@ fun WorldBookScreen(
                         ) {
                             Text("激活模拟器", style = theme.text.section, color = theme.palette.onSurface)
                             Text("当前激活 ${activeResults.size} 条", style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
+                            Text("模拟角色", style = theme.text.caption, color = theme.palette.onSurfaceMuted)
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                items(WorldData.allCards) { card ->
+                                    AiluaChip(
+                                        label = card.data.name,
+                                        selected = simulatedCharacterId == card.data.id,
+                                        onClick = { simulatedCharacterId = card.data.id },
+                                    )
+                                }
+                            }
                             OutlinedTextField(
                                 value = simulatedText,
                                 onValueChange = { simulatedText = it },
@@ -179,13 +199,11 @@ fun WorldBookScreen(
                 val activeResult = activeResults.firstOrNull { it.entry.id == entry.id }
                 LoreEntryRow(
                     entry = entry,
+                    canToggle = entry.id in WorldData.configurableOfficialLoreEntryIds,
                     isActive = isActive,
                     activationReasons = activeResult?.activationReasons ?: emptyList(),
                     onToggleEnabled = {
-                        val idx = loreEntries.indexOfFirst { it.id == entry.id }
-                        if (idx >= 0) {
-                            loreEntries[idx] = entry.copy(enabled = !entry.enabled)
-                        }
+                        saveError = !AiluaLocalStore.setWorldLoreEnabled(entry.id, !entry.enabled)
                     },
                 )
             }
@@ -196,6 +214,7 @@ fun WorldBookScreen(
 @Composable
 private fun LoreEntryRow(
     entry: LoreEntry,
+    canToggle: Boolean,
     isActive: Boolean,
     activationReasons: List<String>,
     onToggleEnabled: () -> Unit,
@@ -225,7 +244,11 @@ private fun LoreEntryRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Switch(checked = entry.enabled, onCheckedChange = { onToggleEnabled() })
+            if (canToggle) {
+                Switch(checked = entry.enabled, onCheckedChange = { onToggleEnabled() })
+            } else {
+                Text("参考设定", style = theme.text.caption, color = theme.palette.onSurfaceMuted)
+            }
             IconButton(onClick = { expanded = !expanded }) {
                 Icon(
                     if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,

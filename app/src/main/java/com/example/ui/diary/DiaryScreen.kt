@@ -29,6 +29,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -36,6 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.engine.WorldStateRepository
 import com.example.data.model.DiaryEntry
 import com.example.data.projection.projectDiary
+import com.example.data.social.SocialReactionStore
 import com.example.ui.designsystem.AiluaChip
 import com.example.ui.designsystem.AiluaMediaFrame
 import com.example.ui.designsystem.AiluaScreenScaffold
@@ -61,7 +63,10 @@ fun DiaryScreen(
     var selectedEntryId by remember(characterId) { mutableStateOf(entries.firstOrNull()?.id ?: "") }
     val currentEntry = entries.find { it.id == selectedEntryId } ?: entries.firstOrNull()
     var showReader by remember(characterId) { mutableStateOf(false) }
-    var isLiked by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val reactions = remember(context.applicationContext) { SocialReactionStore.create(context) }
+    val diaryLikes by reactions.diaryLikes.collectAsStateWithLifecycle()
+    val isLiked = currentEntry?.let { reactions.isDiaryLiked(characterId, it.id, diaryLikes) } ?: false
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     BackHandler(enabled = showReader) { showReader = false }
@@ -85,9 +90,9 @@ fun DiaryScreen(
                         entry = currentEntry,
                         isLiked = isLiked,
                         onLike = {
-                            isLiked = !isLiked
+                            val liked = reactions.toggleDiaryLike(characterId, currentEntry.id)
                             coroutineScope.launch {
-                                if (isLiked) snackbarHostState.showSnackbar("已喜欢${displayName.ifBlank { "角色" }}的日记")
+                                if (liked) snackbarHostState.showSnackbar("已喜欢${displayName.ifBlank { "角色" }}的日记")
                             }
                         }
                     )
@@ -99,7 +104,6 @@ fun DiaryScreen(
                     Column(
                         modifier = Modifier.fillMaxWidth().clickable {
                             selectedEntryId = entry.id
-                            isLiked = false
                             showReader = true
                         }.padding(vertical = theme.layout.itemGap.dp),
                         verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)

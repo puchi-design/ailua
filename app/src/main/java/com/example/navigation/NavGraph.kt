@@ -24,6 +24,7 @@ object AiluaDestinations {
     const val INCOMING_CALL = "incoming_call"
     const val CALL_HISTORY = "call_history"
     const val GALLERY = "gallery"
+    const val NOTES = "notes"
     const val REALITY = "reality"
     const val SETTINGS = "settings"
     const val PRIVACY = "privacy"

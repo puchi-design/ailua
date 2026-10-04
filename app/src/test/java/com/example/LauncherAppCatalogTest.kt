@@ -1,6 +1,5 @@
 package com.example
 
-import com.example.data.mock.MockData
 import com.example.navigation.AiluaDestinations
 import com.example.navigation.AppRouter
 import com.example.ui.launcher.LauncherAppCatalog
@@ -20,8 +19,17 @@ class LauncherAppCatalogTest {
     }
 
     @Test
-    fun drawerKeepsEntireLibraryButOnlyRoutedAvailableAppsCanBePlaced() {
-        assertEquals(MockData.appLibraryList.map { it.id }, LauncherAppCatalog.drawerApps().map { it.id })
+    fun drawerShowsOnlyLaunchableAppsAndConnectsExistingRealityScreen() {
+        assertTrue(LauncherAppCatalog.drawerApps().all { it.route != null })
+        assertEquals(1, LauncherAppCatalog.drawerApps().count { it.id == "reality_bridge" })
+        assertEquals("reality", LauncherAppCatalog.get("reality_bridge")?.route)
+        assertEquals(AiluaDestinations.REALITY, AppRouter.resolve("reality_bridge"))
+        assertTrue(LauncherAppCatalog.canAddToHome("reality_bridge"))
+        assertEquals(1, LauncherAppCatalog.drawerApps().count { it.id == "notes" })
+        assertEquals(AiluaDestinations.NOTES, AppRouter.resolve("notes"))
+        assertTrue(LauncherAppCatalog.canAddToHome("notes"))
+        assertFalse(LauncherAppCatalog.drawerApps().any { it.id == "agent_tasks" })
+        assertFalse(LauncherAppCatalog.drawerApps().any { it.id == "world_3d" || it.id == "dreamscape" })
         assertTrue(LauncherAppCatalog.canAddToHome("world_map"))
         assertTrue(LauncherAppCatalog.canAddToHome("companion_call"))
         assertFalse(LauncherAppCatalog.canAddToHome("world_3d"))

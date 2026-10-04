@@ -1,6 +1,10 @@
 package com.example.data.repository
 
+import android.content.Context
+import android.net.Uri
 import com.example.data.engine.UserActivityRecorder
+import com.example.data.gallery.GalleryImportException
+import com.example.data.gallery.GalleryImportStore
 import com.example.data.mock.OfficialCharacters
 import com.example.data.mock.LegacyOfficialCharacters
 import com.example.data.local.AiluaLocalStore
@@ -9,6 +13,11 @@ import com.example.data.model.GalleryAssetType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 object GalleryRepository {
 
@@ -98,23 +107,55 @@ object GalleryRepository {
     )
     val assets: StateFlow<List<GalleryAsset>> = _assets.asStateFlow()
 
-    fun addImportedAsset(uriString: String, title: String = "本地导入参考照片") {
-        val newAsset = GalleryAsset(
-            id = "user_import_${System.currentTimeMillis()}",
-            characterId = "user",
-            lifeEventId = null,
-            type = GalleryAssetType.USER_IMPORTED,
-            title = title,
-            caption = "从 Android Photo Picker 选入的心意参考相片",
-            createdAtVirtualTime = "刚刚",
-            locationId = "place_street_23",
-            visualReference = "imported",
-            uriString = uriString,
-            album = "我的导入"
-        )
-        _assets.value = listOf(newAsset) + _assets.value
+    private val importMutex = Mutex()
 
-        // P3D-3: 收藏照片 becomes a LifeEvent fact the companion can know about.
-        UserActivityRecorder.recordPhotoImport(title = title)
+    /** Read saved copies on opening Gallery. A corrupt index is surfaced, never silently reset. */
+    suspend fun loadUserImports(context: Context): Result<Int> = withContext(Dispatchers.IO) {
+        importMutex.withLock {
+            safely {
+                val saved = GalleryImportStore(context).load()
+                replaceImported(saved)
+                saved.size
+            }
+        }
+    }
+
+    /** Copy during the picker grant, then publish only after the image and index are durable. */
+    suspend fun importPickedPhoto(context: Context, uri: Uri): Result<GalleryAsset> = withContext(Dispatchers.IO) {
+        importMutex.withLock {
+            safely {
+                val store = GalleryImportStore(context)
+                val asset = store.importPhoto(uri)
+                replaceImported(store.load())
+                // Keep the existing cross-app life event, but photo persistence must not depend on it.
+                // Photo Picker file names may contain private names or locations. The
+                // cross-app event reaches chat prompts, so only record a generic fact.
+                try { UserActivityRecorder.recordPhotoImport(title = "一张照片") } catch (_: Exception) {}
+                asset
+            }
+        }
+    }
+
+    suspend fun deleteImportedPhoto(context: Context, assetId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        importMutex.withLock {
+            safely {
+                if (!assetId.startsWith("user_import_")) throw GalleryImportException("只能删除自己导入的照片")
+                val store = GalleryImportStore(context)
+                store.delete(assetId)
+                replaceImported(store.load())
+            }
+        }
+    }
+
+    private fun replaceImported(saved: List<GalleryAsset>) {
+        _assets.value = saved + _assets.value.filterNot { it.type == GalleryAssetType.USER_IMPORTED }
+    }
+
+    private inline fun <T> safely(block: () -> T): Result<T> = try {
+        Result.success(block())
+    } catch (error: CancellationException) {
+        throw error
+    } catch (error: Exception) {
+        Result.failure(error)
     }
 }

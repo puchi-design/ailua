@@ -151,9 +151,6 @@ fun AppLibraryScreen(
             }
 
             Spacer(modifier = Modifier.height(10.dp))
-            TextButton(onClick = { onOpenApp("reality") }, modifier = Modifier.padding(horizontal = themeRuntime.layout.screenHorizontalPadding.dp).testTag("reality_bridge_entry")) {
-                Text("现实感知", style = themeRuntime.text.secondary)
-            }
             TextButton(onClick = { onOpenApp("settings") }, modifier = Modifier.padding(horizontal = themeRuntime.layout.screenHorizontalPadding.dp).testTag("settings_entry")) {
                 Text("设置", style = themeRuntime.text.secondary)
             }

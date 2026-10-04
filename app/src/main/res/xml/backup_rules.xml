@@ -9,4 +9,7 @@
 -->
 <full-backup-content>
     <exclude domain="sharedpref" path="ailua_ai_secrets.xml"/>
+    <exclude domain="sharedpref" path="ailua_personal_memos.xml"/>
+    <exclude domain="sharedpref" path="ailua_social_reactions.xml"/>
+    <exclude domain="file" path="gallery/user_imports/"/>
 </full-backup-content>

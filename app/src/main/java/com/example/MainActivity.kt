@@ -72,6 +72,7 @@ import com.example.ui.mailbox.MailboxScreen
 import com.example.ui.memories.MemoriesScreen
 import com.example.ui.motion.AppMotion
 import com.example.ui.moments.MomentsScreen
+import com.example.ui.notes.NotesScreen
 import com.example.ui.onboarding.WelcomeScreen
 import com.example.ui.relations.RelationsScreen
 import com.example.ui.reality.RealityBridgeScreen
@@ -497,6 +498,12 @@ fun AiluaAppRoot() {
                 }
                 composable(AiluaDestinations.REALITY) {
                     RealityBridgeScreen(onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) }, onBack = { navController.popBackStack() }, isDarkTheme = isDarkTheme, onToggleTheme = { isDarkTheme = !isDarkTheme })
+                }
+                composable(AiluaDestinations.NOTES) {
+                    NotesScreen(
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
+                        onBack = { navController.popBackStack() },
+                    )
                 }
                 composable(AiluaDestinations.SETTINGS) {
                     SettingsScreen(

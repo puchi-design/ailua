@@ -30,10 +30,37 @@ object LauncherAppCatalog {
         "chat" to "消息", "gallery" to "相册", "check_phone" to "手机",
         "relations" to "关系", "companion_call" to "通话", "world_map" to "地点",
         "lore_books" to "世界书", "character_creation" to "角色工坊", "theater" to "剧场",
-        "reality_bridge" to "现实连接",
+        "reality_bridge" to "现实连接", "notes" to "备忘录",
     )
 
-    private val libraryApps: List<AiluaApp> = MockData.appLibraryList
+    // The drawer is an installed-app list. Concepts without a destination stay in
+    // the authored catalog for future work, but do not pose as installed apps.
+    private val libraryApps: List<AiluaApp> = MockData.appLibraryList.mapNotNull { app ->
+        when (app.id) {
+            "reality_bridge" -> app.copy(
+                name = "现实连接",
+                description = "查看本机电量与屏幕状态；使用统计和健康概况需手动授权，可随时关闭。",
+                status = AppStatus.AVAILABLE,
+                badge = null,
+                route = "reality",
+            )
+            "contacts" -> app.copy(description = "查看六位角色的联系方式与当前生活状态。")
+            "relations" -> app.copy(description = "查看六位角色彼此的朋友和协作关系。")
+            "companion_call" -> app.copy(
+                description = "角色剧情来电与通话历史；当前只有通话状态和计时，没有实时双向音频。",
+                badge = null,
+            )
+            else -> app.takeIf { it.route != null }
+        }
+    } + AiluaApp(
+        id = "notes",
+        name = "备忘录",
+        category = "日常",
+        description = "记录自己的想法与待办；支持搜索、编辑和删除，内容保存在本机。",
+        status = AppStatus.AVAILABLE,
+        iconKey = "lore",
+        route = "notes",
+    )
     private val libraryEntries: List<LauncherAppEntry> = libraryApps.map { app ->
         LauncherAppEntry(
             id = app.id,

@@ -6,18 +6,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CallEnd
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.MicOff
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -30,7 +24,6 @@ import com.example.ui.designsystem.CharacterPortrait
 import com.example.ui.designsystem.PortraitVariant
 import com.example.ui.designsystem.publicCharacterName
 import com.example.ui.themeengine.LocalAiluaTheme
-import kotlinx.coroutines.delay
 
 @Composable
 fun IncomingCallScreen(
@@ -51,7 +44,7 @@ fun IncomingCallScreen(
         Text(publicCharacterName(session?.characterId ?: CharacterContext.currentId(), session?.callerName ?: CharacterContext.currentCharacter().name),
             style = theme.text.display, color = theme.palette.onSurface)
         Spacer(Modifier.height(8.dp))
-        Text("来电…", style = theme.text.body, color = theme.palette.onSurfaceMuted)
+        Text("剧情来电 · 暂无实时语音", style = theme.text.body, color = theme.palette.onSurfaceMuted)
         Spacer(Modifier.weight(1f))
         Row(Modifier.fillMaxWidth().padding(horizontal = theme.layout.screenHorizontalPadding.dp),
             horizontalArrangement = Arrangement.SpaceEvenly) {

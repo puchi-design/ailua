@@ -4,18 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CallEnd
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.MicOff
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
@@ -45,8 +39,6 @@ fun CallScreen(
     val theme = LocalAiluaTheme.current
     val isPreview = LocalInspectionMode.current
     val liveCall by CallStateEngine.currentCall.collectAsStateWithLifecycle()
-    val isMuted by CallStateEngine.isMuted.collectAsStateWithLifecycle()
-    val isSpeaker by CallStateEngine.isSpeaker.collectAsStateWithLifecycle()
     val currentCall = previewCallSession ?: liveCall
     // Preserve the existing engine-owned timer and preview guard.
     if (!isPreview) {
@@ -69,18 +61,14 @@ fun CallScreen(
             style = theme.text.display, color = theme.palette.onSurface)
         Spacer(Modifier.height(12.dp))
         Text(durationText, style = theme.text.title, color = theme.palette.onSurface)
-        Text("正在通话", style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
+        Text("剧情通话 · 暂无实时语音", style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
         Spacer(Modifier.weight(1f))
         Row(Modifier.fillMaxWidth().padding(horizontal = theme.layout.screenHorizontalPadding.dp),
             horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-            CallControl(if (isMuted) "已静音" else "静音", if (isMuted) Icons.Default.MicOff else Icons.Default.Mic,
-                "call_mute_btn", active = isMuted) { CallStateEngine.handleAction(CallAction.TOGGLE_MUTE) }
             CallControl("挂断", Icons.Default.CallEnd, "call_end_btn", destructive = true) {
                 CallStateEngine.handleAction(CallAction.END)
                 onCallEnded()
             }
-            CallControl("扬声器", if (isSpeaker) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
-                "call_speaker_btn", active = isSpeaker) { CallStateEngine.handleAction(CallAction.TOGGLE_SPEAKER) }
         }
         Spacer(Modifier.height(56.dp))
     }

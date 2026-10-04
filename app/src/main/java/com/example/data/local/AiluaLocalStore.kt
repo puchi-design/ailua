@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 
 /**
@@ -50,6 +52,7 @@ object AiluaLocalStore {
     const val KEY_RELATIONSHIPS = "relationships_json"
     const val KEY_ROMANCE_STATES = "romance_evidence_v1_json"
     const val KEY_BOOKMARKED_MSGS = "bookmarked_message_ids"
+    const val KEY_WORLD_LORE_ENABLED_OVERRIDES = "world_lore_enabled_overrides_json"
     const val KEY_HOME_APP_ORDER = "home_app_order"
     const val KEY_WORKSPACE_MIGRATION_COMPLETE = "workspace_migration_complete"
     const val KEY_PROACTIVE_ENABLED = "proactive_message_enabled"
@@ -99,6 +102,10 @@ object AiluaLocalStore {
 
     private val _bookmarkedMessageIds = MutableStateFlow<Set<String>>(emptySet())
     val bookmarkedMessageIds: StateFlow<Set<String>> = _bookmarkedMessageIds.asStateFlow()
+
+    private val worldLoreOverridesSerializer = MapSerializer(String.serializer(), Boolean.serializer())
+    private val _worldLoreEnabledOverrides = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val worldLoreEnabledOverrides: StateFlow<Map<String, Boolean>> = _worldLoreEnabledOverrides.asStateFlow()
 
     private val _homeAppOrder = MutableStateFlow<List<String>>(emptyList())
     val homeAppOrder: StateFlow<List<String>> = _homeAppOrder.asStateFlow()
@@ -168,6 +175,10 @@ object AiluaLocalStore {
 
         // 7. Message bookmarks
         _bookmarkedMessageIds.value = prefs.getStringSet(KEY_BOOKMARKED_MSGS, emptySet()) ?: emptySet()
+
+        _worldLoreEnabledOverrides.value = prefs.getString(KEY_WORLD_LORE_ENABLED_OVERRIDES, null)
+            ?.let { raw -> runCatching { json.decodeFromString(worldLoreOverridesSerializer, raw) }.getOrNull() }
+            ?: emptyMap()
 
         // 8. Home app order (comma separated stable ids)
         _homeAppOrder.value = prefs.getString(KEY_HOME_APP_ORDER, null)
@@ -342,6 +353,18 @@ object AiluaLocalStore {
         _bookmarkedMessageIds.value = set
         sharedPrefs?.edit()?.putStringSet(KEY_BOOKMARKED_MSGS, set)?.apply()
         return isNowBookmarked
+    }
+
+    /** Overrides official world-book entries by stable ID; imported card books are stored separately. */
+    @Synchronized
+    fun setWorldLoreEnabled(entryId: String, enabled: Boolean): Boolean {
+        if (entryId.isBlank()) return false
+        val prefs = sharedPrefs ?: return false
+        val updated = _worldLoreEnabledOverrides.value + (entryId to enabled)
+        val encoded = json.encodeToString(worldLoreOverridesSerializer, updated)
+        if (!prefs.edit().putString(KEY_WORLD_LORE_ENABLED_OVERRIDES, encoded).commit()) return false
+        _worldLoreEnabledOverrides.value = updated
+        return true
     }
 
     // === Home App Order ===

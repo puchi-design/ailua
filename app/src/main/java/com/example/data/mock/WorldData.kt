@@ -1,6 +1,7 @@
 package com.example.data.mock
 
 import com.example.data.character.runtime.CharacterRuntimeResolver
+import com.example.data.local.AiluaLocalStore
 import com.example.data.model.*
 
 /** Default content is the six-person world. Archived stories remain readable by their original IDs. */
@@ -25,6 +26,24 @@ object WorldData {
             keywords = listOf("月光书阁", "公共书阁"), locationIds = listOf("place_moonlight"), category = "地点"),
     ) + OfficialCharacters.loreEntries
     val defaultWorldBook = WorldBook("wb_ailua_core", "青石街生活设定", "六位角色各有工作与朋友；不伪造用户共同恋爱记忆", scanDepth = 3, tokenBudget = 800, entries = sampleLoreEntries)
+
+    /** Entries the production prompt can use: public settings or original official card lore. */
+    val configurableOfficialLoreEntryIds: Set<String> = (
+        sampleLoreEntries.filter { it.characterIds.isEmpty() || it.category == "地点" }.map { it.id } +
+            allCards.flatMap { it.data.characterBook?.entries.orEmpty() }.map { it.id }
+        ).toSet()
+
+    /** The authored book remains immutable; user switches are projected at read time. */
+    fun withOfficialEnabledOverrides(
+        book: WorldBook,
+        overrides: Map<String, Boolean> = AiluaLocalStore.worldLoreEnabledOverrides.value,
+    ): WorldBook = if (overrides.isEmpty()) book else book.copy(entries = book.entries.map { entry ->
+        overrides[entry.id]?.let { entry.copy(enabled = it) } ?: entry
+    })
+
+    fun activeWorldBook(
+        overrides: Map<String, Boolean> = AiluaLocalStore.worldLoreEnabledOverrides.value,
+    ): WorldBook = withOfficialEnabledOverrides(defaultWorldBook, overrides)
 
     // Established public place IDs remain usable by persisted LifeEvent/location references.
     // The new defaults stop assigning the old archive-librarian career to noa.
@@ -73,7 +92,7 @@ object WorldData {
         locationId: String? = null,
         recentText: String = "",
         lifeEventTitle: String? = null,
-        worldBook: WorldBook = defaultWorldBook
+        worldBook: WorldBook = activeWorldBook()
     ): List<LoreActivationResult> {
         val results = mutableListOf<LoreActivationResult>()
 
