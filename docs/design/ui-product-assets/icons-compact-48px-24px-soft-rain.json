@@ -1,0 +1,262 @@
+{
+  "board": "docs/design/ui-product-assets/icons-compact-48px-24px-soft-rain.png",
+  "createdAtUtc": "2026-10-04T08:31:42+00:00",
+  "reviewedSizesPx": [
+    48,
+    24
+  ],
+  "assets": [
+    {
+      "packId": "soft",
+      "assetType": "icon",
+      "iconKey": "chat",
+      "path": "app/src/main/res/drawable-nodpi/ti_soft_chat.webp",
+      "sha256": "1921f6bc89e054b9fcf631776a6cf35f96c8ca675c33fcd88f9adc1fca86a1da"
+    },
+    {
+      "packId": "soft",
+      "assetType": "icon",
+      "iconKey": "living",
+      "path": "app/src/main/res/drawable-nodpi/ti_soft_living.webp",
+      "sha256": "268daaa50773a1048034ca6085f3c527f99040e71e8608d589c1b65540ea137a"
+    },
+    {
+      "packId": "soft",
+      "assetType": "icon",
+      "iconKey": "moments",
+      "path": "app/src/main/res/drawable-nodpi/ti_soft_moments.webp",
+      "sha256": "777d7c11df22435c27ecd53c4e81d4dcc39a87541fdaa055afa1ba1e45ea10e5"
+    },
+    {
+      "packId": "soft",
+      "assetType": "icon",
+      "iconKey": "gallery",
+      "path": "app/src/main/res/drawable-nodpi/ti_soft_gallery.webp",
+      "sha256": "4b8ba1209a15a943cae41a7ba3f008f7b3573825fdc4b5f41fd8639911aca401"
+    },
+    {
+      "packId": "soft",
+      "assetType": "icon",
+      "iconKey": "contacts",
+      "path": "app/src/main/res/drawable-nodpi/ti_soft_contacts.webp",
+      "sha256": "5ab75b6fc4f4faaa4de6597a4732e93776bdd1838a4d1df9366eaf8f30dde101"
+    },
+    {
+      "packId": "soft",
+      "assetType": "icon",
+      "iconKey": "mailbox",
+      "path": "app/src/main/res/drawable-nodpi/ti_soft_mailbox.webp",
+      "sha256": "d74695ae6d71f9827ed32a6657cae89c7f00f1bd9a454c6f7e0690e59cfbaa0f"
+    },
+    {
+      "packId": "soft",
+      "assetType": "icon",
+      "iconKey": "call",
+      "path": "app/src/main/res/drawable-nodpi/ti_soft_call.webp",
+      "sha256": "466bfdec366e9d0b56916108950af9966385738fd1861fb188bc057dfa669125"
+    },
+    {
+      "packId": "soft",
+      "assetType": "icon",
+      "iconKey": "memories",
+      "path": "app/src/main/res/drawable-nodpi/ti_soft_memories.webp",
+      "sha256": "541af25d0899caa82a14a870e0b25bb8a6a904f4f4394a69e1b8f378e88de4b0"
+    },
+    {
+      "packId": "soft",
+      "assetType": "icon",
+      "iconKey": "relations",
+      "path": "app/src/main/res/drawable-nodpi/ti_soft_relations.webp",
+      "sha256": "0b711ac5b79258e36505f8be7659cd16f1424b66b1395765a21db2b4c18b2e55"
+    },
+    {
+      "packId": "soft",
+      "assetType": "icon",
+      "iconKey": "diary",
+      "path": "app/src/main/res/drawable-nodpi/ti_soft_diary.webp",
+      "sha256": "b460e4795975d89b3d17ce1eee2b28e4a8fa525305b31eac04ab30feefde952f"
+    },
+    {
+      "packId": "soft",
+      "assetType": "icon",
+      "iconKey": "check_phone",
+      "path": "app/src/main/res/drawable-nodpi/ti_soft_check_phone.webp",
+      "sha256": "ea0537fb3d4f32300a1965084d5bca647afaf80f89b322fd0dbecce69f8b5ebe"
+    },
+    {
+      "packId": "soft",
+      "assetType": "icon",
+      "iconKey": "theater",
+      "path": "app/src/main/res/drawable-nodpi/ti_soft_theater.webp",
+      "sha256": "5b2563ea52a6de2dfac074f6fb582de6f51d4830e15cf605d8f4a03b5ec00e4e"
+    },
+    {
+      "packId": "soft",
+      "assetType": "icon",
+      "iconKey": "world",
+      "path": "app/src/main/res/drawable-nodpi/ti_soft_world.webp",
+      "sha256": "82da97dbe73745ab796277d43c0fb9815b231fd08e2d403da209cb4a20c048b0"
+    },
+    {
+      "packId": "soft",
+      "assetType": "icon",
+      "iconKey": "lore",
+      "path": "app/src/main/res/drawable-nodpi/ti_soft_lore.webp",
+      "sha256": "bba9be7506580b2aa6e244a0e10b6bcc23761cbbc8b70fc1fc850c5cd12f9e3e"
+    },
+    {
+      "packId": "soft",
+      "assetType": "icon",
+      "iconKey": "creator",
+      "path": "app/src/main/res/drawable-nodpi/ti_soft_creator.webp",
+      "sha256": "fab4e247f11ff6c30dffb6599e98b430509ce15a0250c0eb6de162ef7aab0c66"
+    },
+    {
+      "packId": "soft",
+      "assetType": "icon",
+      "iconKey": "assistant",
+      "path": "app/src/main/res/drawable-nodpi/ti_soft_assistant.webp",
+      "sha256": "3509dded465541a8884d4e179b380978481758566edf45b06ec260294ac6cdb7"
+    },
+    {
+      "packId": "soft",
+      "assetType": "icon",
+      "iconKey": "apps",
+      "path": "app/src/main/res/drawable-nodpi/ti_soft_apps.webp",
+      "sha256": "63ad324bd70652937879d2e86ae73705ce36c8df7dd783841f6da974dc5acd53"
+    },
+    {
+      "packId": "soft",
+      "assetType": "icon",
+      "iconKey": "settings",
+      "path": "app/src/main/res/drawable-nodpi/ti_soft_settings.webp",
+      "sha256": "51ddf268091539256d4b5985b93898ebf7670d611e56a8efa89371392b74f876"
+    },
+    {
+      "packId": "rain",
+      "assetType": "icon",
+      "iconKey": "chat",
+      "path": "app/src/main/res/drawable-nodpi/ti_rain_chat.webp",
+      "sha256": "7ca739e8f20d5641f650ad6a1c515b1b1576696acbb3c7ebe92e2105e50ccabe"
+    },
+    {
+      "packId": "rain",
+      "assetType": "icon",
+      "iconKey": "living",
+      "path": "app/src/main/res/drawable-nodpi/ti_rain_living.webp",
+      "sha256": "5b1ab599a95e657d4187b12d10aded46738a2a0bebda2f4f5cf96bb8fc60b848"
+    },
+    {
+      "packId": "rain",
+      "assetType": "icon",
+      "iconKey": "moments",
+      "path": "app/src/main/res/drawable-nodpi/ti_rain_moments.webp",
+      "sha256": "fb273db0580e3a45a93fa8854aea714b864f3c6a637a8f89bae71481738f24e1"
+    },
+    {
+      "packId": "rain",
+      "assetType": "icon",
+      "iconKey": "gallery",
+      "path": "app/src/main/res/drawable-nodpi/ti_rain_gallery.webp",
+      "sha256": "2e443f1a2678e92c1eb6ddcda4d2d8156020457cb6999d358d8783d7f95f6469"
+    },
+    {
+      "packId": "rain",
+      "assetType": "icon",
+      "iconKey": "contacts",
+      "path": "app/src/main/res/drawable-nodpi/ti_rain_contacts.webp",
+      "sha256": "99be576f22f8a6b67dc9de6a56d52888145097029822eb96b95a3cff1c332796"
+    },
+    {
+      "packId": "rain",
+      "assetType": "icon",
+      "iconKey": "mailbox",
+      "path": "app/src/main/res/drawable-nodpi/ti_rain_mailbox.webp",
+      "sha256": "6e7fdb4b32efb2c5e1b1ed126853986aa0b663fc57610b0d5af2a122d7844b27"
+    },
+    {
+      "packId": "rain",
+      "assetType": "icon",
+      "iconKey": "call",
+      "path": "app/src/main/res/drawable-nodpi/ti_rain_call.webp",
+      "sha256": "56bcd0bacee7bec782ea7e37e844731c110116595b60e13de1d8ea02663fe09c"
+    },
+    {
+      "packId": "rain",
+      "assetType": "icon",
+      "iconKey": "memories",
+      "path": "app/src/main/res/drawable-nodpi/ti_rain_memories.webp",
+      "sha256": "e37b64c9db8c7523b9faa9cdfa10987efed96fa6893ac7eac78b38915e833f1a"
+    },
+    {
+      "packId": "rain",
+      "assetType": "icon",
+      "iconKey": "relations",
+      "path": "app/src/main/res/drawable-nodpi/ti_rain_relations.webp",
+      "sha256": "68e6aa0fc256cdae6f73d9fb9da5d6d402c99f3b67c4169bbf1cf58e3d4d40fa"
+    },
+    {
+      "packId": "rain",
+      "assetType": "icon",
+      "iconKey": "diary",
+      "path": "app/src/main/res/drawable-nodpi/ti_rain_diary.webp",
+      "sha256": "807bff036558873353091f4759e81da2faed91eb2d6788919f4e516e86e97a8c"
+    },
+    {
+      "packId": "rain",
+      "assetType": "icon",
+      "iconKey": "check_phone",
+      "path": "app/src/main/res/drawable-nodpi/ti_rain_check_phone.webp",
+      "sha256": "c9f242505ea63e781d5f601161e2c3b03f85789e26c9fc9adb01683f608cee4c"
+    },
+    {
+      "packId": "rain",
+      "assetType": "icon",
+      "iconKey": "theater",
+      "path": "app/src/main/res/drawable-nodpi/ti_rain_theater.webp",
+      "sha256": "b0ac6d005aa20cbc4f21d5863ffe444b88c37933bf20747e59649e026424ca1a"
+    },
+    {
+      "packId": "rain",
+      "assetType": "icon",
+      "iconKey": "world",
+      "path": "app/src/main/res/drawable-nodpi/ti_rain_world.webp",
+      "sha256": "b19ca0c074f04cf8b341e31ceb4a50f0ba619f111bf423e91a9cffaa2022065f"
+    },
+    {
+      "packId": "rain",
+      "assetType": "icon",
+      "iconKey": "lore",
+      "path": "app/src/main/res/drawable-nodpi/ti_rain_lore.webp",
+      "sha256": "bd81bcccbc919d5cbfc61f3dcd32ef34f988e2dc8f4b9f5174614c8c247f2d90"
+    },
+    {
+      "packId": "rain",
+      "assetType": "icon",
+      "iconKey": "creator",
+      "path": "app/src/main/res/drawable-nodpi/ti_rain_creator.webp",
+      "sha256": "a31413275cc4bf6d4d5bd5e3742130f4c9f8f94103ebce8ef1a92bdee17a6307"
+    },
+    {
+      "packId": "rain",
+      "assetType": "icon",
+      "iconKey": "assistant",
+      "path": "app/src/main/res/drawable-nodpi/ti_rain_assistant.webp",
+      "sha256": "ebf5c7cdc09e4b05a987116ce03cce530dde01a355de01f5e39370ddea2786df"
+    },
+    {
+      "packId": "rain",
+      "assetType": "icon",
+      "iconKey": "apps",
+      "path": "app/src/main/res/drawable-nodpi/ti_rain_apps.webp",
+      "sha256": "3724656609dcebc841cc77a4f316a9c8ea48f69966952be502d651be60783d3a"
+    },
+    {
+      "packId": "rain",
+      "assetType": "icon",
+      "iconKey": "settings",
+      "path": "app/src/main/res/drawable-nodpi/ti_rain_settings.webp",
+      "sha256": "fafab3dcb09e805130f4ec734b4162b46043df1bbdae911a8aaa507bdf1b718d"
+    }
+  ]
+}

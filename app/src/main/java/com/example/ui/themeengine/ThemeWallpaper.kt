@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import com.example.R
 import com.example.ui.themeengine.external.ExternalThemeRepository
 import kotlinx.coroutines.Dispatchers
@@ -52,7 +53,16 @@ fun rememberThemeWallpaperBitmap(
 internal fun builtInWallpaperResource(key: String): Int? = when (key) {
     "builtin/default" -> R.drawable.wallpaper_default
     "builtin/soft_home" -> R.drawable.wallpaper_soft_home
+    "builtin/rainy_study" -> R.drawable.wallpaper_rainy_study
+    "builtin/sakura_diary" -> R.drawable.wallpaper_sakura_diary
+    "builtin/y2k_love" -> R.drawable.wallpaper_y2k_love
     "builtin/midnight_glass" -> R.drawable.wallpaper_midnight_glass
+    "builtin/oil_rose_garden" -> R.drawable.wallpaper_oil_rose_garden
+    "builtin/oil_lake_wildflowers" -> R.drawable.wallpaper_oil_lake_wildflowers
+    "builtin/oil_pink_bloom" -> R.drawable.wallpaper_oil_pink_bloom
+    "builtin/oil_woodland_path" -> R.drawable.wallpaper_oil_woodland_path
+    "builtin/oil_waterlilies" -> R.drawable.wallpaper_oil_waterlilies
+    "builtin/oil_garden_still_life" -> R.drawable.wallpaper_oil_garden_still_life
     else -> null
 }
 
@@ -65,7 +75,9 @@ fun ThemeWallpaper(
     val wallpaper by rememberThemeWallpaperBitmap(selection, runtime)
     Box(modifier.background(Brush.verticalGradient(runtime.wallpaper.colors))) {
         wallpaper?.let { bitmap ->
-            Image(bitmap, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            Image(bitmap, contentDescription = null,
+                modifier = Modifier.fillMaxSize().testTag("theme_wallpaper_loaded_" + runtime.wallpaper.key.replace('/', '_')),
+                contentScale = ContentScale.Crop)
         }
     }
 }

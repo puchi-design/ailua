@@ -7,7 +7,10 @@
   "serviceSpecificTermsSha256": "37e770395cade7163a69099cd1bd2b7f9e3f0bb13a58b744832dafb47325f9a3",
   "observedOutputRightsClause": "Output rights depend on applicable law, upstream service terms and third-party rights.",
   "commercialOutputAuthorizationEvidence": "not established for this provider and requested image model",
-  "decision": "Await provider commercial-output terms or user-supplied authorization evidence before production assets.",
+  "decision": "Continue UI generation and integration under the user's later instruction to remove this development gate; retain unverified rights evidence without claiming commercial authorization.",
+  "userOverride": "持续推进解除无用门禁",
+  "developmentGate": "removed",
+  "productionStatusMeaning": "Visual integration status only; not a verification of commercial-output rights.",
   "existingIconLicenseStatus": "pending-rights-review",
   "rawPublicDocumentsSavedLocally": "output/uir-productization/license-check/"
 }

@@ -5,6 +5,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import com.example.ui.themeengine.IconShapeSpec
 import com.example.ui.themeengine.ThemeSelection
+import com.example.ui.themeengine.external.ExternalThemeFormat
+import com.example.ui.themeengine.external.ExternalThemePackage
 import com.example.ui.themeengine.external.ExternalThemeRepository
 import com.example.ui.themeengine.external.ThemeAssetRef
 import com.example.ui.themeengine.external.iconpack.AndroidIconPackResolver
@@ -49,16 +51,23 @@ class IconResolver private constructor(context: Context) {
             iconKey = iconKey,
             selection = selection,
             loadManual = { source, _, manual ->
-                loadManualOverride(source, manual, targetSizePx)?.let { ResolvedIconBitmap(it) }
+                loadManualOverride(source, manual, targetSizePx)?.let {
+                    ResolvedIconBitmap(it, isPixelArt = pixelArtSource(source))
+                }
             },
             loadExternal = { source, key ->
-                loadExternalOverride(source, key, targetSizePx)?.let { ResolvedIconBitmap(it) }
+                loadExternalOverride(source, key, targetSizePx)?.let {
+                    ResolvedIconBitmap(it, isPixelArt = pixelArtSource(source))
+                }
             },
             loadBundled = { resource ->
                 loadBundledBitmap(resource, targetSizePx)?.let { ResolvedIconBitmap.bundled(it, resource) }
             },
         )
     }
+
+    private fun pixelArtSource(source: String): Boolean = source.startsWith("theme:") &&
+        importedThemeIsPixelArt(ExternalThemeRepository.get(source.removePrefix("theme:")))
 
     private fun loadManualOverride(
         source: String,
@@ -100,10 +109,14 @@ class IconResolver private constructor(context: Context) {
             is ThemeAssetRef.InstalledAndroidResource ->
                 installedPacks.loadBitmap(ref.packageName, ref.drawableName, targetSizePx)
             is ThemeAssetRef.LocalFile -> {
-                importedCache.get("theme", ref.relativePath, targetSizePx)?.let { return it }
+                val pixelArt = importedThemeIsPixelArt(
+                    ExternalThemeRepository.get(ref.relativePath.substringBefore('/')),
+                )
+                val cacheSource = if (pixelArt) "theme-pixel" else "theme"
+                importedCache.get(cacheSource, ref.relativePath, targetSizePx)?.let { return it }
                 val bytes = ExternalThemeRepository.assetBytes(ref) ?: return null
-                val decoded = decodeSized(bytes, targetSizePx) ?: return null
-                importedCache.put("theme", ref.relativePath, targetSizePx, decoded)
+                val decoded = decodeSized(bytes, targetSizePx, pixelArt) ?: return null
+                importedCache.put(cacheSource, ref.relativePath, targetSizePx, decoded)
                 decoded
             }
             is ThemeAssetRef.BuiltIn -> BundledIconCatalog.resourceForAssetKey(ref.key)
@@ -140,7 +153,7 @@ class IconResolver private constructor(context: Context) {
         }.getOrNull()
     }
 
-    private fun decodeSized(bytes: ByteArray, size: Int): Bitmap? {
+    private fun decodeSized(bytes: ByteArray, size: Int, isPixelArt: Boolean): Bitmap? {
         return runCatching {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
@@ -152,7 +165,7 @@ class IconResolver private constructor(context: Context) {
         val options = BitmapFactory.Options().apply { inSampleSize = sample }
         val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options) ?: return null
         if (decoded.width == size && decoded.height == size) decoded
-        else Bitmap.createScaledBitmap(decoded, size, size, true).also { decoded.recycle() }
+        else Bitmap.createScaledBitmap(decoded, size, size, !isPixelArt).also { decoded.recycle() }
         }.getOrNull()
     }
 
@@ -165,6 +178,10 @@ class IconResolver private constructor(context: Context) {
             }
     }
 }
+
+/** Sampling belongs to the actual imported source, never to the currently selected skin. */
+internal fun importedThemeIsPixelArt(theme: ExternalThemePackage?): Boolean =
+    theme != null && theme.format == ExternalThemeFormat.AILUA && theme.metadata["iconStyle"] == "y2k_icons"
 
 /** Kept independent of Android decoding so all fallback paths can be verified with missing assets. */
 internal fun <T : Any> resolveIconWithFallback(

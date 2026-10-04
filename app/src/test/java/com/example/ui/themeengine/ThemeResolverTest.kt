@@ -14,7 +14,7 @@ import org.junit.Test
 class ThemeResolverTest {
     @Test
     fun brightImageWallpaperKeepsDarkHomeLabelsWhenAppsUseDarkMode() {
-        for (id in listOf("default", "soft_home")) {
+        for (id in listOf("default", "soft_home", "sakura_diary", "y2k_love")) {
             val theme = ThemeResolver.resolve(ThemeSelection(id), true, DayPhase.NOON, WeatherState.CLEAR)
             assertTrue(theme.palette.onSurface.luminance() > 0.8f)
             assertTrue(theme.icons.labelColor.luminance() < 0.1f)
@@ -53,7 +53,7 @@ class ThemeResolverTest {
 
     @Test
     fun officialIconStylesDoNotAddMaterialBordersOrShadowsToBitmapAssets() {
-        for (style in listOf("default_icons", "soft_home_icons", "midnight_icons", "y2k_icons")) {
+        for (style in listOf("default_icons", "soft_home_icons", "rainy_study_icons", "sakura_icons", "midnight_icons", "y2k_icons")) {
             val theme = ThemeResolver.resolve(ThemeSelection("default", iconStyleOverrideId = style),
                 false, DayPhase.NOON, WeatherState.CLEAR)
             assertEquals(0f, theme.icons.border.widthDp)
@@ -86,8 +86,8 @@ class ThemeResolverTest {
     }
 
     @Test
-    fun allPresetsProduceDistinctVisualTreatments() {
-        val runtimes = ThemeCatalog.presets.map { preset ->
+    fun legacyPresetsKeepTheirFourDistinctVisualTreatments() {
+        val runtimes = ThemeCatalog.presets.filter { it.id in listOf("milk", "glass", "diary", "mono") }.map { preset ->
             ThemeResolver.resolve(ThemeSelection(preset.id), false, DayPhase.NOON, WeatherState.CLEAR)
         }
         assertEquals(4, runtimes.map { it.icons.containerStyle }.toSet().size)

@@ -27,6 +27,8 @@ object BundledIconCatalog {
     val packs = listOf(
         BundledThemeIconPack(DEFAULT_STYLE_ID, "default"),
         BundledThemeIconPack("soft_home_icons", "soft"),
+        BundledThemeIconPack("rainy_study_icons", "rain"),
+        BundledThemeIconPack("sakura_icons", "sakura"),
         BundledThemeIconPack("midnight_icons", "midnight"),
         BundledThemeIconPack("y2k_icons", "y2k"),
     )

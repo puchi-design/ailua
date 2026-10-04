@@ -41,6 +41,16 @@ object PaletteCatalog {
             listOf(Color(0xFF111214), Color(0xFF191A1C), Color(0xFF222326))
         ),
         PaletteOption(
+            "rainy", "海雾", "Rainy Study", Color(0xFF6D94AD),
+            listOf(Color(0xFFEEF4F7), Color(0xFFE5EFF4), Color(0xFFD5E5ED)),
+            listOf(Color(0xFF121C25), Color(0xFF1B2934), Color(0xFF263A48))
+        ),
+        PaletteOption(
+            "y2k", "粉紫电脑", "Y2K Love PC", Color(0xFF8564AD),
+            listOf(Color(0xFFF5EAF8), Color(0xFFE4DDF7), Color(0xFFD3E2F5)),
+            listOf(Color(0xFF211B2A), Color(0xFF30263B), Color(0xFF3B3049))
+        ),
+        PaletteOption(
             "world", "跟随世界", "World", Color(0xFFC7AD74),
             listOf(Color(0xFFFFFCF4), Color(0xFFF9F7EC), Color(0xFFF1EFE1)),
             listOf(Color(0xFF10101A), Color(0xFF14141F), Color(0xFF181825))
@@ -94,8 +104,17 @@ object WallpaperCatalog {
         WallpaperOption("diary", "暖纸张", "Diary Paper"),
         WallpaperOption("mono", "极简", "Mono"),
         WallpaperOption("default", "清透日常", "AILUA Default"),
-        WallpaperOption("soft_home", "书与茶的午后", "Soft Home"),
-        WallpaperOption("midnight_glass", "深蓝微光", "Midnight Glass")
+        WallpaperOption("soft_home", "花园里的日常", "Soft Home"),
+        WallpaperOption("rainy_study", "湖畔花田", "Rainy Study"),
+        WallpaperOption("sakura_diary", "樱花手账", "Sakura Diary"),
+        WallpaperOption("y2k_love", "粉紫旧电脑", "Y2K Love PC"),
+        WallpaperOption("midnight_glass", "深蓝微光", "Midnight Glass"),
+        WallpaperOption("oil_rose_garden", "玫瑰花丛", "Rose Garden"),
+        WallpaperOption("oil_lake_wildflowers", "湖畔花田", "Lake Wildflowers"),
+        WallpaperOption("oil_pink_bloom", "粉色花枝", "Pink Bloom"),
+        WallpaperOption("oil_woodland_path", "林间小路", "Woodland Path"),
+        WallpaperOption("oil_waterlilies", "睡莲", "Waterlilies"),
+        WallpaperOption("oil_garden_still_life", "花园午后", "Garden Afternoon")
     )
     fun byId(id: String?): WallpaperOption =
         options.firstOrNull { it.id == id } ?: options.first()
@@ -111,9 +130,11 @@ object IconStyleCatalog {
         IconStyleOption("mono", "极简图形", "Mono"),
         IconStyleOption("identity", "经典应用图标", "Identity"),
         IconStyleOption("default_icons", "清透日常图标", "AILUA Default"),
-        IconStyleOption("soft_home_icons", "暖意午后图标", "Soft Home"),
+        IconStyleOption("soft_home_icons", "清淡手绘图标", "Soft Home"),
+        IconStyleOption("rainy_study_icons", "海蓝平面图标", "Rainy Study"),
+        IconStyleOption("sakura_icons", "樱花手账图标", "Sakura Diary"),
         IconStyleOption("midnight_icons", "深蓝微光图标", "Midnight Glass"),
-        IconStyleOption("y2k_icons", "Y2K 图标原型", "Y2K Prototype")
+        IconStyleOption("y2k_icons", "Y2K 像素图标", "Y2K Love PC")
     )
     fun byId(id: String?): IconStyleOption =
         options.firstOrNull { it.id == id } ?: options.first()

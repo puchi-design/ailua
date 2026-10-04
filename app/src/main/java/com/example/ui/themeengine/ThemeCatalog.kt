@@ -31,7 +31,7 @@ object ThemeCatalog {
             widgetStyleId = "mono", dockStyleId = "mono", typographyId = "mono",
             statusBarStyleId = "mono", motionStyleId = "mono"
         ),
-        // First visual-review samples. Existing selections and the legacy default stay valid.
+        // Official themes share the existing selection chain. Legacy defaults stay valid.
         AiluaThemePreset(
             id = "default", name = "AILUA Default", nameEn = "清透日常",
             paletteId = "mist", wallpaperId = "default", iconStyleId = "default_icons",
@@ -39,10 +39,28 @@ object ThemeCatalog {
             statusBarStyleId = "light_home", motionStyleId = "milk"
         ),
         AiluaThemePreset(
-            id = "soft_home", name = "Soft Home", nameEn = "书与茶的午后",
-            paletteId = "cream", wallpaperId = "soft_home", iconStyleId = "soft_home_icons",
+            id = "soft_home", name = "Soft Home", nameEn = "花园里的日常",
+            paletteId = "mist", wallpaperId = "soft_home", iconStyleId = "soft_home_icons",
             widgetStyleId = "soft_glass", dockStyleId = "soft_glass", typographyId = "milk",
             statusBarStyleId = "light_home", motionStyleId = "milk"
+        ),
+        AiluaThemePreset(
+            id = "rainy_study", name = "Rainy Study", nameEn = "湖畔花田",
+            paletteId = "rainy", wallpaperId = "rainy_study", iconStyleId = "rainy_study_icons",
+            widgetStyleId = "rain_glass", dockStyleId = "rain_glass", typographyId = "milk",
+            statusBarStyleId = "glass", motionStyleId = "glass"
+        ),
+        AiluaThemePreset(
+            id = "sakura_diary", name = "Sakura Diary", nameEn = "樱花手账",
+            paletteId = "sakura", wallpaperId = "sakura_diary", iconStyleId = "sakura_icons",
+            widgetStyleId = "sakura_paper", dockStyleId = "sakura_paper", typographyId = "diary",
+            statusBarStyleId = "light_home", motionStyleId = "diary"
+        ),
+        AiluaThemePreset(
+            id = "y2k_love", name = "Y2K Love PC", nameEn = "粉紫旧电脑",
+            paletteId = "y2k", wallpaperId = "y2k_love", iconStyleId = "y2k_icons",
+            widgetStyleId = "y2k_panel", dockStyleId = "y2k_taskbar", typographyId = "y2k",
+            statusBarStyleId = "light_home", motionStyleId = "mono"
         ),
         AiluaThemePreset(
             id = "midnight_glass", name = "Midnight Glass", nameEn = "深蓝微光",

@@ -14,6 +14,7 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 import com.example.ui.themeengine.BorderSpec
 import com.example.ui.themeengine.DockBackgroundStyle
@@ -134,10 +135,15 @@ fun Modifier.ailuaMaterialSurface(material: AiluaSurfaceMaterial): Modifier {
 
     if (material.glass && !material.transparent) {
         val highlight = materialAlpha(material.highlightAlpha)
+        // The authored edge tint also colours the sheen; a zero-width edge draws no ring.
+        // Legacy glass with a transparent edge retains its neutral white highlight.
+        val sheenColor = if (material.border.color.alpha > 0f) {
+            lerp(Color.White, material.border.color.copy(alpha = 1f), 0.4f)
+        } else Color.White
         result = result.drawWithCache {
             val sheen = Brush.verticalGradient(
-                0f to Color.White.copy(alpha = highlight),
-                0.45f to Color.White.copy(alpha = highlight * 0.12f),
+                0f to sheenColor.copy(alpha = highlight),
+                0.45f to sheenColor.copy(alpha = highlight * 0.12f),
                 1f to Color.Transparent,
             )
             // Draw the entire backing in one outer pass, before any child padding or content.

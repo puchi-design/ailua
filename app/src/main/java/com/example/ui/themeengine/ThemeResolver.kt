@@ -34,7 +34,8 @@ object ThemeResolver {
         val paletteId = selection.paletteOverrideId
             ?.takeIf { option -> PaletteCatalog.palettes.any { it.id == option } }
             ?: preset.paletteId
-        val paletteBase = PaletteCatalog.resolve(paletteId, darkMode || preset.id == "midnight_glass", world.colors)
+        val paletteBase = PaletteCatalog.resolve(paletteId,
+            darkMode || preset.id == "midnight_glass", world.colors)
         val palette = if (preset.id == "glass" || preset.id == "midnight_glass") {
             paletteBase.copy(
                 // Glass uses light foregrounds in both appearance modes. Its system
@@ -55,9 +56,9 @@ object ThemeResolver {
         val wallpaper = resolveWallpaper(wallpaperId, selection.wallpaperOverrideId == null, palette, world, darkMode)
         // Wallpaper legibility is independent of an App's light/dark surface palette.
         val homeForeground = when (wallpaper.key) {
-            "builtin/default", "builtin/soft_home" -> Color(0xFF283039)
+            "builtin/default", "builtin/soft_home", "builtin/sakura_diary", "builtin/y2k_love", "builtin/rainy_study" -> Color(0xFF283039)
             "builtin/midnight_glass" -> Color(0xFFF5F8FC)
-            else -> palette.onSurface
+            else -> if (wallpaper.key.startsWith("builtin/oil_")) Color(0xFF283039) else palette.onSurface
         }
         val iconStyleId = resolveIconStyleId(selection)
 
@@ -71,7 +72,7 @@ object ThemeResolver {
                 overlay = palette.surface,
                 divider = palette.border.copy(alpha = 0.45f),
             ),
-            shapes = ShapeVisualSpec(),
+            shapes = if (preset.id == "y2k_love") ShapeVisualSpec(2f, 4f, 6f) else ShapeVisualSpec(),
             layout = LayoutSpec(),
             text = uiTextSpec(preset.typographyId),
             wallpaper = wallpaper,
@@ -79,7 +80,13 @@ object ThemeResolver {
             widgets = widgetSpec(preset.widgetStyleId, palette),
             dock = dockSpec(preset.dockStyleId, palette),
             typography = typographySpec(preset.typographyId),
-            statusBar = statusSpec(preset.statusBarStyleId, palette, darkMode),
+            statusBar = statusSpec(preset.statusBarStyleId, palette, darkMode).let { status ->
+                // A wallpaper-only choice may cross light/dark themes without changing App surfaces.
+                if (wallpaper.key.startsWith("builtin/")) status.copy(
+                    foregroundMode = if (homeForeground == Color(0xFF283039)) StatusForegroundMode.DARK else StatusForegroundMode.LIGHT,
+                    foregroundColor = homeForeground,
+                ) else status
+            },
             lockscreen = lockscreenSpec(preset.id, palette).copy(foregroundColor = homeForeground),
             shade = shadeSpec(preset.id, palette),
             controlCenter = controlCenterSpec(preset.id, palette),
@@ -91,16 +98,16 @@ object ThemeResolver {
     private fun uiTextSpec(id: String): UiTextSpec {
         val headingFamily = when (id) {
             "diary" -> FontFamily.Serif
-            "mono" -> FontFamily.Monospace
+            "mono", "y2k" -> FontFamily.Monospace
             else -> FontFamily.SansSerif
         }
         return UiTextSpec(
             display = AiluaTypography.headlineLarge.copy(fontFamily = headingFamily),
             title = AiluaTypography.titleLarge.copy(fontFamily = headingFamily),
             section = AiluaTypography.titleMedium.copy(fontFamily = headingFamily),
-            body = AiluaTypography.bodyLarge,
-            secondary = AiluaTypography.bodySmall,
-            caption = AiluaTypography.labelSmall,
+            body = AiluaTypography.bodyLarge.let { if (id == "y2k") it.copy(fontFamily = headingFamily) else it },
+            secondary = AiluaTypography.bodySmall.let { if (id == "y2k") it.copy(fontFamily = headingFamily) else it },
+            caption = AiluaTypography.labelSmall.let { if (id == "y2k") it.copy(fontFamily = headingFamily) else it },
         )
     }
 
@@ -112,10 +119,16 @@ object ThemeResolver {
         darkMode: Boolean
     ): WallpaperSpec {
         if (id == "world") return world
-        if (id in setOf("default", "soft_home", "midnight_glass")) {
+        if (builtInWallpaperResource("builtin/$id") != null) {
             val colors = when (id) {
                 "default" -> listOf(Color(0xFFDCE8F0), Color(0xFFAFC5D2), Color(0xFFECCBB3))
-                "soft_home" -> listOf(Color(0xFFF2E6D4), Color(0xFFDCC4A3), Color(0xFFB39872))
+                "soft_home", "oil_rose_garden", "oil_garden_still_life" -> listOf(Color(0xFFD9D5C5), Color(0xFFEAD1CD), Color(0xFFA9AD91))
+                "rainy_study", "oil_lake_wildflowers" -> listOf(Color(0xFFC9D4E0), Color(0xFFA4B5C4), Color(0xFFB8BA9A))
+                "oil_pink_bloom" -> listOf(Color(0xFFD9DDE0), Color(0xFFE2CDCC), Color(0xFFAEB8AE))
+                "oil_woodland_path" -> listOf(Color(0xFFDCDBCE), Color(0xFFB9C1AB), Color(0xFFD5CCB7))
+                "oil_waterlilies" -> listOf(Color(0xFFBFC0D0), Color(0xFFC6B9CE), Color(0xFFA6B3AD))
+                "sakura_diary" -> listOf(Color(0xFFFCF5E9), Color(0xFFF1E5DB), Color(0xFFE6BCC6))
+                "y2k_love" -> listOf(Color(0xFFF4DCF2), Color(0xFFDCCAF2), Color(0xFFD2E1F5))
                 else -> listOf(Color(0xFF071322), Color(0xFF173956), Color(0xFF0B192C))
             }
             return WallpaperSpec("builtin/$id", colors)
@@ -163,7 +176,7 @@ object ThemeResolver {
     }
 
     private fun iconSpec(id: String, p: PaletteSpec): IconVisualSpec = when (id) {
-        "default_icons", "soft_home_icons", "midnight_icons" -> IconVisualSpec(
+        "default_icons", "soft_home_icons", "rainy_study_icons", "sakura_icons", "midnight_icons" -> IconVisualSpec(
             IconShapeSpec.SQUIRCLE, IconContainerStyle.GRADIENT, 1f, 0.48f,
             IdentityColorMode.CONTAINER, GlyphTintMode.WHITE,
             ShadowSpec(0f), BorderSpec(Color.Transparent, 0f), p.onSurface
@@ -201,6 +214,24 @@ object ThemeResolver {
     }
 
     private fun widgetSpec(id: String, p: PaletteSpec): WidgetVisualSpec = when (id) {
+        "rain_glass" -> WidgetVisualSpec(
+            WidgetShape.ROUNDED_RECT, WidgetBackgroundStyle.GLASS, Color(0xFFEAF3F8),
+            Color(0xFF283039), 24f, 0.18f,
+            BorderSpec(Color(0xFFEAF5FC), 0f), ShadowSpec(0f), 18f,
+            blurRadiusDp = 26f, highlightAlpha = 0.15f, fallbackAlpha = 0.20f,
+        )
+        "sakura_paper" -> WidgetVisualSpec(
+            WidgetShape.ROUNDED_RECT, WidgetBackgroundStyle.PAPER,
+            mix(Color(0xFFFFFAF1), p.accent, 0.035f), Color(0xFF463739),
+            14f, 0.96f, BorderSpec(p.border.copy(alpha = 0.38f), 0.5f), ShadowSpec(1f), 18f,
+            blurRadiusDp = 0f, highlightAlpha = 0f,
+        )
+        "y2k_panel" -> WidgetVisualSpec(
+            WidgetShape.ROUNDED_RECT, WidgetBackgroundStyle.FLAT,
+            mix(Color(0xFFF8F1FF), p.accent, 0.04f), Color(0xFF44334F),
+            4f, 1f, BorderSpec(Color(0xFF9C85B5), 0.5f), ShadowSpec(0f), 18f,
+            blurRadiusDp = 0f, highlightAlpha = 0f,
+        )
         "light_glass", "soft_glass", "dark_glass" -> {
             val dark = id == "dark_glass"
             WidgetVisualSpec(
@@ -236,6 +267,23 @@ object ThemeResolver {
     }
 
     private fun dockSpec(id: String, p: PaletteSpec): DockVisualSpec = when (id) {
+        "rain_glass" -> DockVisualSpec(
+            DockContainerMode.ISLAND, DockBackgroundStyle.GLASS, Color(0xFFEAF3F8),
+            30f, 0.18f, 0f, BorderSpec(Color(0xFFEAF5FC), 0f), ShadowSpec(0f),
+            12f, 12f, 0.92f, blurRadiusDp = 26f, highlightAlpha = 0.15f, fallbackAlpha = 0.22f,
+        )
+        "sakura_paper" -> DockVisualSpec(
+            DockContainerMode.PAPER_STRIP, DockBackgroundStyle.PAPER,
+            mix(Color(0xFFFFF8EF), p.accent, 0.035f), 10f, 0.96f, 0f,
+            BorderSpec(p.border.copy(alpha = 0.45f), 0.5f), ShadowSpec(1f), 12f, 12f, 0.92f,
+            blurRadiusDp = 0f, highlightAlpha = 0f,
+        )
+        "y2k_taskbar" -> DockVisualSpec(
+            DockContainerMode.PAPER_STRIP, DockBackgroundStyle.SURFACE,
+            mix(Color(0xFFECE1F5), p.accent, 0.05f), 4f, 1f, 0f,
+            BorderSpec(Color(0xFF9C85B5), 0.5f), ShadowSpec(0f), 12f, 12f, 0.92f,
+            blurRadiusDp = 0f, highlightAlpha = 0f,
+        )
         "light_glass", "soft_glass", "dark_glass" -> {
             val dark = id == "dark_glass"
             DockVisualSpec(
@@ -273,7 +321,7 @@ object ThemeResolver {
     private fun typographySpec(id: String): TypographySpec = when (id) {
         "glass" -> TypographySpec(TypographyFamily.SYSTEM_SANS, FontWeight.Light, 0.96f, FontWeight.Normal, 1.03f)
         "diary" -> TypographySpec(TypographyFamily.SERIF, FontWeight.Medium, 1.03f, FontWeight.SemiBold, 1f)
-        "mono" -> TypographySpec(TypographyFamily.MONO, FontWeight.Normal, 0.93f, FontWeight.Medium, 1.08f)
+        "mono", "y2k" -> TypographySpec(TypographyFamily.MONO, FontWeight.Normal, 0.93f, FontWeight.Medium, 1.08f)
         else -> TypographySpec(TypographyFamily.SOFT_SANS, FontWeight.Medium, 1f, FontWeight.SemiBold, 1f)
     }
 
@@ -289,6 +337,16 @@ object ThemeResolver {
     }
 
     private fun systemCardSpec(id: String, p: PaletteSpec): SystemCardStyle = when (id) {
+        "default", "soft_home" -> SystemCardStyle(p.surface, p.onSurface, 24f, 0.94f,
+            BorderSpec(Color.Transparent, 0f), ShadowSpec(2f))
+        "rainy_study" -> SystemCardStyle(Color(0xFF243744), p.onSurface, 24f, 0.90f,
+            BorderSpec(Color.Transparent, 0f), ShadowSpec(0f))
+        "midnight_glass" -> SystemCardStyle(p.surface, p.onSurface, 24f, 0.88f,
+            BorderSpec(Color.Transparent, 0f), ShadowSpec(0f))
+        "sakura_diary" -> SystemCardStyle(p.surface, p.onSurface, 14f, 0.97f,
+            BorderSpec(p.border.copy(alpha = 0.45f), 0.5f), ShadowSpec(1f))
+        "y2k_love" -> SystemCardStyle(p.surface, p.onSurface, 4f, 1f,
+            BorderSpec(p.border, 0.5f), ShadowSpec(0f))
         "glass" -> SystemCardStyle(p.surface, p.onSurface, 26f, 0.86f,
             BorderSpec(p.highlight.copy(alpha = 0.65f), 1f), ShadowSpec(12f))
         "diary" -> SystemCardStyle(p.surface, p.onSurface, 9f, 0.97f,
@@ -304,19 +362,35 @@ object ThemeResolver {
         return LockscreenVisualSpec(
             clockScale = when (id) { "glass" -> 1.08f; "diary" -> 0.94f; "mono" -> 0.90f; else -> 1f },
             foregroundColor = p.onSurface,
-            scrimAlpha = when (id) { "glass" -> 0.80f; "diary" -> 0.10f; "mono" -> 0.05f; else -> 0.08f },
+            scrimAlpha = when (id) {
+                "glass" -> 0.80f
+                "rainy_study", "midnight_glass" -> 0.16f
+                "diary", "sakura_diary" -> 0.10f
+                "mono", "y2k_love" -> 0.05f
+                else -> 0.08f
+            },
             notificationStyle = card,
-            shortcutStyle = card.copy(cornerRadiusDp = when (id) { "diary" -> 12f; "mono" -> 3f; else -> 28f })
+            shortcutStyle = card.copy(cornerRadiusDp = when (id) {
+                "diary", "sakura_diary" -> 12f
+                "mono", "y2k_love" -> 4f
+                else -> 28f
+            })
         )
     }
 
     private fun shadeSpec(id: String, p: PaletteSpec): ShadeVisualSpec {
         val card = systemCardSpec(id, p)
         return ShadeVisualSpec(
-            backgroundAlpha = when (id) { "glass" -> 0.76f; "diary" -> 0.98f; "mono" -> 1f; else -> 0.95f },
+            backgroundAlpha = when (id) {
+                "glass" -> 0.76f
+                "rainy_study", "midnight_glass" -> 0.94f
+                "diary", "sakura_diary" -> 0.98f
+                "mono", "y2k_love" -> 1f
+                else -> 0.95f
+            },
             cardCornerRadiusDp = card.cornerRadiusDp,
             cardAlpha = card.surfaceAlpha,
-            spacingDp = when (id) { "diary" -> 10f; "mono" -> 6f; else -> 12f },
+            spacingDp = when (id) { "diary", "sakura_diary" -> 10f; "mono", "y2k_love" -> 6f; else -> 12f },
             cardStyle = card
         )
     }
@@ -325,9 +399,9 @@ object ThemeResolver {
         val card = systemCardSpec(id, p)
         return ControlCenterVisualSpec(
             tileCornerRadiusDp = card.cornerRadiusDp,
-            activeAlpha = when (id) { "glass" -> 0.80f; "mono" -> 1f; else -> 0.95f },
+            activeAlpha = when (id) { "glass" -> 0.80f; "mono", "y2k_love" -> 1f; else -> 0.95f },
             inactiveAlpha = card.surfaceAlpha,
-            panelAlpha = when (id) { "glass" -> 0.78f; "diary" -> 0.98f; else -> 0.96f },
+            panelAlpha = when (id) { "glass" -> 0.78f; "diary", "sakura_diary" -> 0.98f; else -> 0.96f },
             tileStyle = card
         )
     }
@@ -335,7 +409,11 @@ object ThemeResolver {
     private fun liveActivitySpec(id: String, p: PaletteSpec): LiveActivityVisualSpec {
         val card = systemCardSpec(id, p)
         return LiveActivityVisualSpec(
-            compactCornerRadiusDp = when (id) { "diary" -> 8f; "mono" -> 3f; else -> 24f },
+            compactCornerRadiusDp = when (id) {
+                "diary", "sakura_diary" -> 8f
+                "mono", "y2k_love" -> 4f
+                else -> 24f
+            },
             expandedCornerRadiusDp = card.cornerRadiusDp,
             backgroundColor = card.backgroundColor.copy(alpha = card.surfaceAlpha),
             foregroundColor = card.foregroundColor,

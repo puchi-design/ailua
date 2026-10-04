@@ -41,4 +41,24 @@ class ThemeStorePersistenceTest {
             .commit()
         assertEquals(ThemeSelection("milk"), ThemeStore.readSelection(prefs))
     }
+
+    @Test
+    fun officialSelectionsRetainMixedSourcesAndManualIconsAfterRereading() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val prefs = context.getSharedPreferences("production_theme_persistence_test", Context.MODE_PRIVATE)
+        for (id in listOf("default", "soft_home", "rainy_study", "sakura_diary", "y2k_love", "midnight_glass")) {
+            prefs.edit().clear().commit()
+            val selected = ThemeSelection(
+                themePresetId = id,
+                paletteOverrideId = "rainy",
+                wallpaperOverrideId = "y2k_love",
+                iconStyleOverrideId = "sakura_icons",
+                wallpaperSourceId = "imported-wallpaper",
+                iconSourceOverrideId = "android:com.example.userpack",
+                manualIconOverrides = mapOf("chat" to "chosen-chat", "gallery" to "chosen-gallery"),
+            )
+            ThemeStore.write(prefs, selected)
+            assertEquals("Persisting $id must retain every user choice", selected, ThemeStore.readSelection(prefs))
+        }
+    }
 }

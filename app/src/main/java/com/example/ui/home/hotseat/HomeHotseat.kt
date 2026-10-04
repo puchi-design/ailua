@@ -3,6 +3,7 @@ package com.example.ui.home.hotseat
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -27,9 +28,26 @@ import com.example.ui.components.AppIconItem
 import com.example.ui.design.launcher.WorkspaceAppLabel
 import com.example.ui.home.folder.WorkspaceFolderItem
 import com.example.ui.themeengine.DockContainerMode
+import com.example.ui.themeengine.DockVisualSpec
 import com.example.ui.themeengine.LocalAiluaTheme
 import com.example.ui.themeengine.material.ailuaMaterialSurface
 import com.example.ui.themeengine.material.surfaceMaterial
+
+/** Shared presentation only; slot bounds, items and drag behavior remain in HomeHotseat. */
+@Composable
+fun HomeDockFrame(
+    spec: DockVisualSpec,
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    Box(modifier) {
+        if (spec.containerMode != DockContainerMode.NONE) {
+            // The backing remains a sibling so translucent material never owns padded icons.
+            Box(Modifier.matchParentSize().ailuaMaterialSurface(spec.surfaceMaterial()))
+        }
+        content()
+    }
+}
 
 /** Five real slots projected from DesktopItem(HOTSEAT); gaps remain usable cells. */
 @Composable
@@ -51,14 +69,8 @@ fun HomeHotseat(
     val runtime = LocalAiluaTheme.current
     val dock = runtime.dock
     val hasContainer = dock.containerMode != DockContainerMode.NONE
-    val containerModifier = if (hasContainer) {
-        Modifier.ailuaMaterialSurface(dock.surfaceMaterial())
-    } else Modifier
 
-    Box(Modifier.fillMaxWidth().padding(horizontal = runtime.layout.screenHorizontalPadding.dp, vertical = 8.dp)) {
-        if (hasContainer) {
-            Box(Modifier.matchParentSize().then(containerModifier))
-        }
+    HomeDockFrame(dock, Modifier.fillMaxWidth().padding(horizontal = runtime.layout.screenHorizontalPadding.dp, vertical = 8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth()
                 .heightIn(min = if (hasContainer) 82.dp else 0.dp)

@@ -1,0 +1,42 @@
+{
+  "board": "docs/design/ui-product-assets/wallpapers-six-materials.png",
+  "createdAtUtc": "2026-10-04T08:31:49+00:00",
+  "assets": [
+    {
+      "packId": "default",
+      "assetType": "wallpaper",
+      "path": "app/src/main/res/drawable-nodpi/wallpaper_default.webp",
+      "sha256": "8b1f9a5a82982de0e58856ac0110a8e31d96d11a84745b2bf354f6c1227ca89b"
+    },
+    {
+      "packId": "soft",
+      "assetType": "wallpaper",
+      "path": "app/src/main/res/drawable-nodpi/wallpaper_soft_home.webp",
+      "sha256": "2d7288f5a2e99fcc687168c76904facf95313af9d5f7203bd6ab5fb6eee92fc5"
+    },
+    {
+      "packId": "rain",
+      "assetType": "wallpaper",
+      "path": "app/src/main/res/drawable-nodpi/wallpaper_rainy_study.webp",
+      "sha256": "8c9fed8d202d6a51263d58c5a0559fcac3583dc871dd4b8b503e63879d59deec"
+    },
+    {
+      "packId": "sakura",
+      "assetType": "wallpaper",
+      "path": "app/src/main/res/drawable-nodpi/wallpaper_sakura_diary.webp",
+      "sha256": "59e68b87af292b92e555123785a64caba46df7d507b5940d93bd6503d3a68818"
+    },
+    {
+      "packId": "y2k",
+      "assetType": "wallpaper",
+      "path": "app/src/main/res/drawable-nodpi/wallpaper_y2k_love.webp",
+      "sha256": "e6ea9b2d56d67d7e68501bb18328b68469d84554c41431c8031205e47f0a724a"
+    },
+    {
+      "packId": "midnight",
+      "assetType": "wallpaper",
+      "path": "app/src/main/res/drawable-nodpi/wallpaper_midnight_glass.webp",
+      "sha256": "197540978c3e09b9843475b4f033f8fe8f771e266fbfc40d33cf9a77d308e4f7"
+    }
+  ]
+}

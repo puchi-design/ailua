@@ -1,0 +1,72 @@
+{
+  "board": "docs/design/ui-product-assets/wallpapers-oil-library.png",
+  "createdAtUtc": "2026-10-04T08:31:50+00:00",
+  "assets": [
+    {
+      "packId": "oil-library",
+      "assetType": "wallpaper",
+      "wallpaperId": "oil_rose_garden",
+      "path": "app/src/main/res/drawable-nodpi/wallpaper_oil_rose_garden.webp",
+      "sha256": "2d7288f5a2e99fcc687168c76904facf95313af9d5f7203bd6ab5fb6eee92fc5",
+      "reviewSizePx": [
+        360,
+        780
+      ]
+    },
+    {
+      "packId": "oil-library",
+      "assetType": "wallpaper",
+      "wallpaperId": "oil_lake_wildflowers",
+      "path": "app/src/main/res/drawable-nodpi/wallpaper_oil_lake_wildflowers.webp",
+      "sha256": "8c9fed8d202d6a51263d58c5a0559fcac3583dc871dd4b8b503e63879d59deec",
+      "reviewSizePx": [
+        360,
+        780
+      ]
+    },
+    {
+      "packId": "oil-library",
+      "assetType": "wallpaper",
+      "wallpaperId": "oil_pink_bloom",
+      "path": "app/src/main/res/drawable-nodpi/wallpaper_oil_pink_bloom.webp",
+      "sha256": "2ac044cebfeadcf95c07cbff46338b9d4129d2419410c2f0df3f6f24347da9b2",
+      "reviewSizePx": [
+        360,
+        780
+      ]
+    },
+    {
+      "packId": "oil-library",
+      "assetType": "wallpaper",
+      "wallpaperId": "oil_woodland_path",
+      "path": "app/src/main/res/drawable-nodpi/wallpaper_oil_woodland_path.webp",
+      "sha256": "7897527eaef88b1306f4125ee5b89ab78f4cba29f23a9cb5d14700e3fb281e45",
+      "reviewSizePx": [
+        360,
+        780
+      ]
+    },
+    {
+      "packId": "oil-library",
+      "assetType": "wallpaper",
+      "wallpaperId": "oil_waterlilies",
+      "path": "app/src/main/res/drawable-nodpi/wallpaper_oil_waterlilies.webp",
+      "sha256": "ca57cfdbb6f44e5fb173aee607eb17e8cb615316b1df817c90fbbd0aca3f46b6",
+      "reviewSizePx": [
+        360,
+        780
+      ]
+    },
+    {
+      "packId": "oil-library",
+      "assetType": "wallpaper",
+      "wallpaperId": "oil_garden_still_life",
+      "path": "app/src/main/res/drawable-nodpi/wallpaper_oil_garden_still_life.webp",
+      "sha256": "42c013290098605e5d9b8da087e76e81e9d44fde2fe0e699c973fad2cfdbd0fc",
+      "reviewSizePx": [
+        360,
+        780
+      ]
+    }
+  ]
+}

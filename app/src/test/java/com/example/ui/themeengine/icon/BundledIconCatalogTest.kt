@@ -10,10 +10,13 @@ import org.junit.Test
 
 class BundledIconCatalogTest {
     @Test
-    fun officialPresetsSelectTheirPackAndY2kIsOnlyAnIconStyle() {
+    fun allSixOfficialPresetsSelectTheirOwnPackAndStylesRemainMixable() {
         val expected = mapOf(
             "default" to "default_icons",
             "soft_home" to "soft_home_icons",
+            "rainy_study" to "rainy_study_icons",
+            "sakura_diary" to "sakura_icons",
+            "y2k_love" to "y2k_icons",
             "midnight_glass" to "midnight_icons",
         )
         expected.forEach { (preset, style) ->
@@ -22,13 +25,13 @@ class BundledIconCatalogTest {
         }
         assertEquals("y2k_icons", ThemeResolver.resolveIconStyleId(
             ThemeSelection("default", iconStyleOverrideId = "y2k_icons")))
-        assertTrue(ThemeCatalog.presets.none { it.id.startsWith("y2k") })
+        assertEquals("y2k_love", ThemeCatalog.byId("y2k_love").id)
         assertEquals("milk", ThemeCatalog.DEFAULT_ID)
     }
 
     @Test
-    fun registryContainsExactlyFourCompletePacksWithoutGuessedUnknownKeys() {
-        assertEquals(4, BundledIconCatalog.packs.size)
+    fun registryContainsSixCompletePacksWithoutGuessedUnknownKeys() {
+        assertEquals(6, BundledIconCatalog.packs.size)
         assertEquals(18, BundledIconCatalog.iconKeys.size)
         val resources = BundledIconCatalog.packs.flatMap { pack ->
             BundledIconCatalog.iconKeys.map { key ->
@@ -38,7 +41,7 @@ class BundledIconCatalogTest {
                 resource.drawableName
             }
         }
-        assertEquals(72, resources.distinct().size)
+        assertEquals(108, resources.distinct().size)
         assertNull(BundledIconCatalog.resource("default_icons", "dream"))
         assertNull(BundledIconCatalog.resource("default_icons", "games"))
         assertNull(BundledIconCatalog.resourceForAssetKey("ti_default_unknown"))
@@ -80,5 +83,9 @@ class BundledIconCatalogTest {
         assertEquals(listOf("ti_midnight_chat", "ti_default_chat"),
             BundledIconCatalog.candidates("chat", ThemeSelection("midnight_glass", iconStyleOverrideId = "bad"))
                 .map { it.drawableName })
+        for ((preset, prefix) in listOf("rainy_study" to "rain", "sakura_diary" to "sakura")) {
+            assertEquals(listOf("ti_${prefix}_chat", "ti_default_chat"),
+                BundledIconCatalog.candidates("messages", ThemeSelection(preset)).map { it.drawableName })
+        }
     }
 }
