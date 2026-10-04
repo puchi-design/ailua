@@ -1,0 +1,486 @@
+{
+  "schemaVersion": 1,
+  "project": "AILUA",
+  "phase": "P5.V UIR-3D through UIR-6",
+  "dateLocal": "2026-10-04",
+  "branch": "local-pass3c-ai-runtime",
+  "status": "COMPLETED_UIR6",
+  "sourceBaselineHead": "9ee6887eb77fd3b2f709c6e60eb7e16a72461e99",
+  "documentationResumeHead": "f6e0d2b1adf147eb1700776b56ae3ef05fa423bb",
+  "sourceCheckpoints": [
+    {
+      "phase": "UIR-3D/E + UIR-4",
+      "head": "19524d1de21e6ed1288c4035ed88c00bc8d6f906",
+      "pushed": true
+    },
+    {
+      "phase": "UIR-5",
+      "head": "9dac45b6d8df5f6b9751f9c067b8017fe529f12c",
+      "pushed": true
+    },
+    {
+      "phase": "UIR-6",
+      "head": "3ca945d9f3d82651badd9bbbf968fb6132cbbcf1",
+      "pushed": true
+    }
+  ],
+  "finalCodeHead": "3ca945d9f3d82651badd9bbbf968fb6132cbbcf1",
+  "finalCodeHeadStatus": "PUSHED",
+  "deliveryReceipt": {
+    "path": "dist/qa/P5.V-UIProduct/delivery-receipt.json",
+    "status": "RECORD_AFTER_REPORT_COMMIT",
+    "headMeaning": "Final delivery HEAD is recorded after the report commit; this committed QA file does not self-reference that commit."
+  },
+  "assets": {
+    "status": "PASS",
+    "manifest": "docs/design/THEME_ASSET_MANIFEST.json",
+    "themeIds": [
+      "default",
+      "soft_home",
+      "rainy_study",
+      "sakura_diary",
+      "y2k_love",
+      "midnight_glass"
+    ],
+    "expectedIcons": 108,
+    "actualIcons": 108,
+    "expectedWallpapers": 12,
+    "actualWallpapers": 12,
+    "normalizedCount": 120,
+    "productionCount": 120,
+    "pendingCount": 0,
+    "assetVisualReviewPendingCount": 0,
+    "countMeaning": "Resource entries; Soft/Rain and their corresponding oil-library entries share the same artwork.",
+    "successfulNewRawPngCount": 141,
+    "rawCountIncludesRejectedVersions": true,
+    "rawCountIsApiAttemptCount": false,
+    "rawCountIsDeliveredAssetCount": false,
+    "oilRawDimensions": [
+      {
+        "wallpaperId": "oil_rose_garden",
+        "width": 941,
+        "height": 1672
+      },
+      {
+        "wallpaperId": "oil_lake_wildflowers",
+        "width": 941,
+        "height": 1672
+      },
+      {
+        "wallpaperId": "oil_pink_bloom",
+        "width": 941,
+        "height": 1672
+      },
+      {
+        "wallpaperId": "oil_woodland_path",
+        "width": 941,
+        "height": 1672
+      },
+      {
+        "wallpaperId": "oil_waterlilies",
+        "width": 940,
+        "height": 1672
+      },
+      {
+        "wallpaperId": "oil_garden_still_life",
+        "width": 941,
+        "height": 1672
+      }
+    ],
+    "normalizedIconDimensions": [
+      256,
+      256
+    ],
+    "normalizedWallpaperDimensions": [
+      1080,
+      2340
+    ],
+    "encoding": "lossless WebP RGB",
+    "y2kNormalization": "nearest to 32px, then nearest to 256px",
+    "defaultWallpaperSource": "Existing original project procedural geometry",
+    "generationService": "https://www.vibework.live/v1",
+    "requestedGenerationModel": "gpt-image-2",
+    "promptFiles": [
+      "docs/design/UI_PRODUCTIZATION_PROMPTS.jsonl",
+      "docs/design/UI_OIL_WALLPAPER_PROMPTS.jsonl"
+    ],
+    "rejectedPromptBodyGaps": [
+      "Rejected initial desk wallpaper",
+      "Rejected initial window wallpaper"
+    ],
+    "rejectedVersionsInProduction": false,
+    "thirdPartyDownloadedAssetsUsed": false,
+    "licenseStatus": "unverified-provider-output-terms",
+    "productionStatusMeaning": "Visual integration and recorded asset review; does not certify commercial rights.",
+    "manifestSha256": "089bdc39417560ddcd363be538da8a5f8ef573d952c733dfef29bf90767263ea"
+  },
+  "unitTests": {
+    "status": "PASS",
+    "tests": 622,
+    "suites": 116,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "evidence": "app/build/test-results/testDebugUnitTest/TEST-*.xml"
+  },
+  "build": {
+    "status": "PASS",
+    "variant": "debug",
+    "androidTestBuilt": true,
+    "durationSeconds": 20,
+    "evidence": "dist/qa/P5.V-UIProduct/build-final-oil.log",
+    "incremental": true,
+    "unitTestTask": "UP-TO-DATE",
+    "note": "Final build changed QA parameters; tested app bytes match the final product and theme device runs. Unit-test results are separately read from completed XML."
+  },
+  "device": {
+    "manufacturer": "Xiaomi",
+    "model": "M2007J22C",
+    "androidVersion": "10",
+    "apiLevel": 29,
+    "resolutionPx": [
+      1080,
+      2340
+    ],
+    "adb": "PASS",
+    "replaceInstall": "PASS",
+    "launch": "PASS"
+  },
+  "instrumentation": [
+    {
+      "suite": "Final production theme smoke",
+      "status": "PASS",
+      "tests": 1,
+      "durationSeconds": 50.063,
+      "evidence": "dist/qa/P5.V-UIProduct/device/themes-instrumentation.log"
+    },
+    {
+      "suite": "Final UI product and Workspace gesture smoke",
+      "status": "PASS",
+      "tests": 2,
+      "durationSeconds": 172.434,
+      "evidence": "dist/qa/P5.V-UIProduct/device/product-instrumentation.log"
+    },
+    {
+      "suite": "Loaded theme preview recapture",
+      "status": "PASS",
+      "tests": 1,
+      "durationSeconds": 10.724,
+      "evidence": "dist/qa/P5.V-UIProduct/device/captureLoadedThemePreview.log",
+      "screenshots": [
+        "07-theme-center.png",
+        "08-theme-detail.png"
+      ],
+      "condition": "Actual bitmap loaded before capture; app product code and bytes unchanged."
+    }
+  ],
+  "deviceRegression": {
+    "evidence": "dist/qa/P5.V-UIProduct/device/product-smoke-events.txt",
+    "eventLogScope": "Append history includes earlier failures; PASS refers to the last successful run, corroborated by final instrumentation logs.",
+    "sixThemeSwitchesAndFolders": "PASS",
+    "sixOilWallpapersActualPreviewApply": "PASS",
+    "fullThemeKeepsExplicitManualAndExternalIcons": "PASS",
+    "wallpaperOnlyAndIconOnlyKeepShell": "PASS",
+    "archiveRoundtrip": {
+      "status": "PASS",
+      "cases": [
+        "current-mix",
+        "original-mix",
+        "milk",
+        "glass",
+        "diary",
+        "mono",
+        "default-mono",
+        "midnight-oil",
+        "soft-midnight"
+      ],
+      "oppositeBrightnessWallpaperForeground": "PASS",
+      "legacyVectorFallback": "PASS"
+    },
+    "widgetResizeAndOriginalSpanRestore": "PASS",
+    "actualLongPressDragToEmptyCellAndBackExactLayout": "PASS",
+    "controlCenterLockUnlockNotificationShade": "PASS",
+    "localBackNavigation": "PASS"
+  },
+  "coldStartPersistence": {
+    "status": "PASS",
+    "cases": [
+      {
+        "themeId": "soft_home",
+        "status": "PASS",
+        "actualForceStopAndRelaunch": true,
+        "evidence": "dist/qa/P5.V-UIProduct/device/cold-start-soft_home-persistence.txt",
+        "protectedAreas": [
+          "Theme",
+          "External/manual icons",
+          "Workspace pages/items/folders/widget spans/hotseat",
+          "Selected character"
+        ],
+        "prepareEvidence": "dist/qa/P5.V-UIProduct/device/cold-prepare-soft_home.log",
+        "verifyEvidence": "dist/qa/P5.V-UIProduct/device/cold-verify-soft_home.log"
+      },
+      {
+        "themeId": "midnight_glass",
+        "status": "PASS",
+        "actualForceStopAndRelaunch": true,
+        "evidence": "dist/qa/P5.V-UIProduct/device/cold-start-midnight_glass-persistence.txt",
+        "prepareEvidence": "dist/qa/P5.V-UIProduct/device/cold-prepare-midnight_glass.log",
+        "verifyEvidence": "dist/qa/P5.V-UIProduct/device/cold-verify-midnight_glass.log",
+        "protectedAreas": [
+          "Theme",
+          "External/manual icons",
+          "Workspace pages/items/folders/widget spans/hotseat",
+          "Selected character"
+        ]
+      }
+    ]
+  },
+  "finalDataPreservation": {
+    "status": "PASS",
+    "expectedChecks": 15,
+    "actualChecks": 15,
+    "passedChecks": 15,
+    "evidence": "dist/qa/P5.V-UIProduct/after-final-review-preservation.json",
+    "protectedAreas": [
+      "Database schema",
+      "Complete Workspace and Folder rows",
+      "Widget state",
+      "Complete chat session/turn/variant rows",
+      "Memory rows and cursor",
+      "Selected character and protected preferences"
+    ],
+    "privateContentsIncluded": false,
+    "comparison": "Exact full schema/rows and protected preferences, not only counts",
+    "workspaceCounts": {
+      "pages": 3,
+      "items": 18,
+      "folders": 1
+    },
+    "priorFinalEvidence": "dist/qa/P5.V-UIProduct/after-final-preservation.json"
+  },
+  "screenshots": {
+    "status": "CAPTURED",
+    "directory": "dist/qa/P5.V-UIProduct/device",
+    "requiredCount": 18,
+    "actualRequiredCount": 18,
+    "files": [
+      "01-default.png",
+      "02-soft.png",
+      "03-rainy.png",
+      "04-sakura.png",
+      "05-y2k.png",
+      "06-midnight.png",
+      "07-theme-center.png",
+      "08-theme-detail.png",
+      "09-wallpaper-center.png",
+      "10-icon-center.png",
+      "11-my-theme.png",
+      "12-theme-lab.png",
+      "13-app-library.png",
+      "14-lockscreen.png",
+      "15-notification.png",
+      "16-control-center.png",
+      "17-chat.png",
+      "18-living.png"
+    ],
+    "boards": [
+      {
+        "image": "dist/qa/P5.V-UIProduct/six-theme-home-review.jpg",
+        "sourceHashManifest": "dist/qa/P5.V-UIProduct/six-theme-home-review.json",
+        "sha256": "efee4146ca346a7a8919e2eab780889432f8273fe7ae2dbd74f2c94a7bf358ed",
+        "sourceHashManifestSha256": "210dfd1b569a38b24792d3e06d1ba690df8673bae9d84e8ead17b00223162735",
+        "sourceCount": 6,
+        "sourceHashesAndDimensionsVerified": true,
+        "actualVisualReview": "PASS"
+      },
+      {
+        "image": "dist/qa/P5.V-UIProduct/theme-center-review.jpg",
+        "sourceHashManifest": "dist/qa/P5.V-UIProduct/theme-center-review.json",
+        "sha256": "70dedf1b7b2a67a72738d7ae26d55dd8b557348f5918a01688779044d60ca509",
+        "sourceHashManifestSha256": "b08fdb3bed264b60fc313c5da24e8db562dd28103cd276826b237a8f6a322566",
+        "sourceCount": 6,
+        "sourceHashesAndDimensionsVerified": true,
+        "actualVisualReview": "PASS"
+      },
+      {
+        "image": "dist/qa/P5.V-UIProduct/system-app-review.jpg",
+        "sourceHashManifest": "dist/qa/P5.V-UIProduct/system-app-review.json",
+        "sha256": "57b2664f30822a8c96ddac63d6fca6e046619377c223e01d91278657ee77d040",
+        "sourceHashManifestSha256": "476c1120abb42a9f3d75c2405124885947c11393136c8b5ffeba1d8828f2290a",
+        "sourceCount": 6,
+        "sourceHashesAndDimensionsVerified": true,
+        "actualVisualReview": "PASS"
+      },
+      {
+        "image": "dist/qa/P5.V-UIProduct/ui-product-review-board.jpg",
+        "sourceHashManifest": "dist/qa/P5.V-UIProduct/ui-product-review-board.json",
+        "sha256": "4961c52fb2c646cfc3f20769276d56be87dc29289a5f78d8ae5c331ee19764c0",
+        "sourceHashManifestSha256": "3b16d5683aed09d616d35b6c54a603f004eabf9a9aee89056fbca82b920f05bd",
+        "sourceCount": 18,
+        "sourceHashesAndDimensionsVerified": true,
+        "actualVisualReview": "PASS"
+      }
+    ],
+    "boardTransform": "Proportional resize only; captions outside unmodified device screenshots",
+    "finalBoardHashVerification": "PASS",
+    "finalBoardActualVisualReview": "PASS",
+    "userFinalVisualApproval": "NOT_REQUESTED_OR_RECORDED",
+    "verifiedUniqueSourceCount": 18,
+    "verifiedSourceDimensionsPx": [
+      1080,
+      2340
+    ],
+    "finalBoardReviewedBy": "Root Codex actual saved-image inspection",
+    "finalBoardReviewCondition": "All four regenerated boards actually opened after loaded oil previews 07/08 were recaptured; 18-source total board included."
+  },
+  "performance": {
+    "status": "DIAGNOSTIC_ONLY",
+    "variant": "debug",
+    "releaseBenchmarkVerified": false,
+    "smoothnessClaim": false,
+    "instrumentationSamples": [
+      {
+        "themeId": "soft_home",
+        "totalFrames": 22,
+        "jankyFrames": 14,
+        "jankPercent": 63.64,
+        "p50Ms": 26,
+        "p90Ms": 121,
+        "p95Ms": 121,
+        "p99Ms": 150,
+        "evidence": "dist/qa/P5.V-UIProduct/device/performance-soft_home.txt"
+      },
+      {
+        "themeId": "midnight_glass",
+        "totalFrames": 21,
+        "jankyFrames": 11,
+        "jankPercent": 52.38,
+        "p50Ms": 20,
+        "p90Ms": 81,
+        "p95Ms": 85,
+        "p99Ms": 113,
+        "evidence": "dist/qa/P5.V-UIProduct/device/performance-midnight_glass.txt"
+      }
+    ],
+    "instrumentationSampleLimit": "Small samples include test-framework overhead and are not release benchmarks.",
+    "liveAdbSamplesStatus": "OBSERVED",
+    "discardedSamples": [
+      {
+        "status": "DISCARDED_NO_VALID_SAMPLE",
+        "totalFrames": 0,
+        "evidence": "dist/qa/P5.V-UIProduct/device/performance-soft-live-adb.txt",
+        "reason": "First attempt did not confirm foreground window/unlock; zero rendered frames is not a performance pass."
+      }
+    ],
+    "liveAdbMethod": {
+      "instrumentationUsed": false,
+      "swipeCount": 6,
+      "swipeDurationMs": 350,
+      "wakeUnlockAndForegroundConfirmed": true,
+      "minimumAcceptedFrameCount": 30,
+      "screenshots": "dist/qa/P5.V-UIProduct/device/live-home-*.png"
+    },
+    "liveAdbSamples": [
+      {
+        "themeId": "soft_home",
+        "status": "OBSERVED",
+        "totalFrames": 282,
+        "jankyFrames": 11,
+        "jankPercent": 3.9,
+        "p50Ms": 11,
+        "p90Ms": 13,
+        "p95Ms": 14,
+        "p99Ms": 46,
+        "missedVsync": 0,
+        "highInputLatencyCount": 276,
+        "evidence": "dist/qa/P5.V-UIProduct/device/performance-soft_home-live-adb.txt"
+      },
+      {
+        "themeId": "midnight_glass",
+        "status": "OBSERVED",
+        "totalFrames": 279,
+        "jankyFrames": 13,
+        "jankPercent": 4.66,
+        "p50Ms": 11,
+        "p90Ms": 13,
+        "p95Ms": 15,
+        "p99Ms": 40,
+        "missedVsync": 0,
+        "highInputLatencyCount": 273,
+        "evidence": "dist/qa/P5.V-UIProduct/device/performance-midnight_glass-live-adb.txt"
+      }
+    ],
+    "liveAdbSampleLimit": "Observed Android 10 Debug page gestures only; high-input-latency counters remain reported without attribution. This is not a release benchmark or an all-interaction performance pass."
+  },
+  "androidRendering": {
+    "api29": {
+      "status": "DEVICE_TESTED",
+      "backend": "tint + highlight fallback"
+    },
+    "api31Plus": {
+      "status": "UNVERIFIED_NO_DEVICE",
+      "backend": "Haze backdrop blur"
+    },
+    "glassProductionVerified": false
+  },
+  "workspaceCoordinateRepair": {
+    "scope": "UI presentation coordinates only",
+    "gridBounds": "Full drawn rectangle from positionInRoot plus layout size",
+    "visibilityGate": "Existing Pager bounds still gate drag start and hover",
+    "semanticsChanged": false,
+    "deviceDragAndRestore": "PASS"
+  },
+  "frozenBoundaries": [
+    "Character/Romance/Proactive/World/Chat/Memory/Call Runtime",
+    "Database schema",
+    "Workspace models and paging",
+    "Folder model",
+    "DropResolvers and drag/drop semantics",
+    "Widget Host model and resize semantics",
+    "Hotseat model",
+    "AppRouter",
+    "ThemeStore/ThemeSelection/ThemeResolver main chain/AiluaThemeRuntime main structure"
+  ],
+  "artifacts": [
+    {
+      "type": "Debug APK",
+      "path": "dist/AILUA-P5.V-UIProduct-debug.apk",
+      "sha256": "c47474d2132421566fffdb313501b703b970c0e4f507d550696f45f8e95c36fa",
+      "hashStatus": "VERIFIED",
+      "sizeBytes": 61453651
+    },
+    {
+      "type": "Six oil-wallpaper PNG ZIP",
+      "path": "dist/AILUA-oil-wallpapers.zip",
+      "sha256": "7d1554346db032f07801526608377f2f3445c57cd79bc18f04b7467fc8590560",
+      "hashStatus": "VERIFIED",
+      "sizeBytes": 22660284,
+      "pngCount": 6
+    }
+  ],
+  "stopPoint": {
+    "phase": "UIR-6",
+    "formalCharacterArtStarted": false,
+    "p56Started": false
+  },
+  "privacy": {
+    "databaseRows": false,
+    "chatText": false,
+    "preferenceValues": false,
+    "credentials": false
+  },
+  "installedArtifact": {
+    "status": "MATCH",
+    "evidence": "dist/qa/P5.V-UIProduct/artifact-verification.json",
+    "apkSha256": "c47474d2132421566fffdb313501b703b970c0e4f507d550696f45f8e95c36fa",
+    "installedApkSha256": "c47474d2132421566fffdb313501b703b970c0e4f507d550696f45f8e95c36fa",
+    "installedArtifactMatches": true
+  },
+  "crashBuffer": {
+    "ailuaCrashBufferEntries": 0,
+    "evidence": "dist/qa/P5.V-UIProduct/device/crash-buffer.log",
+    "verification": "dist/qa/P5.V-UIProduct/artifact-verification.json",
+    "scope": "Observed AILUA entries in captured crash buffer, not proof of absence of all possible errors."
+  },
+  "originSourceHead": "3ca945d9f3d82651badd9bbbf968fb6132cbbcf1"
+}
