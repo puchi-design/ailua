@@ -2,6 +2,8 @@ package com.example.data.repository
 
 import com.example.data.engine.UserActivityRecorder
 import com.example.data.mock.OfficialCharacters
+import com.example.data.mock.LegacyOfficialCharacters
+import com.example.data.local.AiluaLocalStore
 import com.example.data.model.GalleryAsset
 import com.example.data.model.GalleryAssetType
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,17 +14,19 @@ object GalleryRepository {
 
     val albums = listOf(
         "全部",
-        "沈砚的书店",
-        "周野的相机",
-        "小弥的生活",
-        "悠奈的相机",
-        "诺亚的书阁",
+        "贺闻川的空间",
+        "周见野的现场",
+        "裴叙白的声音",
+        "苏晚宁的生活",
+        "许朝颜的相机",
+        "宋知微的记录",
         "共同回忆",
         "私密收藏",
         "我的导入"
     )
 
-    private val initialAssets = listOf(
+    /** Original IDs and contents remain available for already saved event references. */
+    val archivedAssets = listOf(
         GalleryAsset(
             id = "ga_pulse_10",
             characterId = "yuna",
@@ -83,9 +87,15 @@ object GalleryRepository {
             visualReference = "pudding",
             album = "共同回忆"
         )
-    )
+    ) + LegacyOfficialCharacters.galleryAssets
 
-    private val _assets = MutableStateFlow<List<GalleryAsset>>(OfficialCharacters.galleryAssets + initialAssets)
+    private val _assets = MutableStateFlow<List<GalleryAsset>>(
+        OfficialCharacters.galleryAssets + archivedAssets.filter { asset ->
+            AiluaLocalStore.savedWorldEvents.value.any { event ->
+                event.id == asset.lifeEventId || event.sourceRefId == asset.id
+            }
+        }
+    )
     val assets: StateFlow<List<GalleryAsset>> = _assets.asStateFlow()
 
     fun addImportedAsset(uriString: String, title: String = "本地导入参考照片") {

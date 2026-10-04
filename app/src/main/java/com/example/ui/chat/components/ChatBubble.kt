@@ -33,6 +33,7 @@ import com.example.data.model.MessageSender
 import com.example.data.model.MessageType
 import com.example.ui.designsystem.CharacterPortrait
 import com.example.ui.designsystem.PortraitVariant
+import com.example.ui.designsystem.publicCharacterName
 import com.example.ui.themeengine.LocalAiluaTheme
 
 @Composable
@@ -88,6 +89,7 @@ fun ChatMessageItem(
     var isPlaying by remember(message.id) { mutableStateOf(false) }
     val isUser = message.sender == MessageSender.USER
     val isVoice = !isUser && message.type == MessageType.VOICE
+    val senderName = publicCharacterName(message.senderCharacterId.ifBlank { character.id }, message.senderName.ifBlank { character.name })
 
     Row(
         modifier = Modifier.fillMaxWidth().testTag("chat_message_${message.id}"),
@@ -106,7 +108,7 @@ fun ChatMessageItem(
             horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
         ) {
             if (showSenderName && !isUser) {
-                Text(message.senderName, style = theme.text.caption, color = theme.palette.onSurfaceMuted,
+                Text(senderName, style = theme.text.caption, color = theme.palette.onSurfaceMuted,
                     modifier = Modifier.padding(bottom = 4.dp))
             }
             Box {
@@ -134,7 +136,7 @@ fun ChatMessageItem(
                                 modifier = Modifier.size(20.dp),
                             )
                             Text(
-                                if (isPlaying) "正在倾听 ${message.senderName.ifBlank { character.name }}…"
+                                if (isPlaying) "正在倾听 $senderName…"
                                 else "语音轻语 ${message.voiceDurationSeconds}″",
                                 style = theme.text.body,
                                 color = theme.palette.onSurface,

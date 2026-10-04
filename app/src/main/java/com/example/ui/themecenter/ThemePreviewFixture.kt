@@ -8,10 +8,11 @@ data class ThemePreviewFixture(
     val time: String = "9:41",
     val date: String = "10月3日 · 周六",
     val weather: String = "小雨",
-    val characterName: String = "沈砚",
-    val location: String = "旧书店",
-    val status: String = "在书店整理新到的旧书",
-    val quote: String = "雨有点大。书先替你留着。",
+    val characterName: String = "贺闻川",
+    val location: String = "木作工作室",
+    val status: String = "正在整理新的空间图纸",
+    val quote: String = "东西放门口了。记得拿。",
+    val characterId: String = "hewenchuan",
 ) {
     val apps: List<ThemePreviewApp> = listOf(
         ThemePreviewApp("chat", "消息"),

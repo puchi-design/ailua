@@ -51,6 +51,7 @@ import com.example.ui.systemui.lockscreen.LockScreenNotificationItem
 import com.example.ui.systemui.lockscreen.LockScreenNotificationPreview
 import com.example.ui.systemui.notification.NotificationShade
 import com.example.ui.systemui.notification.HeadsUpNotification
+import com.example.ui.designsystem.publicNotificationTitle
 import com.example.ui.systemui.control.ControlCenter
 import com.example.ui.systemui.control.QuickControlsRow
 import com.example.ui.systemui.live.LiveActivityChip
@@ -179,7 +180,7 @@ fun VirtualSystemUiHost(
                     notificationContent = {
                         val unread = notifications.filterNot { it.seen }
                         LockScreenNotificationPreview(
-                            unread.map { LockScreenNotificationItem(it.id, it.title, it.body) },
+                            unread.map { LockScreenNotificationItem(it.id, publicNotificationTitle(it), it.body) },
                             onOpen = { id -> unread.firstOrNull { it.id == id }?.let(::openNotification) },
                             onOpenAll = controller::openNotifications,
                         )

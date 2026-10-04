@@ -58,8 +58,8 @@ class WorldFlowEndToEndTest {
 
     @Test
     fun seedWorldFactsAreStampedWithVirtualTime() {
-        val seed = WorldStateRepository.events.value.firstOrNull { it.id == "pulse_1" }
-        checkNotNull(seed) { "seed ledger must contain pulse_1" }
+        val seed = WorldStateRepository.events.value.firstOrNull { it.id == "six_mira_work" }
+        checkNotNull(seed) { "seed ledger must contain six_mira_work" }
         assertTrue(seed.worldDateLabel.isNotBlank())
         assertTrue(seed.worldMinutesOfDay in 0..1439)
     }
@@ -99,9 +99,9 @@ class WorldFlowEndToEndTest {
         assertEquals("花瓶里换上了今天新买的雏菊", post.content)
         assertEquals("客厅窗台", post.locationContext)
         assertEquals("小确幸", post.moodTag)
-        assertEquals("小弥", post.authorName)
+        assertEquals("苏晚宁", post.authorName)
         // runtime fact precedes authored seed fixtures in the feed
-        assertTrue(feed.indexOf(post) < feed.indexOfFirst { it.id == "moment_pulse_4" })
+        assertTrue(feed.indexOf(post) < feed.indexOfFirst { it.id == "six_moment_six_mira_photo" })
     }
 
     @Test
@@ -133,7 +133,7 @@ class WorldFlowEndToEndTest {
         assertEquals("安宁", mine.mood)
         assertEquals("flowers", mine.imageReference)
         // runtime pages precede authored seed pages
-        assertTrue(entries.indexOf(mine) < entries.indexOfFirst { it.id == "diary_1" })
+        assertTrue(entries.indexOf(mine) < entries.indexOfFirst { it.id == "six_diary_mira_1" })
     }
 
     @Test

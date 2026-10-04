@@ -36,6 +36,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.ui.components.AppIconDefaults
 import com.example.ui.components.AppIconItem
+import com.example.data.characterassets.CharacterAssetResolver
+import com.example.data.characterassets.CharacterAvatarSlot
+import com.example.ui.designsystem.CharacterPortrait
+import com.example.ui.designsystem.PortraitVariant
 import com.example.ui.home.hotseat.HomeDockFrame
 import com.example.ui.home.widget.ThemeWidgetFrame
 import com.example.ui.themeengine.AiluaThemeProvider
@@ -149,13 +153,14 @@ private fun PreviewContent(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    // The current official portrait is a monogram until the separate ART stage.
-                    Box(
-                        Modifier.size(58.dp).clip(CircleShape).background(theme.surfaces.inset),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(fixture.characterName.take(1), style = theme.text.title, color = theme.palette.onSurface)
-                    }
+                    // Explicit fixture image and label keep previews independent of saved cards.
+                    CharacterPortrait(
+                        characterId = fixture.characterId,
+                        variant = PortraitVariant.AVATAR,
+                        modifier = Modifier.size(58.dp),
+                        avatarReferenceOverride = CharacterAssetResolver.officialUri(fixture.characterId, CharacterAvatarSlot.MAIN),
+                        characterNameOverride = fixture.characterName,
+                    )
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Text(fixture.characterName, style = theme.text.section, color = theme.widgets.foregroundColor, maxLines = 1)
                         Text(fixture.location, style = theme.text.secondary, color = theme.widgets.foregroundColor, maxLines = 1)

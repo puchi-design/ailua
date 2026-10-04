@@ -28,6 +28,7 @@ import com.example.data.registry.CharacterRegistry
 import com.example.data.relationship.repository.RelationshipStateRepository
 import com.example.ui.designsystem.AiluaScreenScaffold
 import com.example.ui.designsystem.CharacterPortrait
+import com.example.ui.designsystem.publicCharacterName
 import com.example.ui.designsystem.PortraitVariant
 import com.example.ui.themeengine.LocalAiluaTheme
 
@@ -143,6 +144,6 @@ private fun RelationPerson(characterId: String, name: String, modifier: Modifier
         } else {
             CharacterPortrait(characterId, PortraitVariant.AVATAR, Modifier.size(48.dp))
         }
-        Text(name, style = theme.text.body, color = theme.palette.onSurface)
+        Text(publicCharacterName(characterId, name), style = theme.text.body, color = theme.palette.onSurface)
     }
 }

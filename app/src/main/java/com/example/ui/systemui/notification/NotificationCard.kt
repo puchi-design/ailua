@@ -19,6 +19,7 @@ import com.example.data.systemui.notification.VirtualNotification
 import com.example.ui.components.AppIconItem
 import com.example.ui.themeengine.LocalAiluaTheme
 import com.example.ui.designsystem.AiluaSurface
+import com.example.ui.designsystem.publicNotificationTitle
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -31,6 +32,7 @@ fun NotificationCard(
     compact: Boolean = false,
 ) {
     val theme = LocalAiluaTheme.current
+    val displayTitle = publicNotificationTitle(notification)
     val timeLabel = remember(notification.timestampEpochMs) {
         SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(notification.timestampEpochMs))
     }
@@ -44,7 +46,7 @@ fun NotificationCard(
             verticalAlignment = Alignment.Top,
         ) {
             AppIconItem(
-                name = notification.title,
+                name = displayTitle,
                 iconKey = notification.sourceAppId,
                 size = 36.dp,
                 showLabel = false,
@@ -53,7 +55,7 @@ fun NotificationCard(
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        notification.title,
+                        displayTitle,
                         modifier = Modifier.weight(1f),
                         style = LocalAiluaTheme.current.text.body,
                         color = theme.palette.onSurface,

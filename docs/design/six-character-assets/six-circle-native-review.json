@@ -1,0 +1,109 @@
+{
+  "createdAt": "2026-10-04T18:42:01+00:00",
+  "board": "docs/design/six-character-assets/six-circle-native-review.png",
+  "sha256": "9be8f225555a425ad6761ab92b46416a97d53fb164f1ad0c67580306ebe1e9ad",
+  "dimensions": [
+    1048,
+    1036
+  ],
+  "method": "One LANCZOS resize from formal512 to48/64/96, full-square circle clipping, no image retouching or added face elements; native pixel sizes",
+  "reviewStatus": "await-root-actual-view",
+  "sources": [
+    {
+      "characterId": "hewenchuan",
+      "storageCharacterId": "hewenchuan",
+      "name": "贺闻川",
+      "variant": "main",
+      "resource": "app/src/main/assets/characters/hewenchuan/avatar_main.webp",
+      "resourceSha256": "182d649de110e906f46115c65d2d4b0911e94754f8ee3f17b7e35fbbc87c6bf7"
+    },
+    {
+      "characterId": "zhoujianye",
+      "storageCharacterId": "zhoujianye",
+      "name": "周见野",
+      "variant": "main",
+      "resource": "app/src/main/assets/characters/zhoujianye/avatar_main.webp",
+      "resourceSha256": "449256dcf2ede8fd3f45c1be334e16175163a1e1c694a5b01632e1017331a925"
+    },
+    {
+      "characterId": "peixubai",
+      "storageCharacterId": "peixubai",
+      "name": "裴叙白",
+      "variant": "main",
+      "resource": "app/src/main/assets/characters/peixubai/avatar_main.webp",
+      "resourceSha256": "028f48b0af451df6f7c6d266e88c40ffd61521688bd94ba38ce6e7b32b3cbf7d"
+    },
+    {
+      "characterId": "suwanning",
+      "storageCharacterId": "mira",
+      "name": "苏晚宁",
+      "variant": "main",
+      "resource": "app/src/main/assets/characters/suwanning/avatar_main.webp",
+      "resourceSha256": "c6585e46f00fc52b0f2226eea701be5c3727236b8ae0830165fd11ba260b7df7"
+    },
+    {
+      "characterId": "xuchaoyan",
+      "storageCharacterId": "yuna",
+      "name": "许朝颜",
+      "variant": "main",
+      "resource": "app/src/main/assets/characters/xuchaoyan/avatar_main.webp",
+      "resourceSha256": "c0d62ef8b4b66d4afb76d101ed0bd72ba840549055c7a8dc28612dd004d57927"
+    },
+    {
+      "characterId": "songzhiwei",
+      "storageCharacterId": "noa",
+      "name": "宋知微",
+      "variant": "main",
+      "resource": "app/src/main/assets/characters/songzhiwei/avatar_main.webp",
+      "resourceSha256": "e8959ab371e2542e79a812836e5de2578e636adc3cca89e972ea902864595ff2"
+    },
+    {
+      "characterId": "hewenchuan",
+      "storageCharacterId": "hewenchuan",
+      "name": "贺闻川",
+      "variant": "alt",
+      "resource": "app/src/main/assets/characters/hewenchuan/avatar_alt.webp",
+      "resourceSha256": "0ee2833264c39728260413b613a732267f47540ed282870739f3b4f372fa800a"
+    },
+    {
+      "characterId": "zhoujianye",
+      "storageCharacterId": "zhoujianye",
+      "name": "周见野",
+      "variant": "alt",
+      "resource": "app/src/main/assets/characters/zhoujianye/avatar_alt.webp",
+      "resourceSha256": "26b54777c5ad491cd9a08334a13b3f3e483f97a12f77c398903a37a54eeee844"
+    },
+    {
+      "characterId": "peixubai",
+      "storageCharacterId": "peixubai",
+      "name": "裴叙白",
+      "variant": "alt",
+      "resource": "app/src/main/assets/characters/peixubai/avatar_alt.webp",
+      "resourceSha256": "df967f44e6382d470e627eb78d3cbfc8617404fb68c725e12d848c0a4f0ca04c"
+    },
+    {
+      "characterId": "suwanning",
+      "storageCharacterId": "mira",
+      "name": "苏晚宁",
+      "variant": "alt",
+      "resource": "app/src/main/assets/characters/suwanning/avatar_alt.webp",
+      "resourceSha256": "fa08f8bca2ac0bcd5aed79a8557016e53bc40899a771c54f99f0b4a48825225f"
+    },
+    {
+      "characterId": "xuchaoyan",
+      "storageCharacterId": "yuna",
+      "name": "许朝颜",
+      "variant": "alt",
+      "resource": "app/src/main/assets/characters/xuchaoyan/avatar_alt.webp",
+      "resourceSha256": "731446eec232b028d65445b8b5122ddb47be80f5d50c93a4bcf9e01c2c4b27b3"
+    },
+    {
+      "characterId": "songzhiwei",
+      "storageCharacterId": "noa",
+      "name": "宋知微",
+      "variant": "alt",
+      "resource": "app/src/main/assets/characters/songzhiwei/avatar_alt.webp",
+      "resourceSha256": "f9b7480b032b30d8b9eac0c4156cfc50986ae9ffbab9b43e28019d1a10f31ac3"
+    }
+  ]
+}

@@ -27,6 +27,7 @@ import com.example.data.model.CallSession
 import com.example.ui.components.VirtualPhoneStatusBar
 import com.example.ui.designsystem.CharacterPortrait
 import com.example.ui.designsystem.PortraitVariant
+import com.example.ui.designsystem.publicCharacterName
 import com.example.ui.themeengine.LocalAiluaTheme
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -82,7 +83,7 @@ private fun CallHistoryItem(session: CallSession) {
         CharacterPortrait(session.characterId, PortraitVariant.AVATAR)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(session.callerName, style = theme.text.body, color = theme.palette.onSurface,
+                Text(publicCharacterName(session.characterId, session.callerName), style = theme.text.body, color = theme.palette.onSurface,
                     modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(session.scheduledAtTime, style = theme.text.caption, color = theme.palette.onSurfaceMuted)
             }

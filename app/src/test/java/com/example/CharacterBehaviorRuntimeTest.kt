@@ -68,11 +68,11 @@ class CharacterBehaviorRuntimeTest {
     }
 
     @Test
-    fun threeOfficialCardsProduceDistinctIsolatedBehaviorPrompts() {
+    fun sixOfficialCardsProduceDistinctIsolatedBehaviorPrompts() {
         val cards = OfficialCharacters.cards.map { it.data }
-        assertEquals(setOf("yan", "yeo", "noa"), cards.map { it.id }.toSet())
+        assertEquals(OfficialCharacters.sixRosterIds.toSet(), cards.map { it.id }.toSet())
         val desires = cards.associate { it.id to AiluaCharacterExtensionCodec.read(it).behavior.coreDesire }
-        assertEquals(3, desires.values.toSet().size)
+        assertEquals(6, desires.values.toSet().size)
         val prompts = cards.map { data ->
             val extension = AiluaCharacterExtensionCodec.read(data)
             val result = PromptAssembler.assemble(PromptAssemblyInput(character = data))
@@ -83,7 +83,7 @@ class CharacterBehaviorRuntimeTest {
             desires.filterKeys { it != data.id }.values.forEach { assertFalse(behavior.contains(it)) }
             behavior
         }
-        assertEquals(3, prompts.toSet().size)
+        assertEquals(6, prompts.toSet().size)
     }
 
     @Test

@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.local.AiluaLocalStore
 import com.example.data.model.LetterDeliveryState
+import com.example.data.model.Letter
+import com.example.data.mock.OfficialCharacters
 import com.example.data.repository.MailboxRepository
 import com.example.data.systemui.notification.NotificationCategory
 import com.example.data.systemui.notification.VirtualNotification
@@ -13,6 +15,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlinx.coroutines.flow.MutableStateFlow
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
@@ -23,11 +26,26 @@ class MailNotificationTest {
         context.getSharedPreferences("ailua_os_store", Context.MODE_PRIVATE).edit().clear().commit()
         AiluaLocalStore.init(context)
         AiluaLocalStore.loadFromDisk()
-        // The seed inbox already contains Mira's delivered letter at 21:30.
+        // Explicit scheduled fixtures keep this delivery test independent of the authored opening time.
+        @Suppress("UNCHECKED_CAST")
+        val inbox = MailboxRepository::class.java.getDeclaredField("_letters").apply { isAccessible = true }
+            .get(MailboxRepository) as MutableStateFlow<List<Letter>>
+        val originalInbox = inbox.value
+        val prefs = context.getSharedPreferences("ailua_os_store", Context.MODE_PRIVATE)
+        val originalReceipts = prefs.getStringSet(AiluaLocalStore.KEY_DELIVERED_LETTERS, emptySet()).orEmpty().toSet()
+        val scheduledIds = setOf("six_letter_yuna_1", "six_letter_noa_1")
+        try {
+        prefs.edit().putStringSet(AiluaLocalStore.KEY_DELIVERED_LETTERS, originalReceipts - scheduledIds).commit()
+        AiluaLocalStore.loadFromDisk()
+        inbox.value = OfficialCharacters.letters.filter { it.characterId in setOf("mira", "yuna", "noa") }
+            .map { letter -> when (letter.characterId) {
+                "yuna" -> letter.copy(deliverAtVirtualTimeMinutes = 22 * 60 + 30, deliverAtVirtualTimeString = "22:30")
+                "noa" -> letter.copy(deliverAtVirtualTimeMinutes = 23 * 60, deliverAtVirtualTimeString = "23:00")
+                else -> letter
+            } }
         // Rewinding the clock must not turn persisted delivery history into a new event.
         MailboxRepository.syncWithLocalStore(21 * 60 + 30)
-        assertEquals(LetterDeliveryState.DELIVERED, MailboxRepository.letters.value.single { it.id == "letter_mira_1" }.deliveryState)
-        val scheduledIds = setOf("letter_yuna_1", "letter_noa_1")
+        assertEquals(LetterDeliveryState.DELIVERED, MailboxRepository.letters.value.single { it.id == "six_letter_mira_1" }.deliveryState)
         assertEquals(scheduledIds, MailboxRepository.letters.value.filter { it.deliveryState == LetterDeliveryState.SCHEDULED }.map { it.id }.toSet())
         val notifications = mutableListOf<VirtualNotification>()
         val newlyDelivered = MailboxRepository.checkScheduledDeliveries(
@@ -48,5 +66,10 @@ class MailNotificationTest {
         val repeated = MailboxRepository.checkScheduledDeliveries(23 * 60, { notifications += it })
         assertTrue(repeated.isEmpty())
         assertEquals(2, notifications.size)
+        } finally {
+            inbox.value = originalInbox
+            prefs.edit().putStringSet(AiluaLocalStore.KEY_DELIVERED_LETTERS, originalReceipts).commit()
+            AiluaLocalStore.loadFromDisk()
+        }
     }
 }

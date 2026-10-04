@@ -39,6 +39,7 @@ import com.example.data.projection.projectDiary
 import com.example.ui.designsystem.AiluaChip
 import com.example.ui.designsystem.AiluaMediaFrame
 import com.example.ui.designsystem.AiluaScreenScaffold
+import com.example.ui.designsystem.publicCharacterName
 import com.example.ui.themeengine.LocalAiluaTheme
 import kotlinx.coroutines.launch
 
@@ -48,10 +49,11 @@ fun DiaryScreen(
     onToggleTheme: () -> Unit = {},
     onBackToHome: () -> Unit = {},
     characterId: String = "mira",
-    characterName: String = "小弥",
+    characterName: String = "苏晚宁",
     onGoHome: () -> Unit = onBackToHome
 ) {
     val theme = LocalAiluaTheme.current
+    val displayName = publicCharacterName(characterId, characterName)
     val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
     val entries = remember(characterId, worldEvents) {
         projectDiary(characterId = characterId, runtimeEvents = worldEvents)
@@ -85,7 +87,7 @@ fun DiaryScreen(
                         onLike = {
                             isLiked = !isLiked
                             coroutineScope.launch {
-                                if (isLiked) snackbarHostState.showSnackbar("已喜欢${characterName.ifBlank { "角色" }}的日记")
+                                if (isLiked) snackbarHostState.showSnackbar("已喜欢${displayName.ifBlank { "角色" }}的日记")
                             }
                         }
                     )
@@ -144,7 +146,7 @@ private fun DiaryReader(entry: DiaryEntry, isLiked: Boolean, onLike: () -> Unit)
                 }
             }
         }
-        Text("——${entry.authorName}", modifier = Modifier.align(Alignment.End), style = theme.text.body, color = theme.palette.onSurfaceMuted)
+        Text("——${publicCharacterName(entry.characterId, entry.authorName)}", modifier = Modifier.align(Alignment.End), style = theme.text.body, color = theme.palette.onSurfaceMuted)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             AiluaChip(
                 label = if (isLiked) "已喜欢" else "喜欢",

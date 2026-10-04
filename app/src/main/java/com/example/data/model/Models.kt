@@ -20,7 +20,7 @@ data class ChatMessage(
     val id: String,
     val sender: MessageSender,
     val senderCharacterId: String = "mira",
-    val senderName: String = "Mira",
+    val senderName: String = "苏晚宁",
     val type: MessageType = MessageType.TEXT,
     val text: String,
     val timestamp: String,

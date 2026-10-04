@@ -103,7 +103,7 @@ class DiaryProjectionTest {
 
     @Test
     fun seedWorldDiaryEventDoesNotDoubleRender() {
-        val pulse5 = event("pulse_5", description = "seed世界事实")
+        val pulse5 = event("six_mira_diary", description = "seed世界事实")
         val entries = projectDiary(
             "mira",
             listOf(pulse5),
@@ -111,10 +111,10 @@ class DiaryProjectionTest {
             seedEventIds = MockData.unifiedLifeEvents.mapTo(HashSet()) { it.id },
             authorNameOf = authorOf
         )
-        // pulse_5 is a seed world fact: never rendered as its own diary page —
-        // its authored prose already exists as seed diary_1 ("风吹进来的时候")
-        assertTrue(entries.none { it.id == "pulse_5" })
-        assertTrue(entries.any { it.id == "diary_1" })
+        // six_mira_diary is a seed world fact: never rendered as its own diary page —
+        // its authored prose already exists as six_diary_mira_1 ("留两块给自己")
+        assertTrue(entries.none { it.id == "six_mira_diary" })
+        assertTrue(entries.any { it.id == "six_diary_mira_1" })
         // All of this character's seed entries remain exactly once; other authors
         // must stay out even as the official cast grows.
         MockData.diaryEntries.filter { it.characterId == "mira" }.forEach { seed ->

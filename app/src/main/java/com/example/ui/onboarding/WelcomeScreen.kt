@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.example.data.ai.repository.ProviderGraph
+import com.example.data.character.runtime.CharacterRuntimeResolver
 import com.example.data.context.CharacterContext
 import com.example.data.model.CharacterProfile
 import com.example.data.registry.CharacterRegistry
@@ -43,9 +44,12 @@ fun WelcomeScreen(onFinish: (String, Boolean) -> Unit) {
     var step by remember { mutableIntStateOf(0) }
     var showConnection by remember { mutableStateOf(false) }
     var selectedId by remember { mutableStateOf(CharacterContext.currentId()) }
-    var showMore by remember { mutableStateOf(selectedId !in CharacterRegistry.OFFICIAL_ROMANCE_IDS) }
+    var showMore by remember { mutableStateOf(selectedId !in (CharacterRegistry.OFFICIAL_ROMANCE_IDS + CharacterRegistry.OFFICIAL_FRIENDSHIP_IDS)) }
     val official = CharacterRegistry.getOfficialRomanceCharacters()
-    val others = CharacterRegistry.getAllCharacters().filterNot { it.id in CharacterRegistry.OFFICIAL_ROMANCE_IDS }
+    val friends = CharacterRegistry.getOfficialFriendshipCharacters()
+    val others = CharacterRegistry.getAllCharacters().filterNot {
+        it.id in CharacterRegistry.OFFICIAL_ROMANCE_IDS || it.id in CharacterRegistry.OFFICIAL_FRIENDSHIP_IDS
+    }
     val connected = ProviderGraph.repository.activeProfile() != null
 
     Column(
@@ -69,16 +73,24 @@ fun WelcomeScreen(onFinish: (String, Boolean) -> Unit) {
                 AiluaChip(label = if (connected) "继续" else "暂时跳过", selected = true, onClick = { step = 2 })
             }
             2 -> {
-                AiluaSectionHeader("选择想认识的人")
+                Text("今晚，你想先认识谁？", style = theme.text.title, color = theme.palette.onSurface)
+                AiluaSectionHeader("心动对象")
                 official.forEach { character ->
                     WelcomeCharacterRow(character, selectedId == character.id) { selectedId = character.id }
                 }
-                AiluaSectionHeader("更多角色", actionLabel = if (showMore) "收起" else "展开", onAction = { showMore = !showMore })
-                if (showMore) {
+                AiluaSectionHeader("我的朋友")
+                Text("一起聊天、分享生活，也可以在群聊里见面。", style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
+                friends.forEach { character ->
+                    WelcomeCharacterRow(character, selectedId == character.id) { selectedId = character.id }
+                }
+                if (others.isNotEmpty()) {
+                    AiluaSectionHeader("其他角色", actionLabel = if (showMore) "收起" else "展开", onAction = { showMore = !showMore })
+                }
+                if (showMore && others.isNotEmpty()) {
                     others.forEach { character ->
                         WelcomeCharacterRow(character, selectedId == character.id) { selectedId = character.id }
                     }
-                    if (selectedId !in (official + others).map { it.id }) {
+                    if (selectedId !in (official + friends + others).map { it.id }) {
                         WelcomeCharacterRow(CharacterRegistry.getCharacter(selectedId), selected = true) {}
                     }
                 }
@@ -110,6 +122,10 @@ fun WelcomeScreen(onFinish: (String, Boolean) -> Unit) {
 @Composable
 private fun WelcomeCharacterRow(character: CharacterProfile, selected: Boolean, onSelect: () -> Unit) {
     val theme = LocalAiluaTheme.current
+    val runtime = CharacterRuntimeResolver.resolve(character.id)
+    val signature = if (CharacterRegistry.isUnmodifiedBuiltIn(character.id)) {
+        welcomeSignatures[character.id] ?: character.contextualQuote
+    } else character.contextualQuote
     AiluaSurface(modifier = Modifier.fillMaxWidth().clickable(onClick = onSelect).testTag("welcome_character_${character.id}")) {
         Row(
             Modifier.fillMaxWidth().padding(theme.layout.itemGap.dp),
@@ -117,10 +133,21 @@ private fun WelcomeCharacterRow(character: CharacterProfile, selected: Boolean, 
         ) {
             CharacterPortrait(character.id, PortraitVariant.AVATAR, Modifier.size(64.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(character.name, style = theme.text.section, color = theme.palette.onSurface)
+                Text(listOfNotNull(character.name, runtime.identity.age?.let { "$it 岁" }).joinToString(" · "),
+                    style = theme.text.section, color = theme.palette.onSurface)
                 Text(character.title, style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
+                Text("“$signature”", style = theme.text.secondary, color = theme.palette.onSurface)
             }
             if (selected) Text("已选", style = theme.text.caption, color = theme.palette.accent)
         }
     }
 }
+
+private val welcomeSignatures = mapOf(
+    "hewenchuan" to "楼下。下来拿东西。",
+    "zhoujianye" to "你五分钟没回我了，不会真睡了吧？",
+    "peixubai" to "有段声音想给你听。",
+    "mira" to "我刚烤多了一份，过来拿。",
+    "yuna" to "今天出门吗？我找到一家你会喜欢的店。",
+    "noa" to "先喝咖啡，再把事情说清楚。",
+)

@@ -1,6 +1,7 @@
 package com.example.data.registry
 
 import com.example.data.local.AiluaLocalStore
+import com.example.data.context.CharacterContext
 import com.example.data.mock.MockData
 import com.example.data.mock.OfficialCharacters
 import com.example.data.mock.WorldData
@@ -20,14 +21,16 @@ import java.util.UUID
  */
 object CharacterRegistry {
 
-    const val DEFAULT_CHARACTER_ID = "yan"
+    const val DEFAULT_CHARACTER_ID = "hewenchuan"
     val OFFICIAL_ROMANCE_IDS: List<String> = OfficialCharacters.romanceIds
+    val OFFICIAL_FRIENDSHIP_IDS: List<String> = OfficialCharacters.friendshipIds
+    val OFFICIAL_ROSTER_IDS: List<String> = OfficialCharacters.sixRosterIds
 
     // Built-in cards mapped to CharacterCard models
-    private val builtInCards = WorldData.allCards.associateBy { it.data.id }
+    private val builtInCards = (WorldData.allCards + WorldData.archiveCards).associateBy { it.data.id }
 
     // Dynamic registry combining built-ins and custom cards
-    private val _allCards = MutableStateFlow<Map<String, CharacterCard>>(builtInCards)
+    private val _allCards = MutableStateFlow<Map<String, CharacterCard>>(WorldData.allCards.associateBy { it.data.id })
     val allCards: StateFlow<Map<String, CharacterCard>> = _allCards.asStateFlow()
 
     init {
@@ -35,7 +38,10 @@ object CharacterRegistry {
     }
 
     fun refresh() {
-        val merged = builtInCards.toMutableMap()
+        val merged = WorldData.allCards.associateBy { it.data.id }.toMutableMap()
+        // Saved archive selections remain visible; archives are not fresh-install routes.
+        builtInCards[CharacterContext.currentId()]?.takeIf { it.data.id !in OFFICIAL_ROSTER_IDS }
+            ?.let { merged[it.data.id] = it }
         AiluaLocalStore.customCards.value.forEach { card ->
             val id = card.data.id.ifBlank { card.data.name.lowercase().replace(" ", "_") }
             merged[id] = card.copy(data = card.data.copy(id = id))
@@ -60,7 +66,7 @@ object CharacterRegistry {
         if (saved != null) {
             return WorldData.cardToProfile(saved.copy(data = saved.data.copy(id = characterId)))
         }
-        // Unedited built-ins retain their authored timelines and legacy memories.
+        // Current official profiles come from new cards, not the old Noa occupation.
         MockData.allCharacters[characterId]?.let { return it }
 
         // 2. Check registered cards (e.g. Luna or custom imported)
@@ -87,7 +93,7 @@ object CharacterRegistry {
 
     fun getCard(characterId: String): CharacterCard? {
         refresh()
-        return _allCards.value[characterId]
+        return _allCards.value[characterId] ?: builtInCards[characterId]
     }
 
     /** Saved built-in edits must not inherit the original persona through the shared world book. */
@@ -109,6 +115,11 @@ object CharacterRegistry {
     fun getAllCards(): List<CharacterCard> {
         refresh()
         return _allCards.value.values.toList()
+    }
+
+    fun getOfficialFriendshipCharacters(): List<CharacterProfile> {
+        refresh()
+        return OFFICIAL_FRIENDSHIP_IDS.map(::resolveProfile)
     }
 
     fun saveCharacterCard(card: CharacterCard): CharacterProfile {
@@ -137,7 +148,7 @@ object CharacterRegistry {
     }
 
     fun duplicateCharacter(characterId: String): CharacterCard {
-        val source = getCard(characterId) ?: WorldData.cardYan
+        val source = getCard(characterId) ?: WorldData.cardHeWenchuan
         val newId = "${source.data.id}_copy_${UUID.randomUUID()}"
         val copyCard = source.copy(
             data = source.data.copy(

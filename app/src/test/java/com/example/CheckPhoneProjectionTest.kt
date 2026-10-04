@@ -1,6 +1,7 @@
 package com.example
 
 import com.example.data.mock.MockData
+import com.example.data.mock.OfficialCharacters
 import com.example.data.model.LifeEvent
 import com.example.data.model.LifeEventType
 import com.example.data.projection.EMPTY_CHECK_PHONE_DATA
@@ -13,7 +14,7 @@ import org.junit.Test
  * CheckPhoneProjectionTest
  *
  * P3B-2 CheckPhone projection contract:
- * - Mira keeps her authored seed phone data; other characters start empty (never Mira's)
+ * - Every official character keeps their own authored seed; unknown IDs start empty (never another character's)
  * - traces project only from explicit facts (PHOTO -> gallery, metadata keys -> sections)
  * - seed world LifeEvents are excluded from trace generation
  * - no fabricated search history / drafts / browsing
@@ -51,12 +52,12 @@ class CheckPhoneProjectionTest {
         assertEquals(MockData.checkPhoneData.searchHistory, data.searchHistory)
         assertEquals(MockData.checkPhoneData.unsentDrafts, data.unsentDrafts)
         assertEquals(MockData.checkPhoneData.privateGallery, data.privateGallery)
-        assertTrue(data.recentlyPlayed.isNotEmpty())
+        assertEquals(MockData.checkPhoneData.recentlyPlayed, data.recentlyPlayed)
     }
 
     @Test
     fun otherCharacterNeverFallsBackToMiraData() {
-        val data = projectCheckPhone("yuna", emptyList())
+        val data = projectCheckPhone("unknown_test_character", emptyList())
         assertTrue(data.searchHistory.isEmpty())
         assertTrue(data.unsentDrafts.isEmpty())
         assertTrue(data.notes.isEmpty())
@@ -69,10 +70,20 @@ class CheckPhoneProjectionTest {
     }
 
     @Test
+    fun officialCharactersUseIndependentAuthoredPhoneSeeds() {
+        OfficialCharacters.sixRosterIds.forEach { id ->
+            val own = OfficialCharacters.checkPhoneByCharacter.getValue(id)
+            assertEquals(own, projectCheckPhone(id, emptyList()))
+            if (id != "mira") assertTrue(own.searchHistory != MockData.checkPhoneData.searchHistory)
+        }
+    }
+
+    @Test
     fun searchMetadataProjectsToSearchHistory() {
         val data = projectCheckPhone(
             "yuna",
-            listOf(event("e1", characterId = "yuna", metadata = mapOf("search_query" to "海边露营地")))
+            listOf(event("e1", characterId = "yuna", metadata = mapOf("search_query" to "海边露营地"))),
+            seedData = EMPTY_CHECK_PHONE_DATA,
         )
         assertEquals(listOf("海边露营地"), data.searchHistory)
     }
@@ -84,7 +95,8 @@ class CheckPhoneProjectionTest {
             listOf(
                 event("e1", characterId = "yuna", metadata = mapOf("draft" to "想说但没发送的话")),
                 event("e2", characterId = "yuna", metadata = mapOf("note" to "记得浇花"))
-            )
+            ),
+            seedData = EMPTY_CHECK_PHONE_DATA,
         )
         assertEquals(listOf("想说但没发送的话"), data.unsentDrafts)
         assertEquals(listOf("记得浇花"), data.notes)
@@ -104,7 +116,8 @@ class CheckPhoneProjectionTest {
                     description = "随手拍下",
                     imageReference = "flowers"
                 )
-            )
+            ),
+            seedData = EMPTY_CHECK_PHONE_DATA,
         )
         val photo = data.privateGallery.single()
         assertEquals("晚霞", photo.title)
@@ -128,7 +141,8 @@ class CheckPhoneProjectionTest {
                         "music_duration" to "3:42"
                     )
                 )
-            )
+            ),
+            seedData = EMPTY_CHECK_PHONE_DATA,
         )
         val track = data.recentlyPlayed.single()
         assertEquals("雨的演奏", track.title)
@@ -144,15 +158,16 @@ class CheckPhoneProjectionTest {
             listOf(
                 event("e1", characterId = "yuna", type = LifeEventType.THOUGHT),
                 event("e2", characterId = "yuna", type = LifeEventType.MEAL)
-            )
+            ),
+            seedData = EMPTY_CHECK_PHONE_DATA,
         )
         assertEquals(EMPTY_CHECK_PHONE_DATA, data)
     }
 
     @Test
     fun seedWorldEventsDoNotGenerateTraces() {
-        // pulse_4 is a seed PHOTO fact — its gallery entry already lives in Mira's seed data
-        val pulse4 = event("pulse_4", type = LifeEventType.PHOTO, imageReference = "flowers")
+        // New seed PHOTO facts must not create duplicate runtime traces.
+        val pulse4 = event("six_mira_photo", type = LifeEventType.PHOTO, imageReference = "flowers")
         val data = projectCheckPhone("mira", listOf(pulse4), seedEventIds = seedIds)
         assertEquals(MockData.checkPhoneData.privateGallery, data.privateGallery)
     }
@@ -163,7 +178,8 @@ class CheckPhoneProjectionTest {
             "yuna",
             listOf(
                 event("m1", characterId = "mira", metadata = mapOf("search_query" to "mira的搜索"))
-            )
+            ),
+            seedData = EMPTY_CHECK_PHONE_DATA,
         )
         assertEquals(EMPTY_CHECK_PHONE_DATA, data)
     }

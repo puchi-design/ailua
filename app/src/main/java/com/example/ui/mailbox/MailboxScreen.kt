@@ -45,6 +45,7 @@ import com.example.ui.components.WorldTimeDevSheet
 import com.example.ui.designsystem.AiluaChip
 import com.example.ui.designsystem.AiluaScreenScaffold
 import com.example.ui.designsystem.AiluaSurface
+import com.example.ui.designsystem.publicCharacterName
 import com.example.ui.themeengine.LocalAiluaTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -144,7 +145,7 @@ private fun LetterCard(letter: Letter, onClick: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(letter.senderName, modifier = Modifier.weight(1f), style = theme.text.section, color = theme.palette.onSurface)
+            Text(publicCharacterName(letter.characterId, letter.senderName), modifier = Modifier.weight(1f), style = theme.text.section, color = theme.palette.onSurface)
             Text(
                 if (isScheduled) "待送达" else if (isUnread) "未读" else "已读",
                 style = theme.text.caption,
@@ -174,7 +175,7 @@ private fun LetterReaderDialog(
             AiluaSurface(modifier = Modifier.fillMaxWidth().fillMaxSize(0.94f).testTag("letter_reader_dialog")) {
                 Column(modifier = Modifier.fillMaxSize().padding(theme.layout.screenHorizontalPadding.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(letter.senderName, style = theme.text.secondary, color = theme.palette.onSurfaceMuted, modifier = Modifier.weight(1f))
+                        Text(publicCharacterName(letter.characterId, letter.senderName), style = theme.text.secondary, color = theme.palette.onSurfaceMuted, modifier = Modifier.weight(1f))
                         IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, "关闭", tint = theme.palette.onSurfaceMuted) }
                     }
                     Column(
@@ -191,7 +192,7 @@ private fun LetterReaderDialog(
                             color = theme.palette.onSurface
                         )
                         if (letter.deliveryState != LetterDeliveryState.SCHEDULED) {
-                            Text("——${letter.senderName}", modifier = Modifier.align(Alignment.End), style = theme.text.body, color = theme.palette.onSurfaceMuted)
+                            Text("——${publicCharacterName(letter.characterId, letter.senderName)}", modifier = Modifier.align(Alignment.End), style = theme.text.body, color = theme.palette.onSurfaceMuted)
                         }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {

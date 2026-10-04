@@ -1,5 +1,14 @@
 # AILUA 项目记忆
 
+## P5.V 六人阵容（2026-10-05）
+
+- 用户最新指令已允许并要求正式六人头像；下文旧阶段的“不生成正式角色脸”仅描述 UIR 图标壁纸阶段，不再限制六人阵容任务。当前交付记录：`docs/design/P5_V_SIX_CHARACTER_IMPLEMENTATION_REPORT.md`。
+- 官方男性新持久 ID：`hewenchuan` 贺闻川、`zhoujianye` 周见野、`peixubai` 裴叙白，默认 romance。三位女性**保留旧持久 ID**：`mira` 苏晚宁、`yuna` 许朝颜、`noa` 宋知微，默认 friendship。公开素材目录分别为 `suwanning/xuchaoyan/songzhiwei`；不得直接改数据库 ID、复制成额外女性身份或在主 UI 显示旧名。
+- 六人 V2 卡在 `OfficialCharacters.kt` 与 `docs/characters/`。旧 `yan/yeo` 及原女角故事、照片、信件留在 `Legacy*` 档案，仅供既有引用读取。旧聊天正文、存储行和关系记录不改写；新用户默认内容另用 `six_*` ID。旧 Noa 历史可能与现今宋知微人设冲突，保持原文是保护存档的明确取舍。
+- 12 张正式头像在 `app/src/main/assets/characters/<public-slug>/avatar_{main,alt}.webp`，由 `CharacterAssetResolver` 和 `CharacterPortrait` 统一接入。来源、Prompt、参考图和资源 SHA 在 `docs/design/SIX_CHARACTER_AVATAR_ASSET_MANIFEST.json`；原图及 PNG 备份留本机，打包于 `dist/AILUA-six-character-avatars.zip`。`production` 仅指视觉整合，不代表服务商用条款已核验。
+- 新手页显示“心动对象”三男与“我的朋友”三女。此轮冻结业务 Runtime、数据库 schema、Workspace 及 Theme 链，不开始 P5.6、CG 或全身立绘。
+- Android 10 真机测试须确认**系统屏幕已解锁**：`dumpsys trust` 当前用户 `deviceLocked=1` 时，ADB 在线及 Activity resumed 仍无法做 Compose UI 测试，`mCurrentFocus=StatusBar`；若只显示锁屏，应请用户手动解锁，不把仪表脚本超时当 App 崩溃。`scripts/run_six_character_device_qa.py` 已加入锁屏预检。测试期间临时 `svc power stayon usb`，结束恢复原全局值 `0`。
+
 ## 当前施工与冻结基线
 
 - 分支 `local-pass3c-ai-runtime`。UIR-0→2 首轮基线为 `161fa130f683d0c85368971e384583d410731aec`。

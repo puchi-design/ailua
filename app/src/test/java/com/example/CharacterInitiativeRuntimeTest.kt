@@ -128,7 +128,7 @@ class CharacterInitiativeRuntimeTest {
                 CharacterInitiativeRuntime.decide(profile, now + index * CharacterInitiativeRuntime.WINDOW_MS, evidence, emptyList())?.type
             }.groupingBy { it }.eachCount()
         }
-        val yeo = counts.getValue("yeo"); val noa = counts.getValue("noa"); val yanCount = counts.getValue("yan")
+        val yeo = counts.getValue("zhoujianye"); val noa = counts.getValue("peixubai"); val yanCount = counts.getValue("hewenchuan")
         assertTrue(yeo.getOrDefault(ProactiveContentType.TEXT, 0) > noa.getOrDefault(ProactiveContentType.TEXT, 0))
         assertTrue(yeo.getOrDefault(ProactiveContentType.PHOTO, 0) > yanCount.getOrDefault(ProactiveContentType.PHOTO, 0))
         assertTrue(yeo.getOrDefault(ProactiveContentType.CALL_INVITE, 0) > noa.getOrDefault(ProactiveContentType.CALL_INVITE, 0))
@@ -143,7 +143,7 @@ class CharacterInitiativeRuntimeTest {
     }
 
     @Test fun savingCharactersPhotoDoesNotConsumeTheirAutonomousPhotoQuota() {
-        val profile = CharacterRuntimeResolver.resolve(OfficialCharacters.cardNoa.data)
+        val profile = CharacterRuntimeResolver.resolve(OfficialCharacters.cardNoa.data).let { it.copy(initiative = it.initiative.copy(photoFrequency = "low")) }
         val saved = LifeEvent("user_saved_photo", "noa", "09:00", LifeEventType.PHOTO, "用户收藏照片", "已收藏",
             worldDateLabel = clock.dateLabel, worldMinutesOfDay = 540, sourceAppId = "gallery", metadata = mapOf("actor" to LIFE_EVENT_ACTOR_USER))
         assertEquals(0, CharacterInitiativeQuota.used("noa", clock.dateLabel, "photo", listOf(saved)))

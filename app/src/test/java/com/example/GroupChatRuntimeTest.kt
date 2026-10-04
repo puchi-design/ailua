@@ -70,7 +70,7 @@ class GroupChatRuntimeTest {
         assertEquals(1, fixture.memoryRepository.getMemories("mira").size)
         assertTrue(fixture.memoryRepository.getMemories("yuna").isEmpty())
 
-        assertEquals(SendResult.Completed, fixture.runtime.sendGroup("rain_tea", participants, "小弥和悠奈今天怎么样？"))
+        assertEquals(SendResult.Completed, fixture.runtime.sendGroup("rain_tea", participants, "苏晚宁和许朝颜今天怎么样？"))
         val afterTwo = fixture.repository.getResolvedTurns(session.id)
         assertEquals(5, afterTwo.size)
         assertEquals(listOf("mira", "yuna"), afterTwo.takeLast(2).mapNotNull {

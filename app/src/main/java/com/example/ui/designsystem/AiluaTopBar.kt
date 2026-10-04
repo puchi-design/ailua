@@ -30,6 +30,7 @@ fun AiluaTopBar(
     modifier: Modifier = Modifier,
     onTitleClick: (() -> Unit)? = null,
     backTestTag: String? = null,
+    leading: (@Composable () -> Unit)? = null,
 ) {
     val theme = LocalAiluaTheme.current
     Row(
@@ -42,6 +43,7 @@ fun AiluaTopBar(
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回", Modifier.size(22.dp), tint = theme.palette.onSurface)
             }
         }
+        leading?.invoke()
         Column(
             Modifier.weight(1f)
                 .then(if (onTitleClick != null) Modifier.clickable(onClick = onTitleClick) else Modifier)

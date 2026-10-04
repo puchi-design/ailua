@@ -4,6 +4,8 @@ import com.example.data.engine.WorldStateRepository
 import com.example.data.character.initiative.projectInitiativeLetters
 import com.example.data.relationship.romance.RomanceRepository
 import com.example.data.mock.OfficialCharacters
+import com.example.data.mock.LegacyOfficialCharacters
+import com.example.data.registry.CharacterRegistry
 import com.example.data.local.AiluaLocalStore
 import com.example.data.model.Letter
 import com.example.data.model.LetterDeliveryState
@@ -19,7 +21,8 @@ import kotlinx.coroutines.flow.asStateFlow
 
 object MailboxRepository {
 
-    private val initialLetters = listOf(
+    /** Compatibility content is readable only when a saved receipt or event refers to it. */
+    val archivedLetters = listOf(
         Letter(
             id = "letter_mira_1",
             characterId = "mira",
@@ -61,9 +64,15 @@ object MailboxRepository {
             relatedLifeEventId = "pulse_11",
             paperColorHex = 0xFFF5F3ED
         )
-    )
+    ) + LegacyOfficialCharacters.letters
 
-    private val _letters = MutableStateFlow<List<Letter>>(OfficialCharacters.letters + initialLetters)
+    private val _letters = MutableStateFlow<List<Letter>>(
+        OfficialCharacters.letters + archivedLetters.filter { letter ->
+            letter.id in AiluaLocalStore.deliveredLetterIds.value ||
+                letter.id in AiluaLocalStore.openedLetterIds.value ||
+                AiluaLocalStore.savedWorldEvents.value.any { it.sourceRefId == letter.id }
+        }
+    )
     val letters: StateFlow<List<Letter>> = _letters.asStateFlow()
 
     private val _unreadCount = MutableStateFlow(0)
@@ -125,7 +134,7 @@ object MailboxRepository {
                         type = LifeEventType.THOUGHT,
                         title = "${letter.senderName}寄达了新信笺",
                         description = "《${letter.subject}》已轻轻投递至心网信箱，等待你开启品读。",
-                        location = if (letter.characterId == "mira") "青石街23号" else if (letter.characterId == "yuna") "街角全家便利店" else "月光书阁",
+                        location = CharacterRegistry.getCharacter(letter.characterId).location,
                         sourceAppId = "mailbox",
                         sourceRefId = letter.id
                     )

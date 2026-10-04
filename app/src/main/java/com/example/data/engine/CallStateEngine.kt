@@ -30,20 +30,8 @@ object CallStateEngine {
     private val _isSpeaker = MutableStateFlow(true)
     val isSpeaker: StateFlow<Boolean> = _isSpeaker.asStateFlow()
 
-    private val defaultHistory = listOf(
-        CallSession(
-            id = "call_past_1",
-            characterId = "mira",
-            callerName = "小弥",
-            avatarId = "mira",
-            type = CallType.VOICE,
-            state = CallState.ENDED,
-            reason = "傍晚散步时的随心轻语",
-            scheduledAtMinutes = 18 * 60 + 20,
-            scheduledAtTime = "18:20",
-            durationSeconds = 142
-        )
-    )
+    // New users have no completed calls. Persisted call history remains authoritative.
+    private val defaultHistory = emptyList<CallSession>()
 
     private val _callHistory = MutableStateFlow<List<CallSession>>(initialHistory())
     val callHistory: StateFlow<List<CallSession>> = _callHistory.asStateFlow()
@@ -62,8 +50,8 @@ object CallStateEngine {
 
     fun triggerIncomingCall(
         characterId: String = "mira",
-        callerName: String = "小弥",
-        reason: String = "窗外雨下得很大，要不要陪我听一会儿？",
+        callerName: String = "苏晚宁",
+        reason: String = "刚烤好一盘司康，要不要聊几句？",
         timeLabel: String = "22:45",
         userInitiated: Boolean = false,
     ): CallSession {

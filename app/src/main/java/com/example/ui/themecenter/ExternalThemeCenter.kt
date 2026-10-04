@@ -51,7 +51,7 @@ private val editableApps = listOf(
     "mailbox" to "信箱", "gallery" to "相册", "chat" to "消息", "living" to "生活",
     "moments" to "动态", "contacts" to "联系人", "call" to "通话记录",
     "memories" to "记忆", "relations" to "关系", "diary" to "日记",
-    "theater" to "剧场", "check_phone" to "他的手机", "apps" to "应用库"
+    "theater" to "剧场", "check_phone" to "手机", "apps" to "应用库"
 )
 
 @Composable

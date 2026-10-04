@@ -1,0 +1,61 @@
+{
+  "createdAt": "2026-10-04T18:42:00+00:00",
+  "board": "docs/design/six-character-assets/six-main-review.png",
+  "sha256": "48311685048d32731ec9209ed94aacb0c64798645ab142ee4ec042512c6f0602",
+  "dimensions": [
+    1052,
+    888
+  ],
+  "method": "Proportional 512→320 LANCZOS thumbnail; original square preserved, no retouching or drawn avatar",
+  "reviewStatus": "await-root-actual-view",
+  "sources": [
+    {
+      "characterId": "hewenchuan",
+      "storageCharacterId": "hewenchuan",
+      "name": "贺闻川",
+      "variant": "main",
+      "resource": "app/src/main/assets/characters/hewenchuan/avatar_main.webp",
+      "resourceSha256": "182d649de110e906f46115c65d2d4b0911e94754f8ee3f17b7e35fbbc87c6bf7"
+    },
+    {
+      "characterId": "zhoujianye",
+      "storageCharacterId": "zhoujianye",
+      "name": "周见野",
+      "variant": "main",
+      "resource": "app/src/main/assets/characters/zhoujianye/avatar_main.webp",
+      "resourceSha256": "449256dcf2ede8fd3f45c1be334e16175163a1e1c694a5b01632e1017331a925"
+    },
+    {
+      "characterId": "peixubai",
+      "storageCharacterId": "peixubai",
+      "name": "裴叙白",
+      "variant": "main",
+      "resource": "app/src/main/assets/characters/peixubai/avatar_main.webp",
+      "resourceSha256": "028f48b0af451df6f7c6d266e88c40ffd61521688bd94ba38ce6e7b32b3cbf7d"
+    },
+    {
+      "characterId": "suwanning",
+      "storageCharacterId": "mira",
+      "name": "苏晚宁",
+      "variant": "main",
+      "resource": "app/src/main/assets/characters/suwanning/avatar_main.webp",
+      "resourceSha256": "c6585e46f00fc52b0f2226eea701be5c3727236b8ae0830165fd11ba260b7df7"
+    },
+    {
+      "characterId": "xuchaoyan",
+      "storageCharacterId": "yuna",
+      "name": "许朝颜",
+      "variant": "main",
+      "resource": "app/src/main/assets/characters/xuchaoyan/avatar_main.webp",
+      "resourceSha256": "c0d62ef8b4b66d4afb76d101ed0bd72ba840549055c7a8dc28612dd004d57927"
+    },
+    {
+      "characterId": "songzhiwei",
+      "storageCharacterId": "noa",
+      "name": "宋知微",
+      "variant": "main",
+      "resource": "app/src/main/assets/characters/songzhiwei/avatar_main.webp",
+      "resourceSha256": "e8959ab371e2542e79a812836e5de2578e636adc3cca89e972ea902864595ff2"
+    }
+  ]
+}

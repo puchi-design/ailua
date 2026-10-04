@@ -29,6 +29,7 @@ import com.example.data.model.CallSession
 import com.example.ui.components.VirtualPhoneStatusBar
 import com.example.ui.designsystem.CharacterPortrait
 import com.example.ui.designsystem.PortraitVariant
+import com.example.ui.designsystem.publicCharacterName
 import com.example.ui.themeengine.LocalAiluaTheme
 import kotlinx.coroutines.delay
 
@@ -64,7 +65,8 @@ fun CallScreen(
         Spacer(Modifier.weight(0.65f))
         CharacterPortrait(currentCall?.characterId ?: characterId, PortraitVariant.HERO)
         Spacer(Modifier.height(theme.layout.sectionGap.dp))
-        Text(currentCall?.callerName ?: CharacterRegistry.getCharacter(characterId).name, style = theme.text.display, color = theme.palette.onSurface)
+        Text(publicCharacterName(currentCall?.characterId ?: characterId, currentCall?.callerName ?: CharacterRegistry.getCharacter(characterId).name),
+            style = theme.text.display, color = theme.palette.onSurface)
         Spacer(Modifier.height(12.dp))
         Text(durationText, style = theme.text.title, color = theme.palette.onSurface)
         Text("正在通话", style = theme.text.secondary, color = theme.palette.onSurfaceMuted)

@@ -41,6 +41,7 @@ import com.example.data.projection.projectCheckPhone
 import com.example.ui.designsystem.AiluaMediaFrame
 import com.example.ui.designsystem.AiluaScreenScaffold
 import com.example.ui.designsystem.AiluaSectionHeader
+import com.example.ui.designsystem.publicCharacterName
 import com.example.ui.themeengine.LocalAiluaTheme
 
 @Composable
@@ -49,10 +50,11 @@ fun CheckPhoneScreen(
     onToggleTheme: () -> Unit = {},
     onBackToHome: () -> Unit = {},
     characterId: String = "mira",
-    characterName: String = "小弥",
+    characterName: String = "苏晚宁",
     onGoHome: () -> Unit = onBackToHome,
 ) {
     val theme = LocalAiluaTheme.current
+    val displayName = publicCharacterName(characterId, characterName)
     val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
     val data = remember(characterId, worldEvents) {
         projectCheckPhone(characterId = characterId, runtimeEvents = worldEvents)
@@ -60,8 +62,7 @@ fun CheckPhoneScreen(
     var isMusicPlaying by remember { mutableStateOf(true) }
 
     AiluaScreenScaffold(
-        title = "他的手机",
-        subtitle = characterName,
+        title = "${displayName}的手机",
         onBack = onBackToHome,
         onGoHome = onGoHome,
         backTestTag = "check_phone_back_btn",

@@ -175,7 +175,7 @@ fun CharacterCreatorScreen(
                 item {
                     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
-                        CharacterPortrait(data.id, PortraitVariant.PROFILE, avatarReferenceOverride = data.avatarReference)
+                        CharacterPortrait(data.id, PortraitVariant.PROFILE, avatarReferenceOverride = data.avatarReference, characterNameOverride = data.name)
                         AiluaChip("选择角色照片", onClick = { choosePhoto.launch(arrayOf("image/*")) }, modifier = Modifier.testTag("creator_photo_btn"))
                     }
                 }
@@ -323,7 +323,7 @@ fun CharacterCreatorScreen(
                         showTemplates = false
                         error = null
                     }.padding(vertical = theme.layout.itemGap.dp), horizontalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
-                        CharacterPortrait(card.data.id, PortraitVariant.AVATAR, avatarReferenceOverride = card.data.avatarReference)
+                        CharacterPortrait(card.data.id, PortraitVariant.AVATAR, avatarReferenceOverride = card.data.avatarReference, characterNameOverride = card.data.name)
                         Column(Modifier.weight(1f)) {
                             Text(card.data.name, style = theme.text.body)
                             Text(card.data.tags.joinToString(" · "), style = theme.text.caption, color = theme.palette.onSurfaceMuted)

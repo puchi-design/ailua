@@ -27,7 +27,7 @@ object LauncherAppCatalog {
 
     // Navigation labels only; persisted IDs, routes and original search aliases stay intact.
     private val displayLabels = mapOf(
-        "chat" to "消息", "gallery" to "相册", "check_phone" to "他的手机",
+        "chat" to "消息", "gallery" to "相册", "check_phone" to "手机",
         "relations" to "关系", "companion_call" to "通话", "world_map" to "地点",
         "lore_books" to "世界书", "character_creation" to "角色工坊", "theater" to "剧场",
         "reality_bridge" to "现实连接",

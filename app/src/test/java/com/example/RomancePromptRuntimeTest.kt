@@ -31,19 +31,19 @@ class RomancePromptRuntimeTest {
         }
         categories.forEachIndexed { index, category ->
             val replies = examples.values.map { it[index].substringAfter("{{char}}:").trim() }
-            assertEquals("$category responses must not share one template", 3, replies.toSet().size)
+            assertEquals("$category responses must not share one template", 6, replies.toSet().size)
         }
         OfficialCharacters.cards.forEach { card ->
             val instructions = card.data.systemPrompt
-            listOf("辛苦了", "我会一直陪着你", "你已经做得很好了", "无论如何我都支持你", "真实语境确实适合", "不把每次日常都解释为爱情")
+            listOf("辛苦了", "我会一直陪着你", "你已经做得很好了", "无论如何我都支持你", "依据真实互动", "不随时围着用户转")
                 .forEach { assertTrue("${card.data.id}: missing $it", instructions.contains(it)) }
         }
     }
 
     @Test
     fun runtimeCarriesDistinctVoiceJealousyConflictAndProgressionWithoutWholeJson() {
-        val expectedStyles = mapOf("yan" to "slow_trust", "yeo" to "expressive", "noa" to "reserved")
-        val rendered = OfficialCharacters.cards.map { card ->
+        val expectedStyles = mapOf("hewenchuan" to "slow_trust", "zhoujianye" to "expressive", "peixubai" to "reserved")
+        val rendered = OfficialCharacters.cards.filter { it.data.id in OfficialCharacters.romanceIds }.map { card ->
             val runtime = CharacterRuntimeResolver.resolve(card.data)
             assertEquals(RuntimeSource.OFFICIAL, runtime.source)
             assertEquals(expectedStyles.getValue(card.data.id), runtime.relationship.progressionStyle)

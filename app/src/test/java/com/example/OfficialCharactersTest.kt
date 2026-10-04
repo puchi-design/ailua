@@ -8,6 +8,7 @@ import com.example.data.engine.WorldHeartbeatEngine
 import com.example.data.engine.WorldPlanRuntime
 import com.example.data.engine.WorldPlanValidator
 import com.example.data.local.AiluaLocalStore
+import com.example.data.mock.LegacyMockData
 import com.example.data.mock.MockData
 import com.example.data.mock.OfficialCharacters
 import com.example.data.mock.WorldData
@@ -41,17 +42,17 @@ class OfficialCharactersTest {
         assertEquals(plan, restored)
         assertEquals(clock.dateLabel, restored.createdWorldDate)
         assertEquals(clock.minutesOfDay, restored.createdMinutes)
-        assertEquals(5, restored.actions.size)
+        assertEquals(6, restored.actions.size)
         assertEquals(OfficialDemoWorldPlan.actions.map { it.id }, restored.actions.map { it.id })
         assertTrue(restored.actions.all { it.triggerWorldDate == clock.dateLabel && it.triggerMinutes > clock.minutesOfDay })
         assertTrue(WorldPlanValidator.validate(restored, clock, emptyList(), OfficialCharacters.lifeEvents))
         assertFalse(WorldPlanRuntime.needsPlan(clock, restored.actions))
         val call = restored.actions.single { it.type == ScheduledActionType.INCOMING_CALL }
-        assertEquals("yeo", call.characterId)
+        assertEquals("zhoujianye", call.characterId)
         assertEquals(22 * 60 + 45, call.triggerMinutes)
         assertEquals(LifeEventType.MESSAGE, call.lifeEventType)
-        assertEquals("河岸摄影工作室", call.location)
-        assertEquals(setOf("yan", "yeo", "noa"), restored.actions.map { it.characterId }.toSet())
+        assertEquals("回声排练室", call.location)
+        assertEquals(OfficialCharacters.sixRosterIds.toSet(), restored.actions.map { it.characterId }.toSet())
         assertEquals(LifeEventType.SLEEP, restored.actions.last().lifeEventType)
     }
 
@@ -59,7 +60,7 @@ class OfficialCharactersTest {
     fun lateInitialPlanDoesNotReplayMissedEventsOrMoveThemToTomorrow() {
         val date = "10月4日"
         val plan = OfficialDemoWorldPlan.createPlan(date, 22 * 60)
-        assertEquals(listOf("official_sched_noa_note", "official_sched_yeo_call", "official_sched_yan_sleep"), plan.actions.map { it.id })
+        assertEquals(OfficialDemoWorldPlan.actions.filter { it.triggerTimeMinutes > 22 * 60 }.map { it.id }, plan.actions.map { it.id })
         assertTrue(plan.actions.all { it.triggerWorldDate == date && it.triggerMinutes > 22 * 60 })
         assertTrue(OfficialDemoWorldPlan.createPlan(date, 23 * 60 + 40).actions.isEmpty())
     }
@@ -95,20 +96,25 @@ class OfficialCharactersTest {
 
     @Test
     fun officialRosterIsExplicitWhileLegacyAndCustomRemainSelectable() {
-        assertEquals("yan", CharacterRegistry.DEFAULT_CHARACTER_ID)
-        assertEquals(listOf("yan", "yeo", "noa"), CharacterRegistry.OFFICIAL_ROMANCE_IDS)
-        assertEquals(listOf("yan", "yeo", "noa"), CharacterRegistry.getOfficialRomanceCharacters().map { it.id })
-        assertEquals(listOf("yan", "yeo", "noa", "mira", "yuna"), CharacterRegistry.getAllCharacters().take(5).map { it.id })
-        assertEquals("小弥", CharacterRegistry.getCharacter("mira").name)
-        assertEquals("悠奈", CharacterRegistry.getCharacter("yuna").name)
-        assertTrue(WorldData.cardMira.data.systemPrompt.contains("女孩"))
-        assertTrue(WorldData.cardYuna.data.systemPrompt.contains("少女"))
+        assertEquals("hewenchuan", CharacterRegistry.DEFAULT_CHARACTER_ID)
+        assertEquals(listOf("hewenchuan", "zhoujianye", "peixubai"), CharacterRegistry.OFFICIAL_ROMANCE_IDS)
+        assertEquals(listOf("mira", "yuna", "noa"), CharacterRegistry.OFFICIAL_FRIENDSHIP_IDS)
+        assertEquals(OfficialCharacters.romanceIds, CharacterRegistry.getOfficialRomanceCharacters().map { it.id })
+        assertEquals(OfficialCharacters.friendshipIds, CharacterRegistry.getOfficialFriendshipCharacters().map { it.id })
+        assertEquals(OfficialCharacters.sixRosterIds, CharacterRegistry.getAllCharacters().take(6).map { it.id })
+        assertEquals("苏晚宁", CharacterRegistry.getCharacter("mira").name)
+        assertEquals("许朝颜", CharacterRegistry.getCharacter("yuna").name)
+        assertEquals("宋知微", CharacterRegistry.getCharacter("noa").name)
+        assertEquals("friendship", AiluaCharacterExtensionCodec.read(WorldData.cardNoa.data).relationship.routeType)
+        assertEquals("female", AiluaCharacterExtensionCodec.read(WorldData.cardNoa.data).identity.gender)
+        assertEquals("yan", CharacterRegistry.getCard("yan")!!.data.id)
+        assertEquals("yeo", CharacterRegistry.getCard("yeo")!!.data.id)
         assertEquals("unregistered_identity", CharacterRegistry.getCharacter("unregistered_identity").id)
     }
 
     @Test
     fun standardV2ExportKeepsDistinctAdultIdentitiesAndRoleBooks() {
-        val expected = mapOf("yan" to 26, "yeo" to 22, "noa" to 28)
+        val expected = mapOf("hewenchuan" to 28, "zhoujianye" to 23, "peixubai" to 27, "mira" to 25, "yuna" to 24, "noa" to 26)
         OfficialCharacters.cards.forEach { original ->
             val exported = CharacterCardJsonCodec.encode(original)
             val restored = CharacterCardJsonCodec.decode(exported)
@@ -116,9 +122,9 @@ class OfficialCharactersTest {
             val extension = AiluaCharacterExtensionCodec.read(data)
             assertEquals(original.data.id, data.id)
             assertEquals("chara_card_v2", restored.spec)
-            assertEquals("male", extension.identity.gender)
+            assertEquals(if (data.id in OfficialCharacters.romanceIds) "male" else "female", extension.identity.gender)
             assertEquals(expected[data.id], extension.identity.age)
-            assertEquals("romance", extension.relationship.routeType)
+            assertEquals(if (data.id in OfficialCharacters.romanceIds) "romance" else "friendship", extension.relationship.routeType)
             assertEquals(original.data.description, data.description)
             assertEquals(original.data.exampleMessages, data.exampleMessages)
             assertEquals(original.data.systemPrompt, data.systemPrompt)
@@ -136,7 +142,7 @@ class OfficialCharactersTest {
             assertTrue(extension.behavior.vulnerabilities.isNotEmpty())
             assertTrue(extension.behavior.conflictPatterns.isNotEmpty())
         }
-        assertEquals(3, OfficialCharacters.cards.map { AiluaCharacterExtensionCodec.read(it.data).identity.occupation }.distinct().size)
+        assertEquals(6, OfficialCharacters.cards.map { AiluaCharacterExtensionCodec.read(it.data).identity.occupation }.distinct().size)
         val registeredIds = WorldData.allCards.map { it.data.id }.toSet()
         OfficialCharacters.cards.forEach { card ->
             val peers = AiluaCharacterExtensionCodec.read(card.data).life.socialCircle
@@ -147,13 +153,14 @@ class OfficialCharactersTest {
 
     @Test
     fun savedBuiltinCardOverridesAllProfileEntryPointsWithoutEnforcingGenderOrRoute() {
-        val id = "yan"
+        val id = "hewenchuan"
         val previous = AiluaLocalStore.customCards.value.firstOrNull { it.data.id == id }
-        val base = OfficialCharacters.cardYan
-        val editedExtension = OfficialCharacters.yanExtension.copy(
-            identity = OfficialCharacters.yanExtension.identity.copy(gender = "female", occupation = "测试编辑职业"),
-            relationship = OfficialCharacters.yanExtension.relationship.copy(routeType = "friend", initialRelation = "朋友"),
-            life = OfficialCharacters.yanExtension.life.copy(workplace = "编辑后的工作室"),
+        val base = OfficialCharacters.cardHeWenchuan
+        val originalExtension = AiluaCharacterExtensionCodec.read(base.data)
+        val editedExtension = originalExtension.copy(
+            identity = originalExtension.identity.copy(gender = "female", occupation = "测试编辑职业"),
+            relationship = originalExtension.relationship.copy(routeType = "friend", initialRelation = "朋友"),
+            life = originalExtension.life.copy(workplace = "编辑后的工作室"),
         )
         val edited = base.copy(data = base.data.copy(
             name = "保存后的角色", description = "使用者保存的角色说明", avatarReference = "user_portrait",
@@ -188,9 +195,9 @@ class OfficialCharactersTest {
         val diaries = OfficialCharacters.diaryEntries.associateBy { it.id }
         val placeIds = WorldData.virtualPlaces.map { it.id }.toSet()
         assertEquals(events.size, eventIds.size)
-        assertTrue(eventIds.all { it.startsWith("official_") })
+        assertTrue(eventIds.all { it.startsWith("six_") })
         assertEquals(MockData.unifiedLifeEvents.size, MockData.unifiedLifeEvents.distinctBy { it.id }.size)
-        OfficialCharacters.romanceIds.forEach { id ->
+        OfficialCharacters.sixRosterIds.forEach { id ->
             assertTrue(events.count { it.characterId == id } >= 5)
             assertTrue(OfficialCharacters.profiles.getValue(id).timeline.isNotEmpty())
             assertTrue(OfficialCharacters.diaryEntries.any { it.characterId == id })
@@ -209,21 +216,21 @@ class OfficialCharactersTest {
             assertEquals(letter.characterId, events.single { it.id == letter.relatedLifeEventId }.characterId)
         }
         WorldData.virtualPlaces.forEach { place -> assertTrue(place.connectedPlaceIds.all { it in placeIds }) }
-        assertEquals(3, events.filter { it.type == LifeEventType.SOCIAL }.map { it.characterId }.distinct().size)
+        assertEquals(6, events.filter { it.type == LifeEventType.SOCIAL }.map { it.characterId }.distinct().size)
     }
 
     @Test
     fun originalLifeDiaryAndTheaterIdentitiesAreNotRelabeledAsNewMen() {
-        assertEquals("mira", MockData.unifiedLifeEvents.single { it.id == "pulse_1" }.characterId)
-        assertEquals("yuna", MockData.unifiedLifeEvents.single { it.id == "pulse_10" }.characterId)
-        assertEquals("noa", MockData.unifiedLifeEvents.single { it.id == "pulse_11" }.characterId)
-        assertTrue(MockData.unifiedLifeEvents.single { it.id == "pulse_11" }.description.contains("夜色是世界"))
-        assertEquals("mira", MockData.diaryEntries.single { it.id == "diary_1" }.characterId)
+        assertEquals("mira", LegacyMockData.unifiedLifeEvents.single { it.id == "pulse_1" }.characterId)
+        assertEquals("yuna", LegacyMockData.unifiedLifeEvents.single { it.id == "pulse_10" }.characterId)
+        assertEquals("noa", LegacyMockData.unifiedLifeEvents.single { it.id == "pulse_11" }.characterId)
+        assertTrue(LegacyMockData.unifiedLifeEvents.single { it.id == "pulse_11" }.description.contains("夜色是世界"))
+        assertEquals("mira", LegacyMockData.diaryEntries.single { it.id == "diary_1" }.characterId)
         assertEquals("story_rainy_tea", WorldData.rainyNightStory.id)
         assertTrue("mira" in WorldData.rainyNightStory.characterIds)
         assertFalse("yan" in WorldData.rainyNightStory.characterIds)
-        assertEquals("mn1", MockData.characterNoa.memories.single().id)
-        assertTrue(OfficialCharacters.profiles.getValue("yan").memories.isEmpty())
-        assertTrue(OfficialCharacters.profiles.getValue("yeo").memories.isEmpty())
+        assertEquals("mn1", LegacyMockData.characterNoa.memories.single().id)
+        assertTrue(OfficialCharacters.profiles.getValue("hewenchuan").memories.isEmpty())
+        assertTrue(OfficialCharacters.profiles.getValue("zhoujianye").memories.isEmpty())
     }
 }

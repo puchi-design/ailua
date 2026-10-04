@@ -372,9 +372,9 @@ object WorldHeartbeatEngine {
             type = LifeEventType.THOUGHT,
             title = "${character.name}的主动牵挂",
             description = when (characterId) {
-                "yuna" -> "悠奈在心网发来提示：刚才看到天边有彩虹，一定要提醒你抬头看！🌈"
-                "noa" -> "诺亚在书阁整理笔记时，摘录了一句适合今晚心绪的诗句发到了你的便签。"
-                "mira" -> "小弥伸手轻触飘窗风铃，为你把保温垫上的红茶温度调整到最佳。"
+                "yuna" -> "许朝颜发来一张街角新店的照片，问你周末要不要一起去看看。"
+                "noa" -> "宋知微刚看完一场展览，把一段让她想了很久的文字发给你。"
+                "mira" -> "苏晚宁烤多了一份司康，问你今天有没有空来拿。"
                 else -> "${character.name}${character.currentActivity}。"
             },
             location = character.location,

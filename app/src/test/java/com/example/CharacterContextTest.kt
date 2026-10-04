@@ -10,7 +10,7 @@ import org.junit.Test
  * CharacterContextTest
  *
  * P3B-3 active companion contract:
- * - bootstrap default is Yan; persisted legacy identities remain compatible
+ * - bootstrap default is HeWenchuan; persisted legacy identities remain compatible
  * - selection is observable and programmatic
  * - profiles resolve through CharacterRegistry: an unknown character ID keeps its
  *   own identity and NEVER falls back to Mira
@@ -23,9 +23,9 @@ class CharacterContextTest {
     }
 
     @Test
-    fun bootstrapDefaultIsYan() {
-        assertEquals("yan", CharacterContext.selectedId.value)
-        assertEquals("yan", CharacterContext.currentCharacter().id)
+    fun bootstrapDefaultIsHeWenchuan() {
+        assertEquals("hewenchuan", CharacterContext.selectedId.value)
+        assertEquals("hewenchuan", CharacterContext.currentCharacter().id)
     }
 
     @Test

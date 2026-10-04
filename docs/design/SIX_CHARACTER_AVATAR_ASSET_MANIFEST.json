@@ -1,0 +1,1463 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-10-04T19:03:11+00:00",
+  "scope": "six adult characters, main + same-identity expression alternate; no CG/full-body production",
+  "assetDirectoryIdentity": "public asset slug; storageCharacterId preserves mira/yuna/noa for existing female saves",
+  "summary": {
+    "expected": 12,
+    "validOriginals": 12,
+    "statusCounts": {
+      "production": 12
+    },
+    "visualReviewCounts": {
+      "approved": 12
+    }
+  },
+  "generation": {
+    "model": "gpt-image-2",
+    "service": "https://www.vibework.live/v1",
+    "requestedSize": "1024x1024",
+    "requestedQuality": "high",
+    "actualDimensionsRecordedPerSource": true,
+    "networkRunner": "imagegen skill bundled image_gen.py only; this preparation script has no network or SDK calls",
+    "batchNoAugment": "Pass --no-augment globally; the JSONL no_augment field alone is not interpreted by the bundled batch CLI"
+  },
+  "reviewBoards": [
+    {
+      "path": "docs/design/six-character-assets/six-alt-review.json",
+      "sha256": "7106f3d0b96ab669e44b2979127c6353efc07df286a17326d24b4d9db88313e7"
+    },
+    {
+      "path": "docs/design/six-character-assets/six-circle-native-review.json",
+      "sha256": "493d5cebf72a3fe3ffd20da1813ee1e9e26a1acffc154ce4ee75c5f03d501b57"
+    },
+    {
+      "path": "docs/design/six-character-assets/six-main-review.json",
+      "sha256": "41f52ce9fbdd90648a80123cdb5a8c3eb651015682e908e710fee0a781712569"
+    }
+  ],
+  "assets": [
+    {
+      "characterId": "hewenchuan",
+      "storageCharacterId": "hewenchuan",
+      "name": "贺闻川",
+      "variant": "main",
+      "status": "production",
+      "source": {
+        "path": "output/imagegen/six-characters/raw/hewenchuan-main-v2.png",
+        "valid": true,
+        "exists": true,
+        "bytes": 2261439,
+        "sha256": "a3c3857a6eff27143207a99f1ec4d3764f4291c8347a0714c90508f5aa774b74",
+        "actualDimensions": [
+          1254,
+          1254
+        ],
+        "actualMode": "RGB",
+        "orientedDimensions": [
+          1254,
+          1254
+        ],
+        "alphaRange": [
+          255,
+          255
+        ],
+        "sourceOpaque": true,
+        "sampleColorStdDev": 64.4013
+      },
+      "prompt": {
+        "recordPath": "docs/design/SIX_CHARACTER_AVATAR_PROMPTS.jsonl",
+        "recordFileSha256": "3d299a260c8ab141bc5b05896fdf92765c3056819c3f27ce6f2313a4de4709af",
+        "prompt": "Use case: style-transfer. Input image 1 is the identity and composition reference for this one adult character, 贺闻川. Redraw this exact person as a premium contemporary otome / narrative visual novel SEMI-REALISTIC TWO-DIMENSIONAL PAINTED ANIME avatar, unmistakably an illustration rather than a photograph. Preserve their individual facial proportions, age, gender, hair silhouette and part direction, distinctive complexion, expression, clothing, accessories, palette, camera framing and background scene. Keep the six-person casting differences intact. Use carefully designed fine ink-like contours around eyes, nose, lips and hair; grouped painterly shading planes with subtle brush strokes; slightly simplified anime face rendering while retaining adult facial structure; hand-painted highlights rather than photographic pores or hyperreal skin. Avoid oversmoothing, generic idol face, plasticky 3D, doll eyes, teenification, huge eyes, face replacement or glossy lens effects. Keep the face readable in a 48px circular crop. Exactly one person, same full-bleed square composition, no text, watermark, frame or ring. Change only the rendering medium and texture, not the person or mood. Match the cohesive polished 2.5D painted visual-novel look across the cast, without making their face shapes or facial expressions alike.",
+        "promptSha256": "423c63cf201d47e61ab0d7645fc6893643c3d13a2a7c4a7dd456a64b7206d130",
+        "model": "gpt-image-2",
+        "requestedSize": "1024x1024",
+        "requestedQuality": "high",
+        "augmentation": "disabled-cli-no-augment",
+        "outputFilename": "hewenchuan-main-v2.png",
+        "operation": "edit-style-transfer",
+        "inputReference": {
+          "path": "output/imagegen/six-characters/raw/hewenchuan-main-v1.png",
+          "recordedSha256": "1a48f0617f5befb62687e7ce6751c30ea14ff7c7092e2a8587c56e42cdc5a104",
+          "actualSha256": "1a48f0617f5befb62687e7ce6751c30ea14ff7c7092e2a8587c56e42cdc5a104",
+          "verified": true
+        }
+      },
+      "referenceMain": null,
+      "resource": {
+        "path": "app/src/main/assets/characters/hewenchuan/avatar_main.webp",
+        "sha256": "182d649de110e906f46115c65d2d4b0911e94754f8ee3f17b7e35fbbc87c6bf7",
+        "bytes": 78098,
+        "actualDimensions": [
+          512,
+          512
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "pngBackup": {
+        "path": "output/imagegen/six-characters/final/hewenchuan/avatar_main.png",
+        "sha256": "55595efb27d9c04da8e319793e42500f30f79eaec005dbab99a57ba54a744f53",
+        "bytes": 1518552,
+        "actualDimensions": [
+          1024,
+          1024
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "normalizationReceipt": {
+        "normalizedAt": "2026-10-04T18:04:59+00:00",
+        "source": "output/imagegen/six-characters/raw/hewenchuan-main-v2.png",
+        "sourceSha256": "a3c3857a6eff27143207a99f1ec4d3764f4291c8347a0714c90508f5aa774b74",
+        "resource": "app/src/main/assets/characters/hewenchuan/avatar_main.webp",
+        "resourceSha256": "182d649de110e906f46115c65d2d4b0911e94754f8ee3f17b7e35fbbc87c6bf7",
+        "pngBackup": "output/imagegen/six-characters/final/hewenchuan/avatar_main.png",
+        "pngBackupSha256": "55595efb27d9c04da8e319793e42500f30f79eaec005dbab99a57ba54a744f53"
+      },
+      "normalization": {
+        "orientation": "EXIF transpose before processing",
+        "crop": "centered proportional square crop, centering(0.5,0.5)",
+        "resample": "Pillow LANCZOS",
+        "resource": "512x512 RGB WebP quality95 method6",
+        "backup": "1024x1024 RGB PNG",
+        "originalPreserved": true,
+        "alphaMatteRGB": [
+          242,
+          241,
+          239
+        ],
+        "alphaMatteApplied": false
+      },
+      "provenance": {
+        "type": "AI-generated",
+        "service": "https://www.vibework.live/v1",
+        "model": "gpt-image-2",
+        "rightsStatus": "unverified-provider-output-terms",
+        "rightsVerified": false,
+        "productionMeaning": "Visual integration status only; provider commercial terms are not certified"
+      },
+      "metadataErrors": [],
+      "visualReview": {
+        "status": "approved",
+        "reviewer": "Root Codex actual image inspection",
+        "reviewedAtUtc": "2026-10-04T18:45:23+00:00",
+        "evidence": {
+          "six-main-review.png": "48311685048d32731ec9209ed94aacb0c64798645ab142ee4ec042512c6f0602",
+          "six-alt-review.png": "76f5ab9ee466d8ca714a639050272e96b278ed344a25e03cb5e2d4192b88eda4",
+          "six-circle-native-review.png": "9be8f225555a425ad6761ab92b46416a97d53fb164f1ad0c67580306ebe1e9ad"
+        },
+        "criteria": "Six individually differentiated adult faces, consistent main/alternate identity, and legible native 48/64/96px circular crops; actual saved boards opened and inspected",
+        "userFinalVisualApproval": "not-recorded"
+      }
+    },
+    {
+      "characterId": "hewenchuan",
+      "storageCharacterId": "hewenchuan",
+      "name": "贺闻川",
+      "variant": "alt",
+      "status": "production",
+      "source": {
+        "path": "output/imagegen/six-characters/raw/hewenchuan-alt-v1.png",
+        "valid": true,
+        "exists": true,
+        "bytes": 2137340,
+        "sha256": "36975265b693c8bb66285d2d91854876e948ea250b5fdd08d9c7531e02c6dc92",
+        "actualDimensions": [
+          1254,
+          1254
+        ],
+        "actualMode": "RGB",
+        "orientedDimensions": [
+          1254,
+          1254
+        ],
+        "alphaRange": [
+          255,
+          255
+        ],
+        "sourceOpaque": true,
+        "sampleColorStdDev": 64.6129
+      },
+      "prompt": {
+        "recordPath": "output/imagegen/six-characters/alt-prompts.jsonl",
+        "recordFileSha256": "bfea9f9fc07087e7f6653d283a80f2434d83eadc35e52642bb3b47798a2675e4",
+        "prompt": "Use case: identity-preserve. Input image 1 is the actual selected approved main portrait of this named adult character. Create ONE supplementary expression avatar of the SAME PERSON. Preserve exact facial bone structure, eye shape, nose, lips, apparent age, gender, skin tone, hair part and length, clothing, palette, background, square crop, head scale and polished 2D semi-realistic otome visual-novel painted style. Change only the subtle expression and a few degrees of head/gaze as described. Retain a clear centered face and hairstyle safely inside the middle 78 percent circular crop, readable at 48 px. Keep scene subordinate. One adult, opaque full-bleed square. No words, circle frame, glow, selfie filters, identity drift, facial beautification, invented accessories, childlike or generic idol face. Specific change: He softens into a small sincere almost-smile and lowers his gaze very slightly toward the viewer, as if checking whether they are comfortable. Keep the mature composed presence and broad angular face.",
+        "promptSha256": "c666d15a10eb4e199a58b645cd7d0d71d8b3d56d73942918b386083c54a510d3",
+        "model": "gpt-image-2",
+        "requestedSize": "1024x1024",
+        "requestedQuality": "high",
+        "augmentation": "disabled-cli-no-augment",
+        "outputFilename": "hewenchuan-alt-v1.png",
+        "operation": "edit-identity-preserve",
+        "inputReference": {
+          "path": "output/imagegen/six-characters/raw/hewenchuan-main-v2.png",
+          "recordedSha256": "a3c3857a6eff27143207a99f1ec4d3764f4291c8347a0714c90508f5aa774b74",
+          "actualSha256": "a3c3857a6eff27143207a99f1ec4d3764f4291c8347a0714c90508f5aa774b74",
+          "verified": true
+        }
+      },
+      "referenceMain": {
+        "path": "output/imagegen/six-characters/raw/hewenchuan-main-v2.png",
+        "exists": true,
+        "selectedMainPath": "output/imagegen/six-characters/raw/hewenchuan-main-v2.png",
+        "sha256": "a3c3857a6eff27143207a99f1ec4d3764f4291c8347a0714c90508f5aa774b74",
+        "matchesSelectedMain": true,
+        "recordedSha256": "a3c3857a6eff27143207a99f1ec4d3764f4291c8347a0714c90508f5aa774b74",
+        "recordedHashMatches": true,
+        "valid": true
+      },
+      "resource": {
+        "path": "app/src/main/assets/characters/hewenchuan/avatar_alt.webp",
+        "sha256": "0ee2833264c39728260413b613a732267f47540ed282870739f3b4f372fa800a",
+        "bytes": 75266,
+        "actualDimensions": [
+          512,
+          512
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "pngBackup": {
+        "path": "output/imagegen/six-characters/final/hewenchuan/avatar_alt.png",
+        "sha256": "08f2ea736c7c729cb374389ff9050d77ee09bc34c186555bbd85b7900076a080",
+        "bytes": 1445658,
+        "actualDimensions": [
+          1024,
+          1024
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "normalizationReceipt": {
+        "normalizedAt": "2026-10-04T18:41:54+00:00",
+        "source": "output/imagegen/six-characters/raw/hewenchuan-alt-v1.png",
+        "sourceSha256": "36975265b693c8bb66285d2d91854876e948ea250b5fdd08d9c7531e02c6dc92",
+        "resource": "app/src/main/assets/characters/hewenchuan/avatar_alt.webp",
+        "resourceSha256": "0ee2833264c39728260413b613a732267f47540ed282870739f3b4f372fa800a",
+        "pngBackup": "output/imagegen/six-characters/final/hewenchuan/avatar_alt.png",
+        "pngBackupSha256": "08f2ea736c7c729cb374389ff9050d77ee09bc34c186555bbd85b7900076a080"
+      },
+      "normalization": {
+        "orientation": "EXIF transpose before processing",
+        "crop": "centered proportional square crop, centering(0.5,0.5)",
+        "resample": "Pillow LANCZOS",
+        "resource": "512x512 RGB WebP quality95 method6",
+        "backup": "1024x1024 RGB PNG",
+        "originalPreserved": true,
+        "alphaMatteRGB": [
+          242,
+          241,
+          239
+        ],
+        "alphaMatteApplied": false
+      },
+      "provenance": {
+        "type": "AI-generated",
+        "service": "https://www.vibework.live/v1",
+        "model": "gpt-image-2",
+        "rightsStatus": "unverified-provider-output-terms",
+        "rightsVerified": false,
+        "productionMeaning": "Visual integration status only; provider commercial terms are not certified"
+      },
+      "metadataErrors": [],
+      "visualReview": {
+        "status": "approved",
+        "reviewer": "Root Codex actual image inspection",
+        "reviewedAtUtc": "2026-10-04T18:45:23+00:00",
+        "evidence": {
+          "six-main-review.png": "48311685048d32731ec9209ed94aacb0c64798645ab142ee4ec042512c6f0602",
+          "six-alt-review.png": "76f5ab9ee466d8ca714a639050272e96b278ed344a25e03cb5e2d4192b88eda4",
+          "six-circle-native-review.png": "9be8f225555a425ad6761ab92b46416a97d53fb164f1ad0c67580306ebe1e9ad"
+        },
+        "criteria": "Six individually differentiated adult faces, consistent main/alternate identity, and legible native 48/64/96px circular crops; actual saved boards opened and inspected",
+        "userFinalVisualApproval": "not-recorded"
+      }
+    },
+    {
+      "characterId": "zhoujianye",
+      "storageCharacterId": "zhoujianye",
+      "name": "周见野",
+      "variant": "main",
+      "status": "production",
+      "source": {
+        "path": "output/imagegen/six-characters/raw/zhoujianye-main-v2.png",
+        "valid": true,
+        "exists": true,
+        "bytes": 2217617,
+        "sha256": "3c5c0d2352f70b140c0c2782382e80a41c58ba1941a7eddb6ebb4b4c1663cb0a",
+        "actualDimensions": [
+          1254,
+          1254
+        ],
+        "actualMode": "RGB",
+        "orientedDimensions": [
+          1254,
+          1254
+        ],
+        "alphaRange": [
+          255,
+          255
+        ],
+        "sourceOpaque": true,
+        "sampleColorStdDev": 72.0862
+      },
+      "prompt": {
+        "recordPath": "docs/design/SIX_CHARACTER_AVATAR_PROMPTS.jsonl",
+        "recordFileSha256": "3d299a260c8ab141bc5b05896fdf92765c3056819c3f27ce6f2313a4de4709af",
+        "prompt": "Use case: style-transfer. Input image 1 is the identity and composition reference for this one adult character, 周见野. Redraw this exact person as a premium contemporary otome / narrative visual novel SEMI-REALISTIC TWO-DIMENSIONAL PAINTED ANIME avatar, unmistakably an illustration rather than a photograph. Preserve their individual facial proportions, age, gender, hair silhouette and part direction, distinctive complexion, expression, clothing, accessories, palette, camera framing and background scene. Keep the six-person casting differences intact. Use carefully designed fine ink-like contours around eyes, nose, lips and hair; grouped painterly shading planes with subtle brush strokes; slightly simplified anime face rendering while retaining adult facial structure; hand-painted highlights rather than photographic pores or hyperreal skin. Avoid oversmoothing, generic idol face, plasticky 3D, doll eyes, teenification, huge eyes, face replacement or glossy lens effects. Keep the face readable in a 48px circular crop. Exactly one person, same full-bleed square composition, no text, watermark, frame or ring. Change only the rendering medium and texture, not the person or mood. Match the cohesive polished 2.5D painted visual-novel look across the cast, without making their face shapes or facial expressions alike.",
+        "promptSha256": "6df9bfbe2df72ef462188f5a69d6c11ca45a06881d4d6b0f76e0cd70dbee792c",
+        "model": "gpt-image-2",
+        "requestedSize": "1024x1024",
+        "requestedQuality": "high",
+        "augmentation": "disabled-cli-no-augment",
+        "outputFilename": "zhoujianye-main-v2.png",
+        "operation": "edit-style-transfer",
+        "inputReference": {
+          "path": "output/imagegen/six-characters/raw/zhoujianye-main-v1.png",
+          "recordedSha256": "8f991f40cb99e506603ecd1b2ce5ed9f984fbc7efbf854680ccc3572d05ae83c",
+          "actualSha256": "8f991f40cb99e506603ecd1b2ce5ed9f984fbc7efbf854680ccc3572d05ae83c",
+          "verified": true
+        }
+      },
+      "referenceMain": null,
+      "resource": {
+        "path": "app/src/main/assets/characters/zhoujianye/avatar_main.webp",
+        "sha256": "449256dcf2ede8fd3f45c1be334e16175163a1e1c694a5b01632e1017331a925",
+        "bytes": 80170,
+        "actualDimensions": [
+          512,
+          512
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "pngBackup": {
+        "path": "output/imagegen/six-characters/final/zhoujianye/avatar_main.png",
+        "sha256": "af661bcb0418d0a35b4ac51b2dbe8868cb2df46e98dc2a4c8e83dafaa92ba1ef",
+        "bytes": 1492143,
+        "actualDimensions": [
+          1024,
+          1024
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "normalizationReceipt": {
+        "normalizedAt": "2026-10-04T18:05:00+00:00",
+        "source": "output/imagegen/six-characters/raw/zhoujianye-main-v2.png",
+        "sourceSha256": "3c5c0d2352f70b140c0c2782382e80a41c58ba1941a7eddb6ebb4b4c1663cb0a",
+        "resource": "app/src/main/assets/characters/zhoujianye/avatar_main.webp",
+        "resourceSha256": "449256dcf2ede8fd3f45c1be334e16175163a1e1c694a5b01632e1017331a925",
+        "pngBackup": "output/imagegen/six-characters/final/zhoujianye/avatar_main.png",
+        "pngBackupSha256": "af661bcb0418d0a35b4ac51b2dbe8868cb2df46e98dc2a4c8e83dafaa92ba1ef"
+      },
+      "normalization": {
+        "orientation": "EXIF transpose before processing",
+        "crop": "centered proportional square crop, centering(0.5,0.5)",
+        "resample": "Pillow LANCZOS",
+        "resource": "512x512 RGB WebP quality95 method6",
+        "backup": "1024x1024 RGB PNG",
+        "originalPreserved": true,
+        "alphaMatteRGB": [
+          242,
+          241,
+          239
+        ],
+        "alphaMatteApplied": false
+      },
+      "provenance": {
+        "type": "AI-generated",
+        "service": "https://www.vibework.live/v1",
+        "model": "gpt-image-2",
+        "rightsStatus": "unverified-provider-output-terms",
+        "rightsVerified": false,
+        "productionMeaning": "Visual integration status only; provider commercial terms are not certified"
+      },
+      "metadataErrors": [],
+      "visualReview": {
+        "status": "approved",
+        "reviewer": "Root Codex actual image inspection",
+        "reviewedAtUtc": "2026-10-04T18:45:23+00:00",
+        "evidence": {
+          "six-main-review.png": "48311685048d32731ec9209ed94aacb0c64798645ab142ee4ec042512c6f0602",
+          "six-alt-review.png": "76f5ab9ee466d8ca714a639050272e96b278ed344a25e03cb5e2d4192b88eda4",
+          "six-circle-native-review.png": "9be8f225555a425ad6761ab92b46416a97d53fb164f1ad0c67580306ebe1e9ad"
+        },
+        "criteria": "Six individually differentiated adult faces, consistent main/alternate identity, and legible native 48/64/96px circular crops; actual saved boards opened and inspected",
+        "userFinalVisualApproval": "not-recorded"
+      }
+    },
+    {
+      "characterId": "zhoujianye",
+      "storageCharacterId": "zhoujianye",
+      "name": "周见野",
+      "variant": "alt",
+      "status": "production",
+      "source": {
+        "path": "output/imagegen/six-characters/raw/zhoujianye-alt-v1.png",
+        "valid": true,
+        "exists": true,
+        "bytes": 2082907,
+        "sha256": "f525a7765352a0ccaf27dd46e2e80afaf19b26e20fa5f23e6a370558c7c85c84",
+        "actualDimensions": [
+          1254,
+          1254
+        ],
+        "actualMode": "RGB",
+        "orientedDimensions": [
+          1254,
+          1254
+        ],
+        "alphaRange": [
+          255,
+          255
+        ],
+        "sourceOpaque": true,
+        "sampleColorStdDev": 71.302
+      },
+      "prompt": {
+        "recordPath": "output/imagegen/six-characters/alt-prompts.jsonl",
+        "recordFileSha256": "bfea9f9fc07087e7f6653d283a80f2434d83eadc35e52642bb3b47798a2675e4",
+        "prompt": "Use case: identity-preserve. Input image 1 is the actual selected approved main portrait of this named adult character. Create ONE supplementary expression avatar of the SAME PERSON. Preserve exact facial bone structure, eye shape, nose, lips, apparent age, gender, skin tone, hair part and length, clothing, palette, background, square crop, head scale and polished 2D semi-realistic otome visual-novel painted style. Change only the subtle expression and a few degrees of head/gaze as described. Retain a clear centered face and hairstyle safely inside the middle 78 percent circular crop, readable at 48 px. Keep scene subordinate. One adult, opaque full-bleed square. No words, circle frame, glow, selfie filters, identity drift, facial beautification, invented accessories, childlike or generic idol face. Specific change: He smiles a little more openly and leans a little closer, as if sharing a joke after rehearsal. Keep his lively adult energy; avoid exaggerated grin or enlarged anime eyes.",
+        "promptSha256": "021290f1819d5301782408b8d14385fbf8dc2c22a575d3095a65f0aa695f9136",
+        "model": "gpt-image-2",
+        "requestedSize": "1024x1024",
+        "requestedQuality": "high",
+        "augmentation": "disabled-cli-no-augment",
+        "outputFilename": "zhoujianye-alt-v1.png",
+        "operation": "edit-identity-preserve",
+        "inputReference": {
+          "path": "output/imagegen/six-characters/raw/zhoujianye-main-v2.png",
+          "recordedSha256": "3c5c0d2352f70b140c0c2782382e80a41c58ba1941a7eddb6ebb4b4c1663cb0a",
+          "actualSha256": "3c5c0d2352f70b140c0c2782382e80a41c58ba1941a7eddb6ebb4b4c1663cb0a",
+          "verified": true
+        }
+      },
+      "referenceMain": {
+        "path": "output/imagegen/six-characters/raw/zhoujianye-main-v2.png",
+        "exists": true,
+        "selectedMainPath": "output/imagegen/six-characters/raw/zhoujianye-main-v2.png",
+        "sha256": "3c5c0d2352f70b140c0c2782382e80a41c58ba1941a7eddb6ebb4b4c1663cb0a",
+        "matchesSelectedMain": true,
+        "recordedSha256": "3c5c0d2352f70b140c0c2782382e80a41c58ba1941a7eddb6ebb4b4c1663cb0a",
+        "recordedHashMatches": true,
+        "valid": true
+      },
+      "resource": {
+        "path": "app/src/main/assets/characters/zhoujianye/avatar_alt.webp",
+        "sha256": "26b54777c5ad491cd9a08334a13b3f3e483f97a12f77c398903a37a54eeee844",
+        "bytes": 77402,
+        "actualDimensions": [
+          512,
+          512
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "pngBackup": {
+        "path": "output/imagegen/six-characters/final/zhoujianye/avatar_alt.png",
+        "sha256": "26160f76f9d5254aae7fd9911e620799eaf8997be6e3104adddd9485dfbf463e",
+        "bytes": 1418797,
+        "actualDimensions": [
+          1024,
+          1024
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "normalizationReceipt": {
+        "normalizedAt": "2026-10-04T18:41:55+00:00",
+        "source": "output/imagegen/six-characters/raw/zhoujianye-alt-v1.png",
+        "sourceSha256": "f525a7765352a0ccaf27dd46e2e80afaf19b26e20fa5f23e6a370558c7c85c84",
+        "resource": "app/src/main/assets/characters/zhoujianye/avatar_alt.webp",
+        "resourceSha256": "26b54777c5ad491cd9a08334a13b3f3e483f97a12f77c398903a37a54eeee844",
+        "pngBackup": "output/imagegen/six-characters/final/zhoujianye/avatar_alt.png",
+        "pngBackupSha256": "26160f76f9d5254aae7fd9911e620799eaf8997be6e3104adddd9485dfbf463e"
+      },
+      "normalization": {
+        "orientation": "EXIF transpose before processing",
+        "crop": "centered proportional square crop, centering(0.5,0.5)",
+        "resample": "Pillow LANCZOS",
+        "resource": "512x512 RGB WebP quality95 method6",
+        "backup": "1024x1024 RGB PNG",
+        "originalPreserved": true,
+        "alphaMatteRGB": [
+          242,
+          241,
+          239
+        ],
+        "alphaMatteApplied": false
+      },
+      "provenance": {
+        "type": "AI-generated",
+        "service": "https://www.vibework.live/v1",
+        "model": "gpt-image-2",
+        "rightsStatus": "unverified-provider-output-terms",
+        "rightsVerified": false,
+        "productionMeaning": "Visual integration status only; provider commercial terms are not certified"
+      },
+      "metadataErrors": [],
+      "visualReview": {
+        "status": "approved",
+        "reviewer": "Root Codex actual image inspection",
+        "reviewedAtUtc": "2026-10-04T18:45:23+00:00",
+        "evidence": {
+          "six-main-review.png": "48311685048d32731ec9209ed94aacb0c64798645ab142ee4ec042512c6f0602",
+          "six-alt-review.png": "76f5ab9ee466d8ca714a639050272e96b278ed344a25e03cb5e2d4192b88eda4",
+          "six-circle-native-review.png": "9be8f225555a425ad6761ab92b46416a97d53fb164f1ad0c67580306ebe1e9ad"
+        },
+        "criteria": "Six individually differentiated adult faces, consistent main/alternate identity, and legible native 48/64/96px circular crops; actual saved boards opened and inspected",
+        "userFinalVisualApproval": "not-recorded"
+      }
+    },
+    {
+      "characterId": "peixubai",
+      "storageCharacterId": "peixubai",
+      "name": "裴叙白",
+      "variant": "main",
+      "status": "production",
+      "source": {
+        "path": "output/imagegen/six-characters/raw/peixubai-main-v2.png",
+        "valid": true,
+        "exists": true,
+        "bytes": 2286524,
+        "sha256": "024ae6737152bafd1e0eb0562e19fa1ef7686595f48c1339f7fa819af7c8f8f7",
+        "actualDimensions": [
+          1254,
+          1254
+        ],
+        "actualMode": "RGB",
+        "orientedDimensions": [
+          1254,
+          1254
+        ],
+        "alphaRange": [
+          255,
+          255
+        ],
+        "sourceOpaque": true,
+        "sampleColorStdDev": 44.4143
+      },
+      "prompt": {
+        "recordPath": "docs/design/SIX_CHARACTER_AVATAR_PROMPTS.jsonl",
+        "recordFileSha256": "3d299a260c8ab141bc5b05896fdf92765c3056819c3f27ce6f2313a4de4709af",
+        "prompt": "Use case: style-transfer. Input image 1 is the identity and composition reference for this one adult character, 裴叙白. Redraw this exact person as a premium contemporary otome / narrative visual novel SEMI-REALISTIC TWO-DIMENSIONAL PAINTED ANIME avatar, unmistakably an illustration rather than a photograph. Preserve their individual facial proportions, age, gender, hair silhouette and part direction, distinctive complexion, expression, clothing, accessories, palette, camera framing and background scene. Keep the six-person casting differences intact. Use carefully designed fine ink-like contours around eyes, nose, lips and hair; grouped painterly shading planes with subtle brush strokes; slightly simplified anime face rendering while retaining adult facial structure; hand-painted highlights rather than photographic pores or hyperreal skin. Avoid oversmoothing, generic idol face, plasticky 3D, doll eyes, teenification, huge eyes, face replacement or glossy lens effects. Keep the face readable in a 48px circular crop. Exactly one person, same full-bleed square composition, no text, watermark, frame or ring. Change only the rendering medium and texture, not the person or mood. Match the cohesive polished 2.5D painted visual-novel look across the cast, without making their face shapes or facial expressions alike.",
+        "promptSha256": "0252701e3ac6ed29a894c753600196da319e3d41c581e18fb2861801020a0ff0",
+        "model": "gpt-image-2",
+        "requestedSize": "1024x1024",
+        "requestedQuality": "high",
+        "augmentation": "disabled-cli-no-augment",
+        "outputFilename": "peixubai-main-v2.png",
+        "operation": "edit-style-transfer",
+        "inputReference": {
+          "path": "output/imagegen/six-characters/raw/peixubai-main-v1.png",
+          "recordedSha256": "a97a426e69fc5d6be4346c844f156c3221135eea26e89abcdf4f7b332ad9aa12",
+          "actualSha256": "a97a426e69fc5d6be4346c844f156c3221135eea26e89abcdf4f7b332ad9aa12",
+          "verified": true
+        }
+      },
+      "referenceMain": null,
+      "resource": {
+        "path": "app/src/main/assets/characters/peixubai/avatar_main.webp",
+        "sha256": "028f48b0af451df6f7c6d266e88c40ffd61521688bd94ba38ce6e7b32b3cbf7d",
+        "bytes": 83000,
+        "actualDimensions": [
+          512,
+          512
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "pngBackup": {
+        "path": "output/imagegen/six-characters/final/peixubai/avatar_main.png",
+        "sha256": "72d69ce842f714258930e58110b78bf7cf79559455ba98d24a9a3f8d04a0b053",
+        "bytes": 1537218,
+        "actualDimensions": [
+          1024,
+          1024
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "normalizationReceipt": {
+        "normalizedAt": "2026-10-04T18:05:01+00:00",
+        "source": "output/imagegen/six-characters/raw/peixubai-main-v2.png",
+        "sourceSha256": "024ae6737152bafd1e0eb0562e19fa1ef7686595f48c1339f7fa819af7c8f8f7",
+        "resource": "app/src/main/assets/characters/peixubai/avatar_main.webp",
+        "resourceSha256": "028f48b0af451df6f7c6d266e88c40ffd61521688bd94ba38ce6e7b32b3cbf7d",
+        "pngBackup": "output/imagegen/six-characters/final/peixubai/avatar_main.png",
+        "pngBackupSha256": "72d69ce842f714258930e58110b78bf7cf79559455ba98d24a9a3f8d04a0b053"
+      },
+      "normalization": {
+        "orientation": "EXIF transpose before processing",
+        "crop": "centered proportional square crop, centering(0.5,0.5)",
+        "resample": "Pillow LANCZOS",
+        "resource": "512x512 RGB WebP quality95 method6",
+        "backup": "1024x1024 RGB PNG",
+        "originalPreserved": true,
+        "alphaMatteRGB": [
+          242,
+          241,
+          239
+        ],
+        "alphaMatteApplied": false
+      },
+      "provenance": {
+        "type": "AI-generated",
+        "service": "https://www.vibework.live/v1",
+        "model": "gpt-image-2",
+        "rightsStatus": "unverified-provider-output-terms",
+        "rightsVerified": false,
+        "productionMeaning": "Visual integration status only; provider commercial terms are not certified"
+      },
+      "metadataErrors": [],
+      "visualReview": {
+        "status": "approved",
+        "reviewer": "Root Codex actual image inspection",
+        "reviewedAtUtc": "2026-10-04T18:45:23+00:00",
+        "evidence": {
+          "six-main-review.png": "48311685048d32731ec9209ed94aacb0c64798645ab142ee4ec042512c6f0602",
+          "six-alt-review.png": "76f5ab9ee466d8ca714a639050272e96b278ed344a25e03cb5e2d4192b88eda4",
+          "six-circle-native-review.png": "9be8f225555a425ad6761ab92b46416a97d53fb164f1ad0c67580306ebe1e9ad"
+        },
+        "criteria": "Six individually differentiated adult faces, consistent main/alternate identity, and legible native 48/64/96px circular crops; actual saved boards opened and inspected",
+        "userFinalVisualApproval": "not-recorded"
+      }
+    },
+    {
+      "characterId": "peixubai",
+      "storageCharacterId": "peixubai",
+      "name": "裴叙白",
+      "variant": "alt",
+      "status": "production",
+      "source": {
+        "path": "output/imagegen/six-characters/raw/peixubai-alt-v1.png",
+        "valid": true,
+        "exists": true,
+        "bytes": 2150355,
+        "sha256": "c50fb49aaef8cfb95d6226c22d258aa216b604a48ef559792de2832ec5b2d9aa",
+        "actualDimensions": [
+          1254,
+          1254
+        ],
+        "actualMode": "RGB",
+        "orientedDimensions": [
+          1254,
+          1254
+        ],
+        "alphaRange": [
+          255,
+          255
+        ],
+        "sourceOpaque": true,
+        "sampleColorStdDev": 44.6574
+      },
+      "prompt": {
+        "recordPath": "output/imagegen/six-characters/alt-prompts.jsonl",
+        "recordFileSha256": "bfea9f9fc07087e7f6653d283a80f2434d83eadc35e52642bb3b47798a2675e4",
+        "prompt": "Use case: identity-preserve. Input image 1 is the actual selected approved main portrait of this named adult character. Create ONE supplementary expression avatar of the SAME PERSON. Preserve exact facial bone structure, eye shape, nose, lips, apparent age, gender, skin tone, hair part and length, clothing, palette, background, square crop, head scale and polished 2D semi-realistic otome visual-novel painted style. Change only the subtle expression and a few degrees of head/gaze as described. Retain a clear centered face and hairstyle safely inside the middle 78 percent circular crop, readable at 48 px. Keep scene subordinate. One adult, opaque full-bleed square. No words, circle frame, glow, selfie filters, identity drift, facial beautification, invented accessories, childlike or generic idol face. Specific change: He looks a few degrees away from the lens, with a barely visible private smile and relaxed shoulders. Keep his reserved intelligent adult gaze and fine elongated face.",
+        "promptSha256": "6821113892ca72ac4d45f0f3d478b2c32eef9f4ab7cbb5af1d41580c88b34350",
+        "model": "gpt-image-2",
+        "requestedSize": "1024x1024",
+        "requestedQuality": "high",
+        "augmentation": "disabled-cli-no-augment",
+        "outputFilename": "peixubai-alt-v1.png",
+        "operation": "edit-identity-preserve",
+        "inputReference": {
+          "path": "output/imagegen/six-characters/raw/peixubai-main-v2.png",
+          "recordedSha256": "024ae6737152bafd1e0eb0562e19fa1ef7686595f48c1339f7fa819af7c8f8f7",
+          "actualSha256": "024ae6737152bafd1e0eb0562e19fa1ef7686595f48c1339f7fa819af7c8f8f7",
+          "verified": true
+        }
+      },
+      "referenceMain": {
+        "path": "output/imagegen/six-characters/raw/peixubai-main-v2.png",
+        "exists": true,
+        "selectedMainPath": "output/imagegen/six-characters/raw/peixubai-main-v2.png",
+        "sha256": "024ae6737152bafd1e0eb0562e19fa1ef7686595f48c1339f7fa819af7c8f8f7",
+        "matchesSelectedMain": true,
+        "recordedSha256": "024ae6737152bafd1e0eb0562e19fa1ef7686595f48c1339f7fa819af7c8f8f7",
+        "recordedHashMatches": true,
+        "valid": true
+      },
+      "resource": {
+        "path": "app/src/main/assets/characters/peixubai/avatar_alt.webp",
+        "sha256": "df967f44e6382d470e627eb78d3cbfc8617404fb68c725e12d848c0a4f0ca04c",
+        "bytes": 81828,
+        "actualDimensions": [
+          512,
+          512
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "pngBackup": {
+        "path": "output/imagegen/six-characters/final/peixubai/avatar_alt.png",
+        "sha256": "a52749db6ff3c0c907dc75e1c5e6370b7729e671b3c9ac4db8f8e1abc8b446e6",
+        "bytes": 1468251,
+        "actualDimensions": [
+          1024,
+          1024
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "normalizationReceipt": {
+        "normalizedAt": "2026-10-04T18:41:56+00:00",
+        "source": "output/imagegen/six-characters/raw/peixubai-alt-v1.png",
+        "sourceSha256": "c50fb49aaef8cfb95d6226c22d258aa216b604a48ef559792de2832ec5b2d9aa",
+        "resource": "app/src/main/assets/characters/peixubai/avatar_alt.webp",
+        "resourceSha256": "df967f44e6382d470e627eb78d3cbfc8617404fb68c725e12d848c0a4f0ca04c",
+        "pngBackup": "output/imagegen/six-characters/final/peixubai/avatar_alt.png",
+        "pngBackupSha256": "a52749db6ff3c0c907dc75e1c5e6370b7729e671b3c9ac4db8f8e1abc8b446e6"
+      },
+      "normalization": {
+        "orientation": "EXIF transpose before processing",
+        "crop": "centered proportional square crop, centering(0.5,0.5)",
+        "resample": "Pillow LANCZOS",
+        "resource": "512x512 RGB WebP quality95 method6",
+        "backup": "1024x1024 RGB PNG",
+        "originalPreserved": true,
+        "alphaMatteRGB": [
+          242,
+          241,
+          239
+        ],
+        "alphaMatteApplied": false
+      },
+      "provenance": {
+        "type": "AI-generated",
+        "service": "https://www.vibework.live/v1",
+        "model": "gpt-image-2",
+        "rightsStatus": "unverified-provider-output-terms",
+        "rightsVerified": false,
+        "productionMeaning": "Visual integration status only; provider commercial terms are not certified"
+      },
+      "metadataErrors": [],
+      "visualReview": {
+        "status": "approved",
+        "reviewer": "Root Codex actual image inspection",
+        "reviewedAtUtc": "2026-10-04T18:45:23+00:00",
+        "evidence": {
+          "six-main-review.png": "48311685048d32731ec9209ed94aacb0c64798645ab142ee4ec042512c6f0602",
+          "six-alt-review.png": "76f5ab9ee466d8ca714a639050272e96b278ed344a25e03cb5e2d4192b88eda4",
+          "six-circle-native-review.png": "9be8f225555a425ad6761ab92b46416a97d53fb164f1ad0c67580306ebe1e9ad"
+        },
+        "criteria": "Six individually differentiated adult faces, consistent main/alternate identity, and legible native 48/64/96px circular crops; actual saved boards opened and inspected",
+        "userFinalVisualApproval": "not-recorded"
+      }
+    },
+    {
+      "characterId": "suwanning",
+      "storageCharacterId": "mira",
+      "name": "苏晚宁",
+      "variant": "main",
+      "status": "production",
+      "source": {
+        "path": "output/imagegen/six-characters/raw/suwanning-main-v2.png",
+        "valid": true,
+        "exists": true,
+        "bytes": 2344787,
+        "sha256": "c574d27bdd4f4e596d6d8cd2f8cfa705a9f5608f4ca760b8c71ed5c99ea83e71",
+        "actualDimensions": [
+          1254,
+          1254
+        ],
+        "actualMode": "RGB",
+        "orientedDimensions": [
+          1254,
+          1254
+        ],
+        "alphaRange": [
+          255,
+          255
+        ],
+        "sourceOpaque": true,
+        "sampleColorStdDev": 56.6769
+      },
+      "prompt": {
+        "recordPath": "docs/design/SIX_CHARACTER_AVATAR_PROMPTS.jsonl",
+        "recordFileSha256": "3d299a260c8ab141bc5b05896fdf92765c3056819c3f27ce6f2313a4de4709af",
+        "prompt": "Use case: style-transfer. Input image 1 is the identity and composition reference for this one adult character, 苏晚宁. Redraw this exact person as a premium contemporary otome / narrative visual novel SEMI-REALISTIC TWO-DIMENSIONAL PAINTED ANIME avatar, unmistakably an illustration rather than a photograph. Preserve their individual facial proportions, age, gender, hair silhouette and part direction, distinctive complexion, expression, clothing, accessories, palette, camera framing and background scene. Keep the six-person casting differences intact. Use carefully designed fine ink-like contours around eyes, nose, lips and hair; grouped painterly shading planes with subtle brush strokes; slightly simplified anime face rendering while retaining adult facial structure; hand-painted highlights rather than photographic pores or hyperreal skin. Avoid oversmoothing, generic idol face, plasticky 3D, doll eyes, teenification, huge eyes, face replacement or glossy lens effects. Keep the face readable in a 48px circular crop. Exactly one person, same full-bleed square composition, no text, watermark, frame or ring. Change only the rendering medium and texture, not the person or mood. Match the cohesive polished 2.5D painted visual-novel look across the cast, without making their face shapes or facial expressions alike.",
+        "promptSha256": "3b29afe3a25c63becd7ec91e3203bd5acbc43813b68e5b1c20df2a49a4e4932e",
+        "model": "gpt-image-2",
+        "requestedSize": "1024x1024",
+        "requestedQuality": "high",
+        "augmentation": "disabled-cli-no-augment",
+        "outputFilename": "suwanning-main-v2.png",
+        "operation": "edit-style-transfer",
+        "inputReference": {
+          "path": "output/imagegen/six-characters/raw/suwanning-main-v1.png",
+          "recordedSha256": "eeae5a2924af891163d92f24239cc23e3ca7a2a3acaa93062c726241100f159d",
+          "actualSha256": "eeae5a2924af891163d92f24239cc23e3ca7a2a3acaa93062c726241100f159d",
+          "verified": true
+        }
+      },
+      "referenceMain": null,
+      "resource": {
+        "path": "app/src/main/assets/characters/suwanning/avatar_main.webp",
+        "sha256": "c6585e46f00fc52b0f2226eea701be5c3727236b8ae0830165fd11ba260b7df7",
+        "bytes": 89224,
+        "actualDimensions": [
+          512,
+          512
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "pngBackup": {
+        "path": "output/imagegen/six-characters/final/suwanning/avatar_main.png",
+        "sha256": "57bfc6d30a1a864affe1e8b80782d5927bf93c9d8f1463315488ca5c7647600c",
+        "bytes": 1606725,
+        "actualDimensions": [
+          1024,
+          1024
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "normalizationReceipt": {
+        "normalizedAt": "2026-10-04T18:05:02+00:00",
+        "source": "output/imagegen/six-characters/raw/suwanning-main-v2.png",
+        "sourceSha256": "c574d27bdd4f4e596d6d8cd2f8cfa705a9f5608f4ca760b8c71ed5c99ea83e71",
+        "resource": "app/src/main/assets/characters/suwanning/avatar_main.webp",
+        "resourceSha256": "c6585e46f00fc52b0f2226eea701be5c3727236b8ae0830165fd11ba260b7df7",
+        "pngBackup": "output/imagegen/six-characters/final/suwanning/avatar_main.png",
+        "pngBackupSha256": "57bfc6d30a1a864affe1e8b80782d5927bf93c9d8f1463315488ca5c7647600c"
+      },
+      "normalization": {
+        "orientation": "EXIF transpose before processing",
+        "crop": "centered proportional square crop, centering(0.5,0.5)",
+        "resample": "Pillow LANCZOS",
+        "resource": "512x512 RGB WebP quality95 method6",
+        "backup": "1024x1024 RGB PNG",
+        "originalPreserved": true,
+        "alphaMatteRGB": [
+          242,
+          241,
+          239
+        ],
+        "alphaMatteApplied": false
+      },
+      "provenance": {
+        "type": "AI-generated",
+        "service": "https://www.vibework.live/v1",
+        "model": "gpt-image-2",
+        "rightsStatus": "unverified-provider-output-terms",
+        "rightsVerified": false,
+        "productionMeaning": "Visual integration status only; provider commercial terms are not certified"
+      },
+      "metadataErrors": [],
+      "visualReview": {
+        "status": "approved",
+        "reviewer": "Root Codex actual image inspection",
+        "reviewedAtUtc": "2026-10-04T18:45:23+00:00",
+        "evidence": {
+          "six-main-review.png": "48311685048d32731ec9209ed94aacb0c64798645ab142ee4ec042512c6f0602",
+          "six-alt-review.png": "76f5ab9ee466d8ca714a639050272e96b278ed344a25e03cb5e2d4192b88eda4",
+          "six-circle-native-review.png": "9be8f225555a425ad6761ab92b46416a97d53fb164f1ad0c67580306ebe1e9ad"
+        },
+        "criteria": "Six individually differentiated adult faces, consistent main/alternate identity, and legible native 48/64/96px circular crops; actual saved boards opened and inspected",
+        "userFinalVisualApproval": "not-recorded"
+      }
+    },
+    {
+      "characterId": "suwanning",
+      "storageCharacterId": "mira",
+      "name": "苏晚宁",
+      "variant": "alt",
+      "status": "production",
+      "source": {
+        "path": "output/imagegen/six-characters/raw/suwanning-alt-v1.png",
+        "valid": true,
+        "exists": true,
+        "bytes": 2252875,
+        "sha256": "f9cf4a16795bba6cc5d8a2861cdec56cd5655d6156b384e44d9ee21603499151",
+        "actualDimensions": [
+          1254,
+          1254
+        ],
+        "actualMode": "RGB",
+        "orientedDimensions": [
+          1254,
+          1254
+        ],
+        "alphaRange": [
+          255,
+          255
+        ],
+        "sourceOpaque": true,
+        "sampleColorStdDev": 56.8746
+      },
+      "prompt": {
+        "recordPath": "output/imagegen/six-characters/alt-prompts.jsonl",
+        "recordFileSha256": "bfea9f9fc07087e7f6653d283a80f2434d83eadc35e52642bb3b47798a2675e4",
+        "prompt": "Use case: identity-preserve. Input image 1 is the actual selected approved main portrait of this named adult character. Create ONE supplementary expression avatar of the SAME PERSON. Preserve exact facial bone structure, eye shape, nose, lips, apparent age, gender, skin tone, hair part and length, clothing, palette, background, square crop, head scale and polished 2D semi-realistic otome visual-novel painted style. Change only the subtle expression and a few degrees of head/gaze as described. Retain a clear centered face and hairstyle safely inside the middle 78 percent circular crop, readable at 48 px. Keep scene subordinate. One adult, opaque full-bleed square. No words, circle frame, glow, selfie filters, identity drift, facial beautification, invented accessories, childlike or generic idol face. Specific change: She gives a warmer, gentle closed-lip smile and tilts her head a few degrees, as if handing a friend a fresh pastry. Keep her quiet adult warmth and flowing milk-tea hair.",
+        "promptSha256": "0627cb148e89dbb8a2af02694d1afc20b2efb78dd18671e09d7d797e5bc7fa73",
+        "model": "gpt-image-2",
+        "requestedSize": "1024x1024",
+        "requestedQuality": "high",
+        "augmentation": "disabled-cli-no-augment",
+        "outputFilename": "suwanning-alt-v1.png",
+        "operation": "edit-identity-preserve",
+        "inputReference": {
+          "path": "output/imagegen/six-characters/raw/suwanning-main-v2.png",
+          "recordedSha256": "c574d27bdd4f4e596d6d8cd2f8cfa705a9f5608f4ca760b8c71ed5c99ea83e71",
+          "actualSha256": "c574d27bdd4f4e596d6d8cd2f8cfa705a9f5608f4ca760b8c71ed5c99ea83e71",
+          "verified": true
+        }
+      },
+      "referenceMain": {
+        "path": "output/imagegen/six-characters/raw/suwanning-main-v2.png",
+        "exists": true,
+        "selectedMainPath": "output/imagegen/six-characters/raw/suwanning-main-v2.png",
+        "sha256": "c574d27bdd4f4e596d6d8cd2f8cfa705a9f5608f4ca760b8c71ed5c99ea83e71",
+        "matchesSelectedMain": true,
+        "recordedSha256": "c574d27bdd4f4e596d6d8cd2f8cfa705a9f5608f4ca760b8c71ed5c99ea83e71",
+        "recordedHashMatches": true,
+        "valid": true
+      },
+      "resource": {
+        "path": "app/src/main/assets/characters/suwanning/avatar_alt.webp",
+        "sha256": "fa08f8bca2ac0bcd5aed79a8557016e53bc40899a771c54f99f0b4a48825225f",
+        "bytes": 87282,
+        "actualDimensions": [
+          512,
+          512
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "pngBackup": {
+        "path": "output/imagegen/six-characters/final/suwanning/avatar_alt.png",
+        "sha256": "820ae1dcf281b384d1f5b4b3deeaf3ccf956041a92dd287c9435fcb62847f5d7",
+        "bytes": 1561859,
+        "actualDimensions": [
+          1024,
+          1024
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "normalizationReceipt": {
+        "normalizedAt": "2026-10-04T18:41:57+00:00",
+        "source": "output/imagegen/six-characters/raw/suwanning-alt-v1.png",
+        "sourceSha256": "f9cf4a16795bba6cc5d8a2861cdec56cd5655d6156b384e44d9ee21603499151",
+        "resource": "app/src/main/assets/characters/suwanning/avatar_alt.webp",
+        "resourceSha256": "fa08f8bca2ac0bcd5aed79a8557016e53bc40899a771c54f99f0b4a48825225f",
+        "pngBackup": "output/imagegen/six-characters/final/suwanning/avatar_alt.png",
+        "pngBackupSha256": "820ae1dcf281b384d1f5b4b3deeaf3ccf956041a92dd287c9435fcb62847f5d7"
+      },
+      "normalization": {
+        "orientation": "EXIF transpose before processing",
+        "crop": "centered proportional square crop, centering(0.5,0.5)",
+        "resample": "Pillow LANCZOS",
+        "resource": "512x512 RGB WebP quality95 method6",
+        "backup": "1024x1024 RGB PNG",
+        "originalPreserved": true,
+        "alphaMatteRGB": [
+          242,
+          241,
+          239
+        ],
+        "alphaMatteApplied": false
+      },
+      "provenance": {
+        "type": "AI-generated",
+        "service": "https://www.vibework.live/v1",
+        "model": "gpt-image-2",
+        "rightsStatus": "unverified-provider-output-terms",
+        "rightsVerified": false,
+        "productionMeaning": "Visual integration status only; provider commercial terms are not certified"
+      },
+      "metadataErrors": [],
+      "visualReview": {
+        "status": "approved",
+        "reviewer": "Root Codex actual image inspection",
+        "reviewedAtUtc": "2026-10-04T18:45:23+00:00",
+        "evidence": {
+          "six-main-review.png": "48311685048d32731ec9209ed94aacb0c64798645ab142ee4ec042512c6f0602",
+          "six-alt-review.png": "76f5ab9ee466d8ca714a639050272e96b278ed344a25e03cb5e2d4192b88eda4",
+          "six-circle-native-review.png": "9be8f225555a425ad6761ab92b46416a97d53fb164f1ad0c67580306ebe1e9ad"
+        },
+        "criteria": "Six individually differentiated adult faces, consistent main/alternate identity, and legible native 48/64/96px circular crops; actual saved boards opened and inspected",
+        "userFinalVisualApproval": "not-recorded"
+      }
+    },
+    {
+      "characterId": "xuchaoyan",
+      "storageCharacterId": "yuna",
+      "name": "许朝颜",
+      "variant": "main",
+      "status": "production",
+      "source": {
+        "path": "output/imagegen/six-characters/raw/xuchaoyan-main-v2.png",
+        "valid": true,
+        "exists": true,
+        "bytes": 2342938,
+        "sha256": "acc760551a2ef203132252cf34dcafe9dde317fa2169f97026aabe3bf210b80a",
+        "actualDimensions": [
+          1254,
+          1254
+        ],
+        "actualMode": "RGB",
+        "orientedDimensions": [
+          1254,
+          1254
+        ],
+        "alphaRange": [
+          255,
+          255
+        ],
+        "sourceOpaque": true,
+        "sampleColorStdDev": 50.718
+      },
+      "prompt": {
+        "recordPath": "docs/design/SIX_CHARACTER_AVATAR_PROMPTS.jsonl",
+        "recordFileSha256": "3d299a260c8ab141bc5b05896fdf92765c3056819c3f27ce6f2313a4de4709af",
+        "prompt": "Use case: style-transfer. Input image 1 is the identity and composition reference for this one adult character, 许朝颜. Redraw this exact person as a premium contemporary otome / narrative visual novel SEMI-REALISTIC TWO-DIMENSIONAL PAINTED ANIME avatar, unmistakably an illustration rather than a photograph. Preserve their individual facial proportions, age, gender, hair silhouette and part direction, distinctive complexion, expression, clothing, accessories, palette, camera framing and background scene. Keep the six-person casting differences intact. Use carefully designed fine ink-like contours around eyes, nose, lips and hair; grouped painterly shading planes with subtle brush strokes; slightly simplified anime face rendering while retaining adult facial structure; hand-painted highlights rather than photographic pores or hyperreal skin. Avoid oversmoothing, generic idol face, plasticky 3D, doll eyes, teenification, huge eyes, face replacement or glossy lens effects. Keep the face readable in a 48px circular crop. Exactly one person, same full-bleed square composition, no text, watermark, frame or ring. Change only the rendering medium and texture, not the person or mood. Match the cohesive polished 2.5D painted visual-novel look across the cast, without making their face shapes or facial expressions alike.",
+        "promptSha256": "788c379570773bb730b81006298fa446d9b6957cc961907b924a67d8f07e3cc5",
+        "model": "gpt-image-2",
+        "requestedSize": "1024x1024",
+        "requestedQuality": "high",
+        "augmentation": "disabled-cli-no-augment",
+        "outputFilename": "xuchaoyan-main-v2.png",
+        "operation": "edit-style-transfer",
+        "inputReference": {
+          "path": "output/imagegen/six-characters/raw/xuchaoyan-main-v1.png",
+          "recordedSha256": "044680e71d6574cd8b4aef7295bab0b6e8e1173b04f3cb9ae9fe964394e88792",
+          "actualSha256": "044680e71d6574cd8b4aef7295bab0b6e8e1173b04f3cb9ae9fe964394e88792",
+          "verified": true
+        }
+      },
+      "referenceMain": null,
+      "resource": {
+        "path": "app/src/main/assets/characters/xuchaoyan/avatar_main.webp",
+        "sha256": "c0d62ef8b4b66d4afb76d101ed0bd72ba840549055c7a8dc28612dd004d57927",
+        "bytes": 93748,
+        "actualDimensions": [
+          512,
+          512
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "pngBackup": {
+        "path": "output/imagegen/six-characters/final/xuchaoyan/avatar_main.png",
+        "sha256": "f4359ab2776aea5387fb52e3d8ef5772c6db30c6f816ea9b21b17684542f320a",
+        "bytes": 1608976,
+        "actualDimensions": [
+          1024,
+          1024
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "normalizationReceipt": {
+        "normalizedAt": "2026-10-04T18:05:03+00:00",
+        "source": "output/imagegen/six-characters/raw/xuchaoyan-main-v2.png",
+        "sourceSha256": "acc760551a2ef203132252cf34dcafe9dde317fa2169f97026aabe3bf210b80a",
+        "resource": "app/src/main/assets/characters/xuchaoyan/avatar_main.webp",
+        "resourceSha256": "c0d62ef8b4b66d4afb76d101ed0bd72ba840549055c7a8dc28612dd004d57927",
+        "pngBackup": "output/imagegen/six-characters/final/xuchaoyan/avatar_main.png",
+        "pngBackupSha256": "f4359ab2776aea5387fb52e3d8ef5772c6db30c6f816ea9b21b17684542f320a"
+      },
+      "normalization": {
+        "orientation": "EXIF transpose before processing",
+        "crop": "centered proportional square crop, centering(0.5,0.5)",
+        "resample": "Pillow LANCZOS",
+        "resource": "512x512 RGB WebP quality95 method6",
+        "backup": "1024x1024 RGB PNG",
+        "originalPreserved": true,
+        "alphaMatteRGB": [
+          242,
+          241,
+          239
+        ],
+        "alphaMatteApplied": false
+      },
+      "provenance": {
+        "type": "AI-generated",
+        "service": "https://www.vibework.live/v1",
+        "model": "gpt-image-2",
+        "rightsStatus": "unverified-provider-output-terms",
+        "rightsVerified": false,
+        "productionMeaning": "Visual integration status only; provider commercial terms are not certified"
+      },
+      "metadataErrors": [],
+      "visualReview": {
+        "status": "approved",
+        "reviewer": "Root Codex actual image inspection",
+        "reviewedAtUtc": "2026-10-04T18:45:23+00:00",
+        "evidence": {
+          "six-main-review.png": "48311685048d32731ec9209ed94aacb0c64798645ab142ee4ec042512c6f0602",
+          "six-alt-review.png": "76f5ab9ee466d8ca714a639050272e96b278ed344a25e03cb5e2d4192b88eda4",
+          "six-circle-native-review.png": "9be8f225555a425ad6761ab92b46416a97d53fb164f1ad0c67580306ebe1e9ad"
+        },
+        "criteria": "Six individually differentiated adult faces, consistent main/alternate identity, and legible native 48/64/96px circular crops; actual saved boards opened and inspected",
+        "userFinalVisualApproval": "not-recorded"
+      }
+    },
+    {
+      "characterId": "xuchaoyan",
+      "storageCharacterId": "yuna",
+      "name": "许朝颜",
+      "variant": "alt",
+      "status": "production",
+      "source": {
+        "path": "output/imagegen/six-characters/raw/xuchaoyan-alt-v1.png",
+        "valid": true,
+        "exists": true,
+        "bytes": 2240853,
+        "sha256": "d498b6a77fe3d58edbf790b2ff87fa3c670ff949b827eb521e888bdce6a93d1e",
+        "actualDimensions": [
+          1254,
+          1254
+        ],
+        "actualMode": "RGB",
+        "orientedDimensions": [
+          1254,
+          1254
+        ],
+        "alphaRange": [
+          255,
+          255
+        ],
+        "sourceOpaque": true,
+        "sampleColorStdDev": 51.3382
+      },
+      "prompt": {
+        "recordPath": "output/imagegen/six-characters/alt-prompts.jsonl",
+        "recordFileSha256": "bfea9f9fc07087e7f6653d283a80f2434d83eadc35e52642bb3b47798a2675e4",
+        "prompt": "Use case: identity-preserve. Input image 1 is the actual selected approved main portrait of this named adult character. Create ONE supplementary expression avatar of the SAME PERSON. Preserve exact facial bone structure, eye shape, nose, lips, apparent age, gender, skin tone, hair part and length, clothing, palette, background, square crop, head scale and polished 2D semi-realistic otome visual-novel painted style. Change only the subtle expression and a few degrees of head/gaze as described. Retain a clear centered face and hairstyle safely inside the middle 78 percent circular crop, readable at 48 px. Keep scene subordinate. One adult, opaque full-bleed square. No words, circle frame, glow, selfie filters, identity drift, facial beautification, invented accessories, childlike or generic idol face. Specific change: She laughs more brightly with natural teeth visible and a more spontaneous head tilt, as if greeting a close friend outside the café. Keep her high ponytail and coral jacket.",
+        "promptSha256": "a5dcad69203b77206a4ec6ae75a1eb149b36bcf9cf05de6dd78b2e907ea97229",
+        "model": "gpt-image-2",
+        "requestedSize": "1024x1024",
+        "requestedQuality": "high",
+        "augmentation": "disabled-cli-no-augment",
+        "outputFilename": "xuchaoyan-alt-v1.png",
+        "operation": "edit-identity-preserve",
+        "inputReference": {
+          "path": "output/imagegen/six-characters/raw/xuchaoyan-main-v2.png",
+          "recordedSha256": "acc760551a2ef203132252cf34dcafe9dde317fa2169f97026aabe3bf210b80a",
+          "actualSha256": "acc760551a2ef203132252cf34dcafe9dde317fa2169f97026aabe3bf210b80a",
+          "verified": true
+        }
+      },
+      "referenceMain": {
+        "path": "output/imagegen/six-characters/raw/xuchaoyan-main-v2.png",
+        "exists": true,
+        "selectedMainPath": "output/imagegen/six-characters/raw/xuchaoyan-main-v2.png",
+        "sha256": "acc760551a2ef203132252cf34dcafe9dde317fa2169f97026aabe3bf210b80a",
+        "matchesSelectedMain": true,
+        "recordedSha256": "acc760551a2ef203132252cf34dcafe9dde317fa2169f97026aabe3bf210b80a",
+        "recordedHashMatches": true,
+        "valid": true
+      },
+      "resource": {
+        "path": "app/src/main/assets/characters/xuchaoyan/avatar_alt.webp",
+        "sha256": "731446eec232b028d65445b8b5122ddb47be80f5d50c93a4bcf9e01c2c4b27b3",
+        "bytes": 93170,
+        "actualDimensions": [
+          512,
+          512
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "pngBackup": {
+        "path": "output/imagegen/six-characters/final/xuchaoyan/avatar_alt.png",
+        "sha256": "cb0634424a6f4c6e4988aba0866abf8364eb2dab36a169bdc7dd5abecc8e748e",
+        "bytes": 1555824,
+        "actualDimensions": [
+          1024,
+          1024
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "normalizationReceipt": {
+        "normalizedAt": "2026-10-04T18:41:58+00:00",
+        "source": "output/imagegen/six-characters/raw/xuchaoyan-alt-v1.png",
+        "sourceSha256": "d498b6a77fe3d58edbf790b2ff87fa3c670ff949b827eb521e888bdce6a93d1e",
+        "resource": "app/src/main/assets/characters/xuchaoyan/avatar_alt.webp",
+        "resourceSha256": "731446eec232b028d65445b8b5122ddb47be80f5d50c93a4bcf9e01c2c4b27b3",
+        "pngBackup": "output/imagegen/six-characters/final/xuchaoyan/avatar_alt.png",
+        "pngBackupSha256": "cb0634424a6f4c6e4988aba0866abf8364eb2dab36a169bdc7dd5abecc8e748e"
+      },
+      "normalization": {
+        "orientation": "EXIF transpose before processing",
+        "crop": "centered proportional square crop, centering(0.5,0.5)",
+        "resample": "Pillow LANCZOS",
+        "resource": "512x512 RGB WebP quality95 method6",
+        "backup": "1024x1024 RGB PNG",
+        "originalPreserved": true,
+        "alphaMatteRGB": [
+          242,
+          241,
+          239
+        ],
+        "alphaMatteApplied": false
+      },
+      "provenance": {
+        "type": "AI-generated",
+        "service": "https://www.vibework.live/v1",
+        "model": "gpt-image-2",
+        "rightsStatus": "unverified-provider-output-terms",
+        "rightsVerified": false,
+        "productionMeaning": "Visual integration status only; provider commercial terms are not certified"
+      },
+      "metadataErrors": [],
+      "visualReview": {
+        "status": "approved",
+        "reviewer": "Root Codex actual image inspection",
+        "reviewedAtUtc": "2026-10-04T18:45:23+00:00",
+        "evidence": {
+          "six-main-review.png": "48311685048d32731ec9209ed94aacb0c64798645ab142ee4ec042512c6f0602",
+          "six-alt-review.png": "76f5ab9ee466d8ca714a639050272e96b278ed344a25e03cb5e2d4192b88eda4",
+          "six-circle-native-review.png": "9be8f225555a425ad6761ab92b46416a97d53fb164f1ad0c67580306ebe1e9ad"
+        },
+        "criteria": "Six individually differentiated adult faces, consistent main/alternate identity, and legible native 48/64/96px circular crops; actual saved boards opened and inspected",
+        "userFinalVisualApproval": "not-recorded"
+      }
+    },
+    {
+      "characterId": "songzhiwei",
+      "storageCharacterId": "noa",
+      "name": "宋知微",
+      "variant": "main",
+      "status": "production",
+      "source": {
+        "path": "output/imagegen/six-characters/raw/songzhiwei-main-v2.png",
+        "valid": true,
+        "exists": true,
+        "bytes": 2129776,
+        "sha256": "1188c22a7ef5ec2df0b8d6f74396535f36a0076bba4920dd22edc55336d0bb88",
+        "actualDimensions": [
+          1254,
+          1254
+        ],
+        "actualMode": "RGB",
+        "orientedDimensions": [
+          1254,
+          1254
+        ],
+        "alphaRange": [
+          255,
+          255
+        ],
+        "sourceOpaque": true,
+        "sampleColorStdDev": 52.8826
+      },
+      "prompt": {
+        "recordPath": "docs/design/SIX_CHARACTER_AVATAR_PROMPTS.jsonl",
+        "recordFileSha256": "3d299a260c8ab141bc5b05896fdf92765c3056819c3f27ce6f2313a4de4709af",
+        "prompt": "Use case: style-transfer. Input image 1 is the identity and composition reference for this one adult character, 宋知微. Redraw this exact person as a premium contemporary otome / narrative visual novel SEMI-REALISTIC TWO-DIMENSIONAL PAINTED ANIME avatar, unmistakably an illustration rather than a photograph. Preserve their individual facial proportions, age, gender, hair silhouette and part direction, distinctive complexion, expression, clothing, accessories, palette, camera framing and background scene. Keep the six-person casting differences intact. Use carefully designed fine ink-like contours around eyes, nose, lips and hair; grouped painterly shading planes with subtle brush strokes; slightly simplified anime face rendering while retaining adult facial structure; hand-painted highlights rather than photographic pores or hyperreal skin. Avoid oversmoothing, generic idol face, plasticky 3D, doll eyes, teenification, huge eyes, face replacement or glossy lens effects. Keep the face readable in a 48px circular crop. Exactly one person, same full-bleed square composition, no text, watermark, frame or ring. Change only the rendering medium and texture, not the person or mood. Match the cohesive polished 2.5D painted visual-novel look across the cast, without making their face shapes or facial expressions alike.",
+        "promptSha256": "0669e20525dfe874166b4c4a888ee49bd355d7c26380e09c37cc216904cb980f",
+        "model": "gpt-image-2",
+        "requestedSize": "1024x1024",
+        "requestedQuality": "high",
+        "augmentation": "disabled-cli-no-augment",
+        "outputFilename": "songzhiwei-main-v2.png",
+        "operation": "edit-style-transfer",
+        "inputReference": {
+          "path": "output/imagegen/six-characters/raw/songzhiwei-main-v1.png",
+          "recordedSha256": "b8b5fb646c9723ceb3a6bd3328ec279e45c5bad1417c29b8f1b8c03d5a8711cc",
+          "actualSha256": "b8b5fb646c9723ceb3a6bd3328ec279e45c5bad1417c29b8f1b8c03d5a8711cc",
+          "verified": true
+        }
+      },
+      "referenceMain": null,
+      "resource": {
+        "path": "app/src/main/assets/characters/songzhiwei/avatar_main.webp",
+        "sha256": "e8959ab371e2542e79a812836e5de2578e636adc3cca89e972ea902864595ff2",
+        "bytes": 64594,
+        "actualDimensions": [
+          512,
+          512
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "pngBackup": {
+        "path": "output/imagegen/six-characters/final/songzhiwei/avatar_main.png",
+        "sha256": "1ff95ef1bb3fd0b1668cf632cfba4359c46979ed9b490bb437432c67634cac1f",
+        "bytes": 1417982,
+        "actualDimensions": [
+          1024,
+          1024
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "normalizationReceipt": {
+        "normalizedAt": "2026-10-04T18:05:03+00:00",
+        "source": "output/imagegen/six-characters/raw/songzhiwei-main-v2.png",
+        "sourceSha256": "1188c22a7ef5ec2df0b8d6f74396535f36a0076bba4920dd22edc55336d0bb88",
+        "resource": "app/src/main/assets/characters/songzhiwei/avatar_main.webp",
+        "resourceSha256": "e8959ab371e2542e79a812836e5de2578e636adc3cca89e972ea902864595ff2",
+        "pngBackup": "output/imagegen/six-characters/final/songzhiwei/avatar_main.png",
+        "pngBackupSha256": "1ff95ef1bb3fd0b1668cf632cfba4359c46979ed9b490bb437432c67634cac1f"
+      },
+      "normalization": {
+        "orientation": "EXIF transpose before processing",
+        "crop": "centered proportional square crop, centering(0.5,0.5)",
+        "resample": "Pillow LANCZOS",
+        "resource": "512x512 RGB WebP quality95 method6",
+        "backup": "1024x1024 RGB PNG",
+        "originalPreserved": true,
+        "alphaMatteRGB": [
+          242,
+          241,
+          239
+        ],
+        "alphaMatteApplied": false
+      },
+      "provenance": {
+        "type": "AI-generated",
+        "service": "https://www.vibework.live/v1",
+        "model": "gpt-image-2",
+        "rightsStatus": "unverified-provider-output-terms",
+        "rightsVerified": false,
+        "productionMeaning": "Visual integration status only; provider commercial terms are not certified"
+      },
+      "metadataErrors": [],
+      "visualReview": {
+        "status": "approved",
+        "reviewer": "Root Codex actual image inspection",
+        "reviewedAtUtc": "2026-10-04T18:45:23+00:00",
+        "evidence": {
+          "six-main-review.png": "48311685048d32731ec9209ed94aacb0c64798645ab142ee4ec042512c6f0602",
+          "six-alt-review.png": "76f5ab9ee466d8ca714a639050272e96b278ed344a25e03cb5e2d4192b88eda4",
+          "six-circle-native-review.png": "9be8f225555a425ad6761ab92b46416a97d53fb164f1ad0c67580306ebe1e9ad"
+        },
+        "criteria": "Six individually differentiated adult faces, consistent main/alternate identity, and legible native 48/64/96px circular crops; actual saved boards opened and inspected",
+        "userFinalVisualApproval": "not-recorded"
+      }
+    },
+    {
+      "characterId": "songzhiwei",
+      "storageCharacterId": "noa",
+      "name": "宋知微",
+      "variant": "alt",
+      "status": "production",
+      "source": {
+        "path": "output/imagegen/six-characters/raw/songzhiwei-alt-v1.png",
+        "valid": true,
+        "exists": true,
+        "bytes": 1963078,
+        "sha256": "6f19454096b3a250a4cc2e024c98dcc7596e17edd57c77c03c2243ab1f6aa363",
+        "actualDimensions": [
+          1254,
+          1254
+        ],
+        "actualMode": "RGB",
+        "orientedDimensions": [
+          1254,
+          1254
+        ],
+        "alphaRange": [
+          255,
+          255
+        ],
+        "sourceOpaque": true,
+        "sampleColorStdDev": 53.1154
+      },
+      "prompt": {
+        "recordPath": "output/imagegen/six-characters/alt-prompts.jsonl",
+        "recordFileSha256": "bfea9f9fc07087e7f6653d283a80f2434d83eadc35e52642bb3b47798a2675e4",
+        "prompt": "Use case: identity-preserve. Input image 1 is the actual selected approved main portrait of this named adult character. Create ONE supplementary expression avatar of the SAME PERSON. Preserve exact facial bone structure, eye shape, nose, lips, apparent age, gender, skin tone, hair part and length, clothing, palette, background, square crop, head scale and polished 2D semi-realistic otome visual-novel painted style. Change only the subtle expression and a few degrees of head/gaze as described. Retain a clear centered face and hairstyle safely inside the middle 78 percent circular crop, readable at 48 px. Keep scene subordinate. One adult, opaque full-bleed square. No words, circle frame, glow, selfie filters, identity drift, facial beautification, invented accessories, childlike or generic idol face. Specific change: She offers a restrained knowing half-smile while looking calmly just off camera, as if a friend made an unexpectedly good point. Keep her direct mature face, straight dark bob and forest green coat.",
+        "promptSha256": "ab0511283359a2248062cccfbf58ea56bcdd9778c99359a50c2444bcd986ea2c",
+        "model": "gpt-image-2",
+        "requestedSize": "1024x1024",
+        "requestedQuality": "high",
+        "augmentation": "disabled-cli-no-augment",
+        "outputFilename": "songzhiwei-alt-v1.png",
+        "operation": "edit-identity-preserve",
+        "inputReference": {
+          "path": "output/imagegen/six-characters/raw/songzhiwei-main-v2.png",
+          "recordedSha256": "1188c22a7ef5ec2df0b8d6f74396535f36a0076bba4920dd22edc55336d0bb88",
+          "actualSha256": "1188c22a7ef5ec2df0b8d6f74396535f36a0076bba4920dd22edc55336d0bb88",
+          "verified": true
+        }
+      },
+      "referenceMain": {
+        "path": "output/imagegen/six-characters/raw/songzhiwei-main-v2.png",
+        "exists": true,
+        "selectedMainPath": "output/imagegen/six-characters/raw/songzhiwei-main-v2.png",
+        "sha256": "1188c22a7ef5ec2df0b8d6f74396535f36a0076bba4920dd22edc55336d0bb88",
+        "matchesSelectedMain": true,
+        "recordedSha256": "1188c22a7ef5ec2df0b8d6f74396535f36a0076bba4920dd22edc55336d0bb88",
+        "recordedHashMatches": true,
+        "valid": true
+      },
+      "resource": {
+        "path": "app/src/main/assets/characters/songzhiwei/avatar_alt.webp",
+        "sha256": "f9b7480b032b30d8b9eac0c4156cfc50986ae9ffbab9b43e28019d1a10f31ac3",
+        "bytes": 58090,
+        "actualDimensions": [
+          512,
+          512
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "pngBackup": {
+        "path": "output/imagegen/six-characters/final/songzhiwei/avatar_alt.png",
+        "sha256": "6cb11c625aca4a198cec3d2b159504a43c49537698049de2b0062efa40aa111d",
+        "bytes": 1325149,
+        "actualDimensions": [
+          1024,
+          1024
+        ],
+        "actualMode": "RGB",
+        "valid": true
+      },
+      "normalizationReceipt": {
+        "normalizedAt": "2026-10-04T18:41:59+00:00",
+        "source": "output/imagegen/six-characters/raw/songzhiwei-alt-v1.png",
+        "sourceSha256": "6f19454096b3a250a4cc2e024c98dcc7596e17edd57c77c03c2243ab1f6aa363",
+        "resource": "app/src/main/assets/characters/songzhiwei/avatar_alt.webp",
+        "resourceSha256": "f9b7480b032b30d8b9eac0c4156cfc50986ae9ffbab9b43e28019d1a10f31ac3",
+        "pngBackup": "output/imagegen/six-characters/final/songzhiwei/avatar_alt.png",
+        "pngBackupSha256": "6cb11c625aca4a198cec3d2b159504a43c49537698049de2b0062efa40aa111d"
+      },
+      "normalization": {
+        "orientation": "EXIF transpose before processing",
+        "crop": "centered proportional square crop, centering(0.5,0.5)",
+        "resample": "Pillow LANCZOS",
+        "resource": "512x512 RGB WebP quality95 method6",
+        "backup": "1024x1024 RGB PNG",
+        "originalPreserved": true,
+        "alphaMatteRGB": [
+          242,
+          241,
+          239
+        ],
+        "alphaMatteApplied": false
+      },
+      "provenance": {
+        "type": "AI-generated",
+        "service": "https://www.vibework.live/v1",
+        "model": "gpt-image-2",
+        "rightsStatus": "unverified-provider-output-terms",
+        "rightsVerified": false,
+        "productionMeaning": "Visual integration status only; provider commercial terms are not certified"
+      },
+      "metadataErrors": [],
+      "visualReview": {
+        "status": "approved",
+        "reviewer": "Root Codex actual image inspection",
+        "reviewedAtUtc": "2026-10-04T18:45:23+00:00",
+        "evidence": {
+          "six-main-review.png": "48311685048d32731ec9209ed94aacb0c64798645ab142ee4ec042512c6f0602",
+          "six-alt-review.png": "76f5ab9ee466d8ca714a639050272e96b278ed344a25e03cb5e2d4192b88eda4",
+          "six-circle-native-review.png": "9be8f225555a425ad6761ab92b46416a97d53fb164f1ad0c67580306ebe1e9ad"
+        },
+        "criteria": "Six individually differentiated adult faces, consistent main/alternate identity, and legible native 48/64/96px circular crops; actual saved boards opened and inspected",
+        "userFinalVisualApproval": "not-recorded"
+      }
+    }
+  ]
+}

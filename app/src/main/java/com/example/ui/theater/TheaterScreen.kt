@@ -48,6 +48,7 @@ import com.example.ui.designsystem.AiluaSectionHeader
 import com.example.ui.designsystem.AiluaSurface
 import com.example.ui.designsystem.CharacterPortrait
 import com.example.ui.designsystem.PortraitVariant
+import com.example.ui.designsystem.publicCharacterName
 import com.example.ui.themeengine.LocalAiluaTheme
 import kotlinx.coroutines.launch
 
@@ -59,15 +60,19 @@ fun TheaterScreen(
     onGoHome: () -> Unit = onBack
 ) {
     val theme = LocalAiluaTheme.current
-    val story = WorldData.rainyNightStory
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val savedBookmark by AiluaLocalStore.theaterBookmark.collectAsStateWithLifecycle()
-    var currentNodeId by remember { mutableStateOf(story.initialNodeId) }
-    var bondScore by remember { mutableIntStateOf(50) }
-    var storyVariables by remember { mutableStateOf(story.initialVariables) }
-    val history = remember { mutableStateListOf<TheaterHistoryStep>() }
-    var showHistory by remember { mutableStateOf(false) }
+    val legacyBookmark = savedBookmark?.takeIf {
+        it.storyId == WorldData.rainyNightStory.id && it.history.isNotEmpty()
+    }
+    var readingLegacy by remember { mutableStateOf(false) }
+    val story = if (readingLegacy && legacyBookmark != null) WorldData.rainyNightStory else WorldData.defaultTheaterStory
+    var currentNodeId by remember(story.id) { mutableStateOf(story.initialNodeId) }
+    var bondScore by remember(story.id) { mutableIntStateOf(50) }
+    var storyVariables by remember(story.id) { mutableStateOf(story.initialVariables) }
+    val history = remember(story.id) { mutableStateListOf<TheaterHistoryStep>() }
+    var showHistory by remember(story.id) { mutableStateOf(false) }
     val currentNode: TheaterDialogueNode? = story.nodes[currentNodeId]
     LaunchedEffect(story.id, currentNodeId) {
         if (currentNode?.isEnding == true && history.isNotEmpty()) {
@@ -123,8 +128,25 @@ fun TheaterScreen(
             modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = theme.layout.screenHorizontalPadding.dp),
             verticalArrangement = Arrangement.spacedBy(theme.layout.sectionGap.dp)
         ) {
+            if (legacyBookmark != null) {
+                item {
+                    Row(
+                        Modifier.fillMaxWidth().testTag("theater_legacy_story_banner"),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp),
+                    ) {
+                        Text(if (readingLegacy) "已保存的旧故事" else "你还有一段已保存的故事",
+                            style = theme.text.secondary, color = theme.palette.onSurfaceMuted, modifier = Modifier.weight(1f))
+                        AiluaChip(
+                            label = if (readingLegacy) "回到新故事" else "打开旧故事",
+                            modifier = Modifier.testTag("theater_legacy_story_btn"),
+                            onClick = { readingLegacy = !readingLegacy },
+                        )
+                    }
+                }
+            }
             savedBookmark?.let { bookmark ->
-                if (bookmark.storyId == story.id && currentNodeId == story.initialNodeId && history.isEmpty()) {
+                if (bookmark.storyId == story.id && bookmark.currentNodeId in story.nodes && currentNodeId == story.initialNodeId && history.isEmpty()) {
                     item {
                         Row(
                             modifier = Modifier.fillMaxWidth().testTag("theater_resume_banner"),
@@ -167,7 +189,7 @@ fun TheaterScreen(
                 }
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
-                        Text(currentNode.speakerName, style = theme.text.section, color = theme.palette.onSurface)
+                        Text(publicCharacterName(currentNode.speakerId, currentNode.speakerName), style = theme.text.section, color = theme.palette.onSurface)
                         Text(currentNode.emotion, style = theme.text.caption, color = theme.palette.onSurfaceMuted)
                         Text(currentNode.text, style = theme.text.body, color = theme.palette.onSurface)
                     }
@@ -229,7 +251,8 @@ fun TheaterScreen(
                 if (showHistory) {
                     items(history) { step ->
                         Column(verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
-                            Text(step.speakerName, style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
+                            Text(publicCharacterName(story.nodes[step.nodeId]?.speakerId.orEmpty(), step.speakerName),
+                                style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
                             Text(step.text, style = theme.text.body, color = theme.palette.onSurface)
                             step.choiceMadeText?.let {
                                 Text("你的选择：$it", style = theme.text.secondary, color = theme.palette.onSurfaceMuted)

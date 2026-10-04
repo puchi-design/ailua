@@ -106,6 +106,7 @@ private fun MomentCard(
     val theme = LocalAiluaTheme.current
     var showCommentInput by remember { mutableStateOf(false) }
     var commentText by remember { mutableStateOf("") }
+    val authorName = publicCharacterName(post.authorId, post.authorName)
     Column(
         Modifier.fillMaxWidth().testTag("moment_card_${post.id}").padding(top = 20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -114,7 +115,7 @@ private fun MomentCard(
             CharacterPortrait(post.authorId, PortraitVariant.AVATAR, Modifier.size(40.dp),
                 onClick = { onOpenProfile(post.authorId) })
             Column(Modifier.weight(1f).clickable { onOpenProfile(post.authorId) }) {
-                Text(post.authorName, style = theme.text.body, color = theme.palette.onSurface)
+                Text(authorName, style = theme.text.body, color = theme.palette.onSurface)
                 Text(listOf(post.locationContext, post.moodTag).filter { it.isNotBlank() }.joinToString(" · "),
                     style = theme.text.caption, color = theme.palette.onSurfaceMuted,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -140,7 +141,8 @@ private fun MomentCard(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 post.comments.forEach { comment ->
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("${comment.author}：${comment.content}", style = theme.text.secondary,
+                        val commentAuthor = if (comment.isUser) comment.author else publicSnapshotAuthorName(comment.author)
+                        Text("$commentAuthor：${comment.content}", style = theme.text.secondary,
                             color = theme.palette.onSurfaceMuted, modifier = Modifier.weight(1f))
                         Text(comment.timestamp, style = theme.text.caption, color = theme.palette.onSurfaceMuted)
                     }
@@ -151,7 +153,7 @@ private fun MomentCard(
             TextField(
                 value = commentText, onValueChange = { commentText = it }, singleLine = true,
                 modifier = Modifier.fillMaxWidth(), textStyle = theme.text.body,
-                placeholder = { Text("写下对 ${post.authorName} 的回应…", style = theme.text.secondary) },
+                placeholder = { Text("写下对 $authorName 的回应…", style = theme.text.secondary) },
                 shape = RoundedCornerShape(theme.shapes.medium.dp),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = theme.surfaces.inset, unfocusedContainerColor = theme.surfaces.inset,

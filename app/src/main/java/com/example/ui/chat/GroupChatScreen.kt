@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -20,6 +21,8 @@ import com.example.ui.chat.components.ChatMessageItem
 import com.example.ui.chat.components.ChatTopBar
 import com.example.ui.components.AiConnectionSheet
 import com.example.ui.designsystem.AiluaScreenScaffold
+import com.example.ui.designsystem.CharacterPortrait
+import com.example.ui.designsystem.PortraitVariant
 import com.example.ui.themeengine.LocalAiluaTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,6 +51,7 @@ fun GroupChatScreen(
         modifier = Modifier.imePadding().testTag("group_chat_screen"),
         topBar = {
             ChatTopBar(
+                characterId = "group_tea",
                 name = "雨夜茶会",
                 currentActivity = GroupChatViewModel.PARTICIPANTS.joinToString(" · ") { CharacterRegistry.getCharacter(it).name } + " · 你",
                 onBack = onBack, onOpenProfile = onOpenRelations, onOpenMenu = { showMenu = true },
@@ -86,9 +90,22 @@ fun GroupChatScreen(
             }
         },
     ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = theme.layout.screenHorizontalPadding.dp, vertical = 8.dp)
+                .testTag("group_members"),
+            horizontalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp),
+        ) {
+            GroupChatViewModel.PARTICIPANTS.forEach { characterId ->
+                Column(Modifier.weight(1f).testTag("group_member_$characterId"),
+                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    CharacterPortrait(characterId, PortraitVariant.AVATAR, Modifier.size(36.dp))
+                    Text(CharacterRegistry.getCharacter(characterId).name, style = theme.text.caption, color = theme.palette.onSurfaceMuted)
+                }
+            }
+        }
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize().padding(horizontal = theme.layout.screenHorizontalPadding.dp),
+            modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = theme.layout.screenHorizontalPadding.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             if (state.messages.isEmpty()) item {

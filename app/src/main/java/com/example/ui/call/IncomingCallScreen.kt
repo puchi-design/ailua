@@ -28,6 +28,7 @@ import com.example.data.model.CallSession
 import com.example.ui.components.VirtualPhoneStatusBar
 import com.example.ui.designsystem.CharacterPortrait
 import com.example.ui.designsystem.PortraitVariant
+import com.example.ui.designsystem.publicCharacterName
 import com.example.ui.themeengine.LocalAiluaTheme
 import kotlinx.coroutines.delay
 
@@ -47,7 +48,8 @@ fun IncomingCallScreen(
         Spacer(Modifier.weight(0.65f))
         CharacterPortrait(session?.characterId ?: CharacterContext.currentId(), PortraitVariant.HERO)
         Spacer(Modifier.height(theme.layout.sectionGap.dp))
-        Text(session?.callerName ?: CharacterContext.currentCharacter().name, style = theme.text.display, color = theme.palette.onSurface)
+        Text(publicCharacterName(session?.characterId ?: CharacterContext.currentId(), session?.callerName ?: CharacterContext.currentCharacter().name),
+            style = theme.text.display, color = theme.palette.onSurface)
         Spacer(Modifier.height(8.dp))
         Text("来电…", style = theme.text.body, color = theme.palette.onSurfaceMuted)
         Spacer(Modifier.weight(1f))

@@ -134,6 +134,7 @@ fun ChatScreen(
             onGoHome = onGoHome,
             topBar = {
                 ChatTopBar(
+                    characterId = character.id,
                     name = character.name,
                     currentActivity = currentActivity,
                     onBack = onBackToHome,

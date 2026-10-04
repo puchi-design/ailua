@@ -18,9 +18,9 @@ fun projectGalleryAssets(
         .distinctBy { it.id }
         .map { event ->
             val album = when (event.characterId) {
-                "mira" -> "小弥的生活"
-                "yuna" -> "悠奈的相机"
-                "noa" -> "诺亚的书阁"
+                "mira" -> "苏晚宁的生活"
+                "yuna" -> "许朝颜的相机"
+                "noa" -> "宋知微的生活"
                 else -> "${characterNames[event.characterId] ?: event.characterId}的生活"
             }
             GalleryAsset(
