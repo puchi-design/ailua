@@ -1,6 +1,7 @@
 package com.example.data.model
 
 import kotlinx.serialization.Serializable
+import com.example.data.chat.rich.RichMessagePayload
 
 enum class MessageSender {
     USER,
@@ -34,7 +35,12 @@ data class ChatMessage(
     /** Total variants of this turn for the ‹ n / m › picker (P3C-4 §11). */
     val variantCount: Int = 1,
     /** "FAILED" / "CANCELLED" marker for generation status, null when fine. */
-    val statusLabel: String? = null
+    val statusLabel: String? = null,
+    /** Active SQLDelight variant ID, used for durable rich-card actions. */
+    val variantId: String = "",
+    val richPayloads: List<RichMessagePayload> = emptyList(),
+    val quoteMessageId: String? = null,
+    val quotePreview: String? = null,
 )
 
 data class MomentComment(

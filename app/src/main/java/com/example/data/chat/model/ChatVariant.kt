@@ -1,5 +1,7 @@
 package com.example.data.chat.model
 
+import com.example.data.chat.rich.RichMessagePayload
+
 /** Lifecycle of a single generated reply variant (P3C-3 §5). */
 enum class VariantStatus {
     STREAMING,
@@ -30,4 +32,7 @@ data class ChatVariant(
     val errorMessage: String?,
     val createdAtEpochMs: Long,
     val updatedAtEpochMs: Long,
+    val richPayloads: List<RichMessagePayload> = emptyList(),
+    val quoteMessageId: String? = null,
+    val quotePreview: String? = null,
 )

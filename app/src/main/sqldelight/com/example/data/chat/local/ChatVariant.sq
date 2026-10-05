@@ -10,14 +10,17 @@ CREATE TABLE chat_variant (
     error_message TEXT,
     created_at_epoch_ms INTEGER NOT NULL,
     updated_at_epoch_ms INTEGER NOT NULL,
+    rich_payloads_json TEXT,
+    quote_message_id TEXT,
+    quote_preview TEXT,
     FOREIGN KEY(turn_id) REFERENCES chat_turn(id) ON DELETE CASCADE
 );
 
 CREATE UNIQUE INDEX chat_variant_turn_index ON chat_variant(turn_id, variant_index);
 
 insertVariant:
-INSERT INTO chat_variant(id, turn_id, variant_index, content, status, provider_profile_id, model, error_type, error_message, created_at_epoch_ms, updated_at_epoch_ms)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO chat_variant(id, turn_id, variant_index, content, status, provider_profile_id, model, error_type, error_message, created_at_epoch_ms, updated_at_epoch_ms, rich_payloads_json, quote_message_id, quote_preview)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 selectVariantsByTurn:
 SELECT * FROM chat_variant WHERE turn_id = ? ORDER BY variant_index ASC;
@@ -36,8 +39,11 @@ SELECT COUNT(*) FROM chat_variant;
 
 updateVariant:
 UPDATE chat_variant
-SET content = ?, status = ?, error_type = ?, error_message = ?, updated_at_epoch_ms = ?
+SET content = ?, status = ?, error_type = ?, error_message = ?, updated_at_epoch_ms = ?, rich_payloads_json = COALESCE(?, rich_payloads_json)
 WHERE id = ?;
+
+updateRichPayloads:
+UPDATE chat_variant SET rich_payloads_json = ?, updated_at_epoch_ms = ? WHERE id = ?;
 
 recoverStreamingVariants:
 UPDATE chat_variant

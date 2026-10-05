@@ -1,0 +1,4 @@
+-- V6.1: additive columns preserve every existing turn, variant and active selection.
+ALTER TABLE chat_variant ADD COLUMN rich_payloads_json TEXT;
+ALTER TABLE chat_variant ADD COLUMN quote_message_id TEXT;
+ALTER TABLE chat_variant ADD COLUMN quote_preview TEXT;

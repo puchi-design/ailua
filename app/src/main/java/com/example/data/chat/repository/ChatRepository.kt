@@ -6,6 +6,8 @@ import com.example.data.chat.model.ChatTurn
 import com.example.data.chat.model.ChatVariant
 import com.example.data.chat.model.ResolvedChatTurn
 import com.example.data.chat.model.VariantStatus
+import com.example.data.chat.rich.RichMessagePayload
+import com.example.data.chat.rich.RichMessageStatus
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -46,7 +48,12 @@ interface ChatRepository {
         getOrCreatePrivateSession(GroupChatIdentity.key(groupId, participants))
 
     /** Appends a USER turn with its single variant (index 0, [VariantStatus.COMPLETE]). */
-    fun appendUserTurn(sessionId: String, content: String): ChatTurn
+    fun appendUserTurn(
+        sessionId: String,
+        content: String,
+        quoteMessageId: String? = null,
+        quotePreview: String? = null,
+    ): ChatTurn
 
     /**
      * Appends an ASSISTANT turn whose first variant carries [content]/[status]
@@ -116,7 +123,11 @@ interface ChatRepository {
         status: VariantStatus,
         errorType: String? = null,
         errorMessage: String? = null,
+        richPayloads: List<RichMessagePayload>? = null,
     )
+
+    /** One durable, idempotent card action. Returns true only for the first valid transition. */
+    fun updateRichStatus(variantId: String, payloadIndex: Int, status: RichMessageStatus): Boolean
 
     /**
      * Stale-streaming recovery (P3C-4 §9): marks every STREAMING variant of

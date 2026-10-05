@@ -12,6 +12,10 @@ import com.example.data.chat.model.VariantStatus
 import com.example.data.chat.repository.ChatRepository
 import com.example.data.chat.repository.EpochClock
 import com.example.data.chat.repository.IdGenerator
+import com.example.data.chat.rich.RichMessageCodec
+import com.example.data.chat.rich.RichMessagePayload
+import com.example.data.chat.rich.RichMessageStatus
+import com.example.data.chat.rich.RichMessageType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -79,7 +83,12 @@ class SqlDelightChatRepository(
             session
         }
 
-    override fun appendUserTurn(sessionId: String, content: String): ChatTurn =
+    override fun appendUserTurn(
+        sessionId: String,
+        content: String,
+        quoteMessageId: String?,
+        quotePreview: String?,
+    ): ChatTurn =
         appendTurn(
             sessionId = sessionId,
             role = ChatTurnRole.USER,
@@ -89,6 +98,8 @@ class SqlDelightChatRepository(
             model = null,
             errorType = null,
             errorMessage = null,
+            quoteMessageId = quoteMessageId,
+            quotePreview = quotePreview,
         )
 
     override fun appendAssistantTurn(
@@ -108,6 +119,8 @@ class SqlDelightChatRepository(
         model = model,
         errorType = errorType,
         errorMessage = errorMessage,
+        quoteMessageId = null,
+        quotePreview = null,
     )
 
     private fun appendTurn(
@@ -119,11 +132,21 @@ class SqlDelightChatRepository(
         model: String?,
         errorType: String?,
         errorMessage: String?,
+        quoteMessageId: String?,
+        quotePreview: String?,
     ): ChatTurn = database.transactionWithResult {
         val now = clock.nowEpochMs()
         val position = database.chatTurnQueries.selectMaxPosition(sessionId).executeAsOne() + 1
         val turnId = idGenerator.newId()
         val variantId = idGenerator.newId()
+        val quotedTurn = quoteMessageId?.let { database.chatTurnQueries.selectTurnById(it).executeAsOneOrNull() }
+            ?.takeIf { it.session_id == sessionId }
+        val quotedVariant = quotedTurn?.active_variant_id?.let {
+            database.chatVariantQueries.selectVariantById(it).executeAsOneOrNull()
+        }
+        val safeQuoteId = quotedTurn?.id
+        val safeQuotePreview = if (safeQuoteId == null) null else
+            (quotedVariant?.content?.takeIf { it.isNotBlank() } ?: quotePreview.orEmpty()).trim().take(160)
         database.chatTurnQueries.insertTurn(
             id = turnId,
             session_id = sessionId,
@@ -144,6 +167,9 @@ class SqlDelightChatRepository(
             error_message = errorMessage,
             created_at_epoch_ms = now,
             updated_at_epoch_ms = now,
+            rich_payloads_json = null,
+            quote_message_id = safeQuoteId,
+            quote_preview = safeQuotePreview,
         )
         database.chatSessionQueries.touchSession(updated_at_epoch_ms = now, id = sessionId)
         ChatTurn(
@@ -182,6 +208,9 @@ class SqlDelightChatRepository(
             error_message = errorMessage,
             created_at_epoch_ms = now,
             updated_at_epoch_ms = now,
+            rich_payloads_json = null,
+            quote_message_id = null,
+            quote_preview = null,
         )
         database.chatTurnQueries.updateActiveVariant(active_variant_id = variantId, id = turnId)
         database.chatSessionQueries.touchSession(updated_at_epoch_ms = now, id = turn.session_id)
@@ -240,6 +269,7 @@ class SqlDelightChatRepository(
         status: VariantStatus,
         errorType: String?,
         errorMessage: String?,
+        richPayloads: List<RichMessagePayload>?,
     ) {
         database.transaction {
             val variant = database.chatVariantQueries.selectVariantById(variantId).executeAsOneOrNull()
@@ -250,6 +280,7 @@ class SqlDelightChatRepository(
                 error_type = errorType,
                 error_message = errorMessage,
                 updated_at_epoch_ms = clock.nowEpochMs(),
+                value = richPayloads?.let(RichMessageCodec::encode),
                 id = variantId,
             )
             val turn = database.chatTurnQueries.selectTurnById(variant.turn_id).executeAsOneOrNull()
@@ -261,6 +292,33 @@ class SqlDelightChatRepository(
             }
         }
     }
+
+    override fun updateRichStatus(variantId: String, payloadIndex: Int, status: RichMessageStatus): Boolean =
+        database.transactionWithResult {
+            val variant = database.chatVariantQueries.selectVariantById(variantId).executeAsOneOrNull()
+                ?: return@transactionWithResult false
+            val payloads = RichMessageCodec.decode(variant.rich_payloads_json)
+            val payload = payloads.getOrNull(payloadIndex) ?: return@transactionWithResult false
+            if (payload.status != RichMessageStatus.PENDING) return@transactionWithResult false
+            val allowed = when (payload.type) {
+                RichMessageType.RED_PACKET -> status == RichMessageStatus.OPENED
+                RichMessageType.TRANSFER -> status == RichMessageStatus.ACCEPTED || status == RichMessageStatus.DECLINED
+                RichMessageType.GIFT -> status == RichMessageStatus.RECEIVED
+                else -> false
+            }
+            if (!allowed) return@transactionWithResult false
+            val now = clock.nowEpochMs()
+            database.chatVariantQueries.updateRichPayloads(
+                rich_payloads_json = RichMessageCodec.encode(payloads.toMutableList().also {
+                    it[payloadIndex] = payload.copy(status = status)
+                }),
+                updated_at_epoch_ms = now,
+                id = variantId,
+            )
+            val turn = database.chatTurnQueries.selectTurnById(variant.turn_id).executeAsOneOrNull()
+            if (turn != null) database.chatSessionQueries.touchSession(updated_at_epoch_ms = now, id = turn.session_id)
+            true
+        }
 
     override fun recoverInterruptedVariants(sessionId: String): Int =
         database.transactionWithResult {
@@ -296,6 +354,9 @@ class SqlDelightChatRepository(
                 errorMessage = variant_error_message,
                 createdAtEpochMs = variant_created_at_epoch_ms!!,
                 updatedAtEpochMs = variant_updated_at_epoch_ms!!,
+                richPayloads = RichMessageCodec.decode(variant_rich_payloads_json),
+                quoteMessageId = variant_quote_message_id,
+                quotePreview = variant_quote_preview,
             )
         },
         variantCount = variant_count.toInt(),
@@ -329,5 +390,8 @@ class SqlDelightChatRepository(
         errorMessage = error_message,
         createdAtEpochMs = created_at_epoch_ms,
         updatedAtEpochMs = updated_at_epoch_ms,
+        richPayloads = RichMessageCodec.decode(rich_payloads_json),
+        quoteMessageId = quote_message_id,
+        quotePreview = quote_preview,
     )
 }

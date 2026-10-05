@@ -51,6 +51,9 @@ SELECT
     v.error_message AS variant_error_message,
     v.created_at_epoch_ms AS variant_created_at_epoch_ms,
     v.updated_at_epoch_ms AS variant_updated_at_epoch_ms,
+    v.rich_payloads_json AS variant_rich_payloads_json,
+    v.quote_message_id AS variant_quote_message_id,
+    v.quote_preview AS variant_quote_preview,
     (SELECT COUNT(*) FROM chat_variant c WHERE c.turn_id = t.id) AS variant_count
 FROM chat_turn t
 LEFT JOIN chat_variant v ON v.id = t.active_variant_id

@@ -12,8 +12,8 @@ import org.junit.Test
 class ChatMigrationTest {
 
     @Test
-    fun schemaVersionIsEight() {
-        assertEquals(8, ChatDatabase.Schema.version)
+    fun schemaVersionIsNine() {
+        assertEquals(9, ChatDatabase.Schema.version)
     }
 
     @Test
