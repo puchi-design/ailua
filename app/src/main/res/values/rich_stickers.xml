@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="rich_sticker_peek">🫣</string>
+    <string name="rich_sticker_peek">👀</string>
     <string name="rich_sticker_speechless">😑</string>
     <string name="rich_sticker_happy">😄</string>
     <string name="rich_sticker_shy">☺️</string>
     <string name="rich_sticker_angry">😠</string>
     <string name="rich_sticker_goodnight">🌙</string>
-    <string name="rich_sticker_hug">🫂</string>
+    <string name="rich_sticker_hug">🤗</string>
     <string name="rich_sticker_sad">🥺</string>
 </resources>

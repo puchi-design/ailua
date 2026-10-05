@@ -1,20 +1,21 @@
 package com.example
 
 import android.app.KeyguardManager
-import android.content.Intent
 import android.database.sqlite.SQLiteDatabase
 import android.graphics.Bitmap
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -23,7 +24,8 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
-import androidx.test.ext.junit.rules.ActivityScenarioRule
+import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
+import androidx.test.runner.lifecycle.Stage
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.data.character.runtime.CharacterRuntimeResolver
 import com.example.data.chat.local.ChatDatabase
@@ -71,18 +73,10 @@ import java.util.concurrent.atomic.AtomicReference
 @RunWith(AndroidJUnit4::class)
 @SdkSuppress(minSdkVersion = 29, maxSdkVersion = 29)
 class V61V62DeviceSmokeTest {
-    // MIUI drops ActivityScenario's default MAIN/LAUNCHER + CLEAR_TASK launch while an
-    // instrumented copy of the app is starting. An explicit target Intent resumes normally.
-    @get:Rule val compose = AndroidComposeTestRule(
-        ActivityScenarioRule<MainActivity>(
-            Intent(InstrumentationRegistry.getInstrumentation().targetContext, MainActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-        ),
-    ) { rule ->
-        lateinit var activity: MainActivity
-        rule.scenario.onActivity { activity = it }
-        activity
-    }
+    // MIUI rejects instrumentation-driven Activity launches. Start the debug-only host
+    // through ADB shell, then attach Compose assertions to its existing UI.
+    @get:Rule val compose = createEmptyComposeRule()
+    private lateinit var host: V61QaHostActivity
 
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
     private val context get() = instrumentation.targetContext
@@ -147,15 +141,19 @@ class V61V62DeviceSmokeTest {
             }
 
             scrollToMessage(location.id)
-            compose.onNodeWithTag("rich_location_0", useUnmergedTree = true).performClick()
+            // The jump-to-latest pill overlaps the card center at this scroll position.
+            // Tap the exposed top-left area, as a user would.
+            compose.onNodeWithTag("rich_location_0", useUnmergedTree = true)
+                .performTouchInput { click(Offset(28f, 24f)) }
+            compose.waitUntil(3_000) { openedLocation.get() != null }
             assertEquals("青石街23号", openedLocation.get())
             scrollToMessage(sticker.id)
             compose.onNodeWithTag("rich_sticker_0", useUnmergedTree = true).assertIsDisplayed()
             capture("rich-cards.png")
 
-            // Activity recreation exercises navigation/content recreation; the fresh driver below
-            // is the authoritative on-disk check (instrumentation cannot kill its own process).
-            compose.activityRule.scenario.recreate()
+            // Remount UI state; a new SQL driver below checks persisted data separately.
+            compose.runOnUiThread { host.setContent {} }
+            compose.waitForIdle()
             showFixture { ChatScreen(character = character,
                 onOpenWorldLocation = { openedLocation.set(it) }) }
             waitForTag("chat_screen")
@@ -178,7 +176,7 @@ class V61V62DeviceSmokeTest {
         } finally {
             // Stop observing this temporary conversation before deleting it, otherwise
             // ChatScreen could recreate the QA session during its next recomposition.
-            compose.runOnUiThread { compose.activity.setContent {} }
+            compose.runOnUiThread { host.setContent {} }
             compose.waitForIdle()
             chat.clearSession(session.id)
             // Card actions intentionally produce world/relationship evidence. Remove only this
@@ -263,6 +261,20 @@ class V61V62DeviceSmokeTest {
     )
 
     private fun ready() {
+        instrumentation.uiAutomation.executeShellCommand(
+            "am start -n ${context.packageName}/com.example.V61QaHostActivity",
+        ).use { input -> android.os.ParcelFileDescriptor.AutoCloseInputStream(input).use { it.readBytes() } }
+        compose.waitUntil(15_000) {
+            var found: V61QaHostActivity? = null
+            instrumentation.runOnMainSync {
+                found = ActivityLifecycleMonitorRegistry.getInstance()
+                    .getActivitiesInStage(Stage.RESUMED)
+                    .filterIsInstance<V61QaHostActivity>()
+                    .firstOrNull()
+            }
+            if (found != null) host = found!!
+            found != null
+        }
         assumeTrue("Complete onboarding before device QA", FirstSessionStore.state.value.onboardingComplete)
         assumeTrue("Finish the current call before device QA", CallStateEngine.currentCall.value == null)
         val keyguard = context.getSystemService(KeyguardManager::class.java)
@@ -275,7 +287,7 @@ class V61V62DeviceSmokeTest {
             .getBoolean("dark_theme", false)
         val runtime = ThemeResolver.resolve(ThemeStore.selection, dark, clock.dayPhase, clock.weather)
         compose.runOnUiThread {
-            compose.activity.setContent {
+            host.setContent {
                 AiluaTheme(darkTheme = dark) { AiluaThemeProvider(runtime) { content() } }
             }
         }
@@ -289,6 +301,7 @@ class V61V62DeviceSmokeTest {
 
     private fun scrollToMessage(turnId: String) {
         compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.ScrollToIndex) and
+            SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange) and
             hasAnyAncestor(hasTestTag("chat_screen")))
             .performScrollToNode(hasTestTag("chat_message_$turnId"))
     }
@@ -363,6 +376,9 @@ class V61QaCleanupTest {
             isQaCharacter(it.fromCharacterId) || isQaCharacter(it.toCharacterId)
         })
         assertTrue(AiluaLocalStore.savedRomanceStates.value.none { isQaCharacter(it.characterId) })
+        // The two-phase cold-start fixture stores only IDs; clear a stale marker if phase two
+        // was interrupted after its dedicated session was removed above.
+        context.getSharedPreferences("v61_cold_restart_qa", 0).edit().clear().commit()
         println("V6 QA cleanup: ${qaSessions.size} dedicated sessions, ${qaIds.size} identities")
     }
 
