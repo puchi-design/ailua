@@ -34,7 +34,11 @@ object RichMessageParser {
                 continue
             }
             val finance = candidate.type == RichMessageType.RED_PACKET || candidate.type == RichMessageType.TRANSFER
-            if (richCount >= 2 || (finance && financeCount >= 1)) continue
+            if (richCount >= 2 || (finance && financeCount >= 1)) {
+                // Keep the model's words visible when a directive exceeds the per-turn limit.
+                text(match.value)
+                continue
+            }
             parts += candidate
             richCount++
             if (finance) financeCount++

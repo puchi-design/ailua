@@ -294,7 +294,8 @@ fun ChatScreen(
                             onRegenerate = { viewModel.regenerate() },
                             canRegenerate = !uiState.isGenerating && message.id == lastAssistantId,
                             onSwitchVariant = { direction -> viewModel.switchVariant(message.id, direction) },
-                            onQuote = if (message.text.isNotBlank() && message.statusLabel == null) {
+                            onQuote = if (message.sender == MessageSender.CHARACTER &&
+                                message.text.isNotBlank() && message.statusLabel == null) {
                                 { quotedMessage = message }
                             } else null,
                             quoteAuthor = messages.firstOrNull { it.id == message.quoteMessageId }?.let {

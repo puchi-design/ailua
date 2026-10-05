@@ -19,16 +19,20 @@ class RichMessageParserTest {
 
     @Test fun parsesVirtualMoneyAndLimitsFinancialCards() {
         val parsed = RichMessageParser.parse("[红包:52:晚饭钱][转账:18:路费][表情:偷看]")
-        assertEquals(listOf(RichMessageType.RED_PACKET, RichMessageType.STICKER), parsed.payloads.map { it.type })
+        assertEquals(listOf(RichMessageType.RED_PACKET, RichMessageType.TEXT, RichMessageType.STICKER),
+            parsed.payloads.map { it.type })
         assertEquals(52.0, parsed.payloads[0].amount)
         assertEquals("¥", parsed.payloads[0].currency)
         assertEquals(RichMessageStatus.PENDING, parsed.payloads[0].status)
+        assertEquals("[转账:18:路费]", parsed.content)
     }
 
-    @Test fun transferParsesAndThirdRichCardIsDropped() {
+    @Test fun transferParsesAndThirdRichCardFallsBackToText() {
         val parsed = RichMessageParser.parse("[转账:18.50:今天辛苦了][礼物:咖啡][位置:工作室]")
-        assertEquals(listOf(RichMessageType.TRANSFER, RichMessageType.GIFT), parsed.payloads.map { it.type })
+        assertEquals(listOf(RichMessageType.TRANSFER, RichMessageType.GIFT, RichMessageType.TEXT),
+            parsed.payloads.map { it.type })
         assertEquals(18.5, parsed.payloads[0].amount)
+        assertEquals("[位置:工作室]", parsed.content)
     }
 
     @Test fun malformedDirectivesFallBackToPlainTextWithoutCrashing() {

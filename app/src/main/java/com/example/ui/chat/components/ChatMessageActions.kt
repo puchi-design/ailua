@@ -50,7 +50,8 @@ fun ChatMessageActions(
                 }
             }
         Action("复制") { clipboard.setText(AnnotatedString(copyText)) }
-        if (onQuote != null && message.text.isNotBlank() && message.statusLabel == null) {
+        if (onQuote != null && message.sender == MessageSender.CHARACTER &&
+            message.text.isNotBlank() && message.statusLabel == null) {
             Action("引用", onQuote)
         }
         if (allowMemoryAndBookmark && message.text.isNotBlank()) Action("保存记忆", onSaveMemory)

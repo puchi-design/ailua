@@ -165,6 +165,7 @@ class ProactiveMessageEngine(
         val state = loadState()
         val world = worldClock()
         val events = recentWorldEvents()
+        val characterAiEvents = events.filter(LifeEvent::isVisibleToCharacterAi)
         if (!force && !ProactiveRules.shouldFire(settings, state, now, minuteOfDay, today)) return false
         if (!force && CharacterBehaviorRuntime.isSleeping(runtime, world.minutesOfDay)) return false
         if (!force && UserContactCooldown.recentlyContacted(world, events)) return false
@@ -185,10 +186,10 @@ class ProactiveMessageEngine(
             recentGoodEventAtEpochMs = romance.recentGoodEventAtEpochMs,
         )
         val evidence = evidenceOverride?.invoke(runtime, now, world)
-            ?: CharacterInitiativeRuntime.evidence(runtime, now, today, world, facts, events)
+            ?: CharacterInitiativeRuntime.evidence(runtime, now, today, world, facts, characterAiEvents)
         val decision = if (force) InitiativeDecision(forceContentType,
             InitiativeEvidence(InitiativeTrigger.SHARED_MEMORY, "developer:$now", "这是用户主动触发的测试联系，不编造共同记忆。"), "developer:$characterId:$now")
-        else CharacterInitiativeRuntime.decide(runtime, now, evidence, events, world.dateLabel, sample) ?: return false
+        else CharacterInitiativeRuntime.decide(runtime, now, evidence, characterAiEvents, world.dateLabel, sample) ?: return false
         if (!force && attemptedWindow == decision.windowKey) return false
         attemptedWindow = decision.windowKey
         val relationshipRecord = RomanceRepository.record(characterId)
@@ -278,7 +279,7 @@ class ProactiveMessageEngine(
             "不要干巴巴的问候，不要提到你是 AI 或模型。只输出内容，不要 JSON、引号和技术说明。"
 
         val context = if (decision.type == ProactiveContentType.MOMENT) {
-            val publicFacts = recentWorldEvents().filter { it.characterId == characterId && it.visibility != "PRIVATE" && !it.isUserActivity() &&
+            val publicFacts = recentWorldEvents().filter { it.isVisibleToCharacterAi() && it.characterId == characterId && it.visibility != "PRIVATE" && !it.isUserActivity() &&
                 it.sourceAppId != "memory" && it.sourceAppId != "chat" && "user" !in it.relatedCharacterIds }
                 .take(4).joinToString("\n") { "${it.time} ${it.title.take(80)} ${it.description.take(160)}" }
             "【角色自己的公开生活】\n$publicFacts"

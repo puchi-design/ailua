@@ -38,7 +38,9 @@ object RichInteractionEvidence {
             id = id,
             characterId = characterId,
             time = clock.timeFormatted,
-            type = LifeEventType.MESSAGE,
+            // Declining is recorded as a neutral private fact. MESSAGE would award
+            // relationship progress through the existing RelationshipReducer.
+            type = if (status == RichMessageStatus.DECLINED) LifeEventType.SOCIAL else LifeEventType.MESSAGE,
             title = action,
             description = payload.label.orEmpty().take(100),
             visibility = "PRIVATE",

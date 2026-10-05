@@ -24,6 +24,10 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 
+/** User phone browsing is a private ledger fact, never an input to character-side AI. */
+internal fun LifeEvent.isVisibleToCharacterAi(): Boolean =
+    sourceAppId != "check_phone" && metadata["prompt_visibility"] != "hidden"
+
 class WorldActionPlanner(
     private val providerResolver: ProviderResolver,
     private val memoryRepository: MemoryRepository? = null,
@@ -45,12 +49,13 @@ class WorldActionPlanner(
     suspend fun generate(clock: WorldClock, events: List<LifeEvent>, existing: List<PlannedWorldAction>): WorldPlan? {
         val resolved = providerResolver.resolve() ?: return null
         val characters = CharacterRegistry.getAllCharacters().take(8)
+        val promptEvents = events.filter(LifeEvent::isVisibleToCharacterAi)
         val context = buildString {
             appendLine("世界时间：${clock.dateLabel} ${clock.timeFormatted}；天气：${clock.weather.label}。规划未来 6～12 小时、3～6 个事件。")
             appendLine("角色：")
             characters.forEach { character ->
                 val characterContext = buildString {
-                    val presence = projectPresence(character, events)
+                    val presence = projectPresence(character, promptEvents)
                     appendLine("${character.id} ${character.name}；${character.bio.take(160)}；当前位置 ${presence.currentLocation}；当前活动 ${presence.currentActivity}")
                     appendLine(CharacterBehaviorRuntime.worldGuidance(CharacterRuntimeResolver.resolve(character.id)).take(480))
                     RomanceRepository.promptInstructions(character.id).takeIf { it.isNotBlank() }?.let { appendLine(it.take(350)) }
@@ -70,12 +75,12 @@ class WorldActionPlanner(
                 appendLine(characterContext.take(1000))
             }
             appendLine("近期事实：")
-            events.take(12).forEach { appendLine("${it.worldDateLabel} ${it.time} ${it.characterId} ${it.type}: ${it.title.take(100)} ${it.description.take(100)}") }
+            promptEvents.take(12).forEach { appendLine("${it.worldDateLabel} ${it.time} ${it.characterId} ${it.type}: ${it.title.take(100)} ${it.description.take(100)}") }
             appendLine("近期聊天摘要：")
-            events.filter { it.type.name == "MESSAGE" }.take(4).forEach { appendLine("${it.characterId}: ${it.description.take(120)}") }
+            promptEvents.filter { it.type.name == "MESSAGE" }.take(4).forEach { appendLine("${it.characterId}: ${it.description.take(120)}") }
             appendLine("已有未来计划：${existing.take(8).joinToString { "${it.triggerWorldDate} ${it.triggerMinutes} ${it.title}" }}")
-            appendLine("今天已发生类型：${events.filter { it.worldDateLabel == clock.dateLabel }.groupingBy { it.type }.eachCount()}")
-            appendLine("今天主动联系用户次数：${events.count { it.worldDateLabel == clock.dateLabel && it.type.name == "MESSAGE" && it.sourceAppId == "heartbeat" }}")
+            appendLine("今天已发生类型：${promptEvents.filter { it.worldDateLabel == clock.dateLabel }.groupingBy { it.type }.eachCount()}")
+            appendLine("今天主动联系用户次数：${promptEvents.count { it.worldDateLabel == clock.dateLabel && it.type.name == "MESSAGE" && it.sourceAppId == "heartbeat" }}")
         }.take(10000) + realityContext()?.take(300).orEmpty()
         val request = AiChatRequest(
             model = resolved.model,

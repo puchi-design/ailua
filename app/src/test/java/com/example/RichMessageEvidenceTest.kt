@@ -6,6 +6,8 @@ import com.example.data.chat.rich.RichMessageStatus
 import com.example.data.chat.rich.RichMessageType
 import com.example.data.chat.model.VariantStatus
 import com.example.data.engine.WorldStateRepository
+import com.example.data.model.LifeEventType
+import com.example.data.relationship.repository.RelationshipStateRepository
 import com.example.data.relationship.romance.RomanceRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -38,5 +40,21 @@ class RichMessageEvidenceTest {
         }
         assertEquals(1, WorldStateRepository.eventsForSource("chat").count { it.id == evidenceId })
         assertTrue("rich:$evidenceId" in RomanceRepository.record("hewenchuan").processedEventIds)
+    }
+
+    @Test fun decliningVirtualTransferDoesNotAdvanceRelationship() {
+        val characterId = "decline_test_${System.nanoTime()}"
+        val variant = "variant_$characterId"
+        val payload = RichMessagePayload(RichMessageType.TRANSFER, "午饭钱", 18.0, "¥", RichMessageStatus.PENDING)
+        val before = RelationshipStateRepository.states.value
+        repeat(2) {
+            RichInteractionEvidence.record(characterId, "turn_$characterId", variant, 0, payload,
+                RichMessageStatus.DECLINED)
+        }
+        val eventId = "rich_${variant}_0_declined"
+        val events = WorldStateRepository.eventsForSource("chat").filter { it.id == eventId }
+        assertEquals(1, events.size)
+        assertEquals(LifeEventType.SOCIAL, events.single().type)
+        assertEquals(before, RelationshipStateRepository.states.value)
     }
 }
