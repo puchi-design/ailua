@@ -93,4 +93,21 @@ class RichMessagePersistenceTest {
             assertEquals("消息卡片暂不可用", RichMessageCodec.decode("{broken").single().label)
         } finally { f.driver.close() }
     }
+
+    @Test fun damagedRichJsonDoesNotHideExistingPlainText() {
+        val f = ChatTestHarness.inMemory()
+        try {
+            val session = f.repository.getOrCreatePrivateSession("hewenchuan")
+            val withText = f.repository.appendAssistantTurn(session.id, "保留这句话", VariantStatus.COMPLETE)
+            val cardOnly = f.repository.appendAssistantTurn(session.id, "", VariantStatus.COMPLETE)
+            listOf(withText, cardOnly).forEach { turn ->
+                f.database.chatVariantQueries.updateRichPayloads("{broken", f.clock.nowEpochMs(),
+                    checkNotNull(turn.activeVariantId))
+            }
+            val turns = f.repository.getResolvedTurns(session.id)
+            assertEquals("保留这句话", turns[0].activeVariant!!.content)
+            assertTrue(turns[0].activeVariant!!.richPayloads.isEmpty())
+            assertEquals("消息卡片暂不可用", turns[1].activeVariant!!.richPayloads.single().label)
+        } finally { f.driver.close() }
+    }
 }

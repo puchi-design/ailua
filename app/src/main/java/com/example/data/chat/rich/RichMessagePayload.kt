@@ -35,10 +35,10 @@ object RichMessageCodec {
     fun encode(payloads: List<RichMessagePayload>): String =
         json.encodeToString(kotlinx.serialization.builtins.ListSerializer(RichMessagePayload.serializer()), payloads)
 
-    fun decode(raw: String?): List<RichMessagePayload> {
+    fun decode(raw: String?, plainText: String = ""): List<RichMessagePayload> {
         if (raw.isNullOrBlank()) return emptyList()
         val entries = runCatching { json.parseToJsonElement(raw) }.getOrNull() as? JsonArray
-            ?: return listOf(unavailableMessage())
+            ?: return if (plainText.isNotBlank()) emptyList() else listOf(unavailableMessage())
         return entries.map { entry ->
             runCatching { json.decodeFromJsonElement(RichMessagePayload.serializer(), entry) }
                 .getOrElse {

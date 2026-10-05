@@ -357,7 +357,7 @@ class SqlDelightChatRepository(
                 errorMessage = variant_error_message,
                 createdAtEpochMs = variant_created_at_epoch_ms!!,
                 updatedAtEpochMs = variant_updated_at_epoch_ms!!,
-                richPayloads = RichMessageCodec.decode(variant_rich_payloads_json),
+                richPayloads = RichMessageCodec.decode(variant_rich_payloads_json, variant_content!!),
                 quoteMessageId = variant_quote_message_id,
                 quotePreview = variant_quote_preview,
             )
@@ -393,7 +393,7 @@ class SqlDelightChatRepository(
         errorMessage = error_message,
         createdAtEpochMs = created_at_epoch_ms,
         updatedAtEpochMs = updated_at_epoch_ms,
-        richPayloads = RichMessageCodec.decode(rich_payloads_json),
+        richPayloads = RichMessageCodec.decode(rich_payloads_json, content),
         quoteMessageId = quote_message_id,
         quotePreview = quote_preview,
     )
