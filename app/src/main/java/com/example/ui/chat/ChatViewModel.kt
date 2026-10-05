@@ -21,6 +21,8 @@ import com.example.data.chat.model.ChatTurnRole
 import com.example.data.chat.model.ResolvedChatTurn
 import com.example.data.chat.model.VariantStatus
 import com.example.data.chat.repository.ChatRepository
+import com.example.data.chat.rich.RichMessageStatus
+import com.example.data.chat.rich.RichInteractionEvidence
 import com.example.data.engine.UserActivityRecorder
 import com.example.data.engine.WorldHeartbeatEngine
 import com.example.data.firstsession.FirstSessionPolicy
@@ -154,12 +156,34 @@ class ChatViewModel(
         }
     }
 
-    fun send(userText: String) {
+    fun send(userText: String, quoteMessageId: String? = null, quotePreview: String? = null) {
         if (userText.isBlank()) return
         if (generationJob?.isActive == true) return
         lastUserText = userText
         generationJob = viewModelScope.launch {
-            handleResult(runtime.send(characterId, userText))
+            handleResult(runtime.send(characterId, userText, quoteMessageId, quotePreview))
+        }
+    }
+
+    /** Uses the persisted variant as the source of truth; duplicate taps cannot repeat an action. */
+    fun transitionRichMessage(message: ChatMessage, payloadIndex: Int, status: RichMessageStatus) {
+        if (message.variantId.isBlank()) return
+        viewModelScope.launch {
+            val changed = try {
+                repository.updateRichStatus(message.variantId, payloadIndex, status)
+            } catch (_: Exception) {
+                _uiState.update { it.copy(errorMessage = "操作未保存，请重试") }
+                return@launch
+            }
+            if (changed) {
+                try {
+                    message.richPayloads.getOrNull(payloadIndex)?.let { payload ->
+                        RichInteractionEvidence.record(characterId, message.id, message.variantId, payloadIndex, payload, status)
+                    }
+                } catch (_: Exception) {
+                    // The next repository emission or cold start reconciles this deterministic event.
+                }
+            }
         }
     }
 
@@ -292,9 +316,24 @@ class ChatViewModel(
     }
 
     private fun publishMessages(turns: List<ResolvedChatTurn>) {
-        _uiState.update { state ->
-            state.copy(messages = turns.mapNotNull { turn -> turn.toChatMessage() })
-        }
+        val messages = turns.mapNotNull { turn -> turn.toChatMessage() }
+        _uiState.update { state -> state.copy(messages = messages) }
+        reconcileRichInteractionEvidence(messages)
+    }
+
+    private fun reconcileRichInteractionEvidence(messages: List<ChatMessage>) {
+        messages.asSequence().filter { it.sender == MessageSender.CHARACTER && it.variantId.isNotBlank() }
+            .forEach { message ->
+                message.richPayloads.forEachIndexed { index, payload ->
+                    val status = payload.status ?: return@forEachIndexed
+                    if (status == RichMessageStatus.PENDING || status == RichMessageStatus.CANCELED) return@forEachIndexed
+                    try {
+                        RichInteractionEvidence.record(characterId, message.id, message.variantId, index, payload, status)
+                    } catch (_: Exception) {
+                        // Best effort; another repository emission or a future cold start retries.
+                    }
+                }
+            }
     }
 
     private fun ResolvedChatTurn.toChatMessage(): ChatMessage? {
@@ -318,6 +357,10 @@ class ChatViewModel(
                 type = MessageType.TEXT,
                 text = variant.content,
                 timestamp = formatTime(epoch),
+                variantId = variant.id,
+                richPayloads = variant.richPayloads,
+                quoteMessageId = variant.quoteMessageId,
+                quotePreview = variant.quotePreview,
             )
             ChatTurnRole.ASSISTANT -> ChatMessage(
                 id = id,
@@ -330,6 +373,10 @@ class ChatViewModel(
                 variantIndex = variant.variantIndex,
                 variantCount = variantCount,
                 statusLabel = statusLabel,
+                variantId = variant.id,
+                richPayloads = variant.richPayloads,
+                quoteMessageId = variant.quoteMessageId,
+                quotePreview = variant.quotePreview,
             )
         }
     }

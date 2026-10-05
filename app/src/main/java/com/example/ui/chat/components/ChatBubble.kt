@@ -23,6 +23,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
+import com.example.data.chat.rich.RichMessageStatus
+import com.example.data.chat.rich.RichMessageType
 import com.example.data.model.CharacterProfile
 import com.example.data.model.ChatMessage
 import com.example.data.model.MessageSender
@@ -30,6 +32,8 @@ import com.example.data.model.MessageType
 import com.example.ui.designsystem.CharacterPortrait
 import com.example.ui.designsystem.PortraitVariant
 import com.example.ui.designsystem.publicCharacterName
+import com.example.ui.chat.rich.QuoteBlock
+import com.example.ui.chat.rich.RichMessageCard
 import com.example.ui.themeengine.LocalAiluaTheme
 
 @Composable
@@ -70,6 +74,10 @@ fun ChatMessageItem(
     showSenderName: Boolean = false,
     allowMemoryAndBookmark: Boolean = true,
     actionsEnabled: Boolean = true,
+    onQuote: (() -> Unit)? = null,
+    quoteAuthor: String? = null,
+    onRichStatusChange: (Int, RichMessageStatus) -> Unit = { _, _ -> },
+    onOpenLocation: (String) -> Unit = {},
 ) {
     val theme = LocalAiluaTheme.current
     if (message.sender == MessageSender.SYSTEM) {
@@ -110,16 +118,49 @@ fun ChatMessageItem(
                 Column(
                     modifier = Modifier
                         .clip(RoundedCornerShape(theme.shapes.medium.dp))
-                        .background(if (isUser) theme.palette.accent.copy(alpha = 0.16f) else theme.surfaces.inset)
+                        .background(
+                            if (isUser) theme.palette.accent.copy(alpha = 0.16f)
+                            else if (message.richPayloads.isNotEmpty()) theme.surfaces.screen
+                            else theme.surfaces.inset,
+                        )
                         .combinedClickable(
                             onClick = {},
                             onLongClickLabel = "消息操作",
                             onLongClick = if (actionsEnabled) ({ showActions = true }) else null,
                         )
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(
+                            horizontal = if (message.richPayloads.isNotEmpty()) 0.dp else 16.dp,
+                            vertical = if (message.richPayloads.isNotEmpty()) 0.dp else 12.dp,
+                        ),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
+                    message.quotePreview?.takeIf { it.isNotBlank() }?.let { preview ->
+                        QuoteBlock(
+                            preview = preview,
+                            author = quoteAuthor ?: if (isUser) character.name else "你",
+                            modifier = Modifier.padding(bottom = 4.dp),
+                        )
+                    }
                     when {
+                        message.richPayloads.isNotEmpty() -> {
+                            val sections = message.richPayloads
+                            if (sections.none { it.type == RichMessageType.TEXT } && message.text.isNotBlank()) {
+                                Text(message.text, style = theme.text.body, color = theme.palette.onSurface)
+                            }
+                            sections.forEachIndexed { index, payload ->
+                                if (payload.type == RichMessageType.TEXT) {
+                                    payload.label?.takeIf { it.isNotBlank() }?.let { section ->
+                                        Text(section, style = theme.text.body, color = theme.palette.onSurface)
+                                    }
+                                } else RichMessageCard(
+                                    payload = payload,
+                                    payloadIndex = index,
+                                    senderName = senderName,
+                                    onStatusChange = onRichStatusChange,
+                                    onOpenLocation = onOpenLocation,
+                                )
+                            }
+                        }
                         isVoice -> {
                             Text(
                                 message.text.ifBlank { "语音消息" },
@@ -166,6 +207,7 @@ fun ChatMessageItem(
                     onRegenerate = onRegenerate,
                     onSwitchVariant = onSwitchVariant,
                     allowMemoryAndBookmark = allowMemoryAndBookmark,
+                    onQuote = onQuote,
                 )
             }
             if (!isUser && message.statusLabel != null) {
