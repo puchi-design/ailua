@@ -42,4 +42,13 @@ class RichMessageParserTest {
         assertTrue(parsed.payloads.isEmpty())
         assertEquals("[红包:10000:过大][转账:-1:无效]", RichMessageParser.parse("[红包:10000:过大][转账:-1:无效]").content)
     }
+
+    @Test fun acceptsCommonChinesePunctuationButPreservesMalformedText() {
+        val parsed = RichMessageParser.parse("先吃点东西。【红包：30：晚饭钱】［表情：偷看］")
+        assertEquals("先吃点东西。", parsed.content)
+        assertEquals(listOf(RichMessageType.TEXT, RichMessageType.RED_PACKET, RichMessageType.STICKER),
+            parsed.payloads.map { it.type })
+        assertEquals(30.0, parsed.payloads[1].amount)
+        assertEquals("【转账：abc：路费】", RichMessageParser.parse("【转账：abc：路费】").content)
+    }
 }

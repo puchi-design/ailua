@@ -53,6 +53,16 @@ class RichMessagePromptHistoryTest {
         assertEquals(30.0, answer.richPayloads.last().amount)
     }
 
+    @Test fun chinesePunctuationFromProviderStillPersistsAsRichCard() = runBlocking {
+        val f = ChatRuntimeFixture()
+        f.use(FakeAiProvider.scripted("先吃点东西。【红包：30：晚饭钱】"))
+        f.runtime.send("mira", "我今天加班")
+        val answer = f.turns("mira").last().activeVariant!!
+        assertEquals("先吃点东西。", answer.content)
+        assertEquals(RichMessageType.RED_PACKET, answer.richPayloads.last().type)
+        assertEquals(30.0, answer.richPayloads.last().amount)
+    }
+
     @Test fun quoteOfPriorAssistantTurnIsExplainedToModelWithoutFabricatedId() = runBlocking {
         val f = ChatRuntimeFixture()
         f.use(FakeAiProvider.scripted("早点睡。"))

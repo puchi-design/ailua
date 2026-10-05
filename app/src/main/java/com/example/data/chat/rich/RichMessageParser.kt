@@ -8,7 +8,7 @@ data class RichMessageParseResult(
 
 /** Parses a small, bounded text protocol without trusting model output as structured data. */
 object RichMessageParser {
-    private val directive = Regex("\\[[^\\[\\]\\r\\n]{1,180}]")
+    private val directive = Regex("(?:\\[[^\\[\\]\\r\\n]{1,180}]|【[^【】\\r\\n]{1,180}】|［[^［］\\r\\n]{1,180}］)")
     val stickerKeys = setOf("偷看", "无语", "开心", "害羞", "生气", "晚安", "抱抱", "委屈")
 
     fun parse(raw: String): RichMessageParseResult {
@@ -51,7 +51,7 @@ object RichMessageParser {
     }
 
     private fun parseDirective(body: String): RichMessagePayload? {
-        val fields = body.split(':', limit = 3)
+        val fields = body.split(':', '：', limit = 3)
         val kind = fields.firstOrNull()?.trim().orEmpty()
         val value = fields.getOrNull(1)?.trim().orEmpty()
         if (value.isEmpty() || value.length > 100) return null
