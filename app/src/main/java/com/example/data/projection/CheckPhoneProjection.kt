@@ -46,10 +46,7 @@ fun projectCheckPhone(
         ?: OfficialCharacters.checkPhoneByCharacter[characterId]
         ?: if (characterId == "mira") MockData.checkPhoneData else EMPTY_CHECK_PHONE_DATA
 
-    val runtime = runtimeEvents
-        .filter { it.characterId == characterId && !it.isUserActivity() && it.id !in seedEventIds }
-        .sortedChronologically()
-        .reversed()
+    val runtime = eligiblePhoneEvents(characterId, runtimeEvents, seedEventIds)
     if (runtime.isEmpty()) return seed
 
     val gallery = runtime
@@ -64,7 +61,7 @@ fun projectCheckPhone(
         }
 
     val tracks = runtime.mapNotNull { ev ->
-        ev.metadata["music_title"]?.let { title ->
+        ev.metadata["music_title"]?.takeIf(String::isNotBlank)?.let { title ->
             MusicTrack(
                 title = title,
                 artist = ev.metadata["music_artist"] ?: "",
@@ -76,12 +73,22 @@ fun projectCheckPhone(
 
     return seed.copy(
         privateGallery = gallery + seed.privateGallery,
-        searchHistory = runtime.mapNotNull { it.metadata["search_query"] } + seed.searchHistory,
-        unsentDrafts = runtime.mapNotNull { it.metadata["draft"] } + seed.unsentDrafts,
-        notes = runtime.mapNotNull { it.metadata["note"] } + seed.notes,
+        searchHistory = runtime.mapNotNull { it.metadata["search_query"]?.takeIf(String::isNotBlank) } + seed.searchHistory,
+        unsentDrafts = runtime.mapNotNull { it.metadata["draft"]?.takeIf(String::isNotBlank) } + seed.unsentDrafts,
+        notes = runtime.mapNotNull { it.metadata["note"]?.takeIf(String::isNotBlank) } + seed.notes,
         recentlyPlayed = tracks + seed.recentlyPlayed,
-        browsingHistory = runtime.mapNotNull { it.metadata["browsing_query"] } + seed.browsingHistory,
-        savedItems = runtime.mapNotNull { it.metadata["saved_item"] } + seed.savedItems,
-        hiddenThoughts = runtime.mapNotNull { it.metadata["hidden_thought"] } + seed.hiddenThoughts
+        browsingHistory = runtime.mapNotNull { it.metadata["browsing_query"]?.takeIf(String::isNotBlank) } + seed.browsingHistory,
+        savedItems = runtime.mapNotNull { it.metadata["saved_item"]?.takeIf(String::isNotBlank) } + seed.savedItems,
+        hiddenThoughts = runtime.mapNotNull { it.metadata["hidden_thought"]?.takeIf(String::isNotBlank) } + seed.hiddenThoughts
     )
 }
+
+/** Shared eligibility boundary for the original projection and its richer read-only view. */
+internal fun eligiblePhoneEvents(
+    characterId: String,
+    events: List<LifeEvent>,
+    seedEventIds: Set<String>,
+): List<LifeEvent> = events
+    .filter { it.characterId == characterId && !it.isUserActivity() && it.id !in seedEventIds }
+    .sortedChronologically()
+    .reversed()

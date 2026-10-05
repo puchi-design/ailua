@@ -47,12 +47,13 @@ class CheckPhoneProjectionTest {
     private val seedIds = MockData.unifiedLifeEvents.mapTo(HashSet()) { it.id }
 
     @Test
-    fun miraKeepsSeedPhoneDataWithoutRuntimeFacts() {
+    fun miraKeepsCurrentOfficialPhoneDataWithoutRuntimeFacts() {
         val data = projectCheckPhone("mira", emptyList())
-        assertEquals(MockData.checkPhoneData.searchHistory, data.searchHistory)
-        assertEquals(MockData.checkPhoneData.unsentDrafts, data.unsentDrafts)
-        assertEquals(MockData.checkPhoneData.privateGallery, data.privateGallery)
-        assertEquals(MockData.checkPhoneData.recentlyPlayed, data.recentlyPlayed)
+        val official = OfficialCharacters.checkPhoneByCharacter.getValue("mira")
+        assertEquals(official.searchHistory, data.searchHistory)
+        assertEquals(official.unsentDrafts, data.unsentDrafts)
+        assertEquals(official.privateGallery, data.privateGallery)
+        assertEquals(official.recentlyPlayed, data.recentlyPlayed)
     }
 
     @Test
@@ -169,7 +170,7 @@ class CheckPhoneProjectionTest {
         // New seed PHOTO facts must not create duplicate runtime traces.
         val pulse4 = event("six_mira_photo", type = LifeEventType.PHOTO, imageReference = "flowers")
         val data = projectCheckPhone("mira", listOf(pulse4), seedEventIds = seedIds)
-        assertEquals(MockData.checkPhoneData.privateGallery, data.privateGallery)
+        assertEquals(OfficialCharacters.checkPhoneByCharacter.getValue("mira").privateGallery, data.privateGallery)
     }
 
     @Test
@@ -199,6 +200,7 @@ class CheckPhoneProjectionTest {
             seedEventIds = seedIds
         )
         assertEquals("新搜索", data.searchHistory.first())
-        assertTrue(data.searchHistory.drop(1) == MockData.checkPhoneData.searchHistory)
+        assertTrue(data.searchHistory.drop(1) == OfficialCharacters.checkPhoneByCharacter.getValue("mira").searchHistory)
     }
+
 }
