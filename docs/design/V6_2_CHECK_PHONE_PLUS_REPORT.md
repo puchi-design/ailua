@@ -30,7 +30,7 @@
 
 - `CheckPhoneProjectionTest`、`CheckPhonePlusProjectionTest`、`CharacterDraftProjectionTest`、`SearchHistoryProjectionTest`、`CheckPhoneVisibilityTest` 定向运行：**28/28 通过**。覆盖角色隔离、官方/导入卡种子、世界事件变更、持久化重投影、计划草稿与备忘、真实相册和通话复用、关系阶段与隐私锁。
 - 首轮编译曾被并行施工中的 SQLDelight 富消息字段不一致阻断；富消息代码补齐后，最终定向测试编译与执行通过。
-- 最终全量 `:app:testDebugUnitTest`：**696/696 通过**；Debug APK 和 AndroidTest APK 构建成功，`git diff --check` 通过。AndroidTest APK 含 Android 10 两角色界面与临时 QA 数据清理用例。
+- 最终全量 `:app:testDebugUnitTest`：**697/697 通过**；Debug APK 和 AndroidTest APK 构建成功，`git diff --check` 通过。AndroidTest APK 含 Android 10 两角色界面与临时 QA 数据清理用例。
 
 ## Android 10 真机验收
 

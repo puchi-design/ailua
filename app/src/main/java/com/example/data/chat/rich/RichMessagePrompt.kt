@@ -20,9 +20,9 @@ object RichMessagePrompt {
                 RichMessageType.TEXT -> payload.label.orEmpty().trim()
                 RichMessageType.STICKER -> "[发送表情：${payload.label}]"
                 RichMessageType.LOCATION -> "[分享虚拟位置：${payload.locationName}]"
-                RichMessageType.GIFT -> "[送出礼物：${payload.label}]"
-                RichMessageType.RED_PACKET -> "[发送虚拟红包 ${payload.currency}${payload.amount}：${payload.label.orEmpty()}]"
-                RichMessageType.TRANSFER -> "[发起虚拟转账 ${payload.currency}${payload.amount}：${payload.label.orEmpty()}]"
+                RichMessageType.GIFT -> "[送出礼物：${payload.label}${payload.userActionForPrompt()}]"
+                RichMessageType.RED_PACKET -> "[发送虚拟红包 ${payload.currency}${payload.amount}：${payload.label.orEmpty()}${payload.userActionForPrompt()}]"
+                RichMessageType.TRANSFER -> "[发起虚拟转账 ${payload.currency}${payload.amount}：${payload.label.orEmpty()}${payload.userActionForPrompt()}]"
                 RichMessageType.QUOTE -> payload.label.orEmpty()
             }
         }.trim()
@@ -30,5 +30,14 @@ object RichMessagePrompt {
             "用户回复了你之前的消息：\"${variant.quotePreview}\"\n用户说：\"$content\""
         } else content
         return AiMessage(role, withQuote)
+    }
+
+    private fun RichMessagePayload.userActionForPrompt(): String = when {
+        type == RichMessageType.RED_PACKET && status == RichMessageStatus.OPENED -> "；用户已打开"
+        type == RichMessageType.GIFT && status == RichMessageStatus.RECEIVED -> "；用户已收下"
+        type == RichMessageType.TRANSFER && status == RichMessageStatus.ACCEPTED -> "；用户已收下"
+        type == RichMessageType.TRANSFER && status == RichMessageStatus.DECLINED -> "；用户已退回"
+        status == RichMessageStatus.CANCELED -> "；已取消"
+        else -> ""
     }
 }
