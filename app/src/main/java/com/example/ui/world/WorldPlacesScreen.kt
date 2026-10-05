@@ -55,10 +55,13 @@ fun WorldPlacesScreen(
     onBack: () -> Unit = {},
     onVisitPlaceChat: (String) -> Unit = {},
     onGoHome: () -> Unit = onBack,
+    initialPlaceName: String? = null,
 ) {
     val theme = LocalAiluaTheme.current
     val places = WorldData.virtualPlaces
-    var selectedPlace by remember { mutableStateOf(places.first()) }
+    var selectedPlace by remember(initialPlaceName) {
+        mutableStateOf(matchWorldPlace(places, initialPlaceName))
+    }
     val heartbeatState by WorldHeartbeatEngine.heartbeatState.collectAsStateWithLifecycle()
 
     AiluaScreenScaffold(
@@ -85,7 +88,14 @@ fun WorldPlacesScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)) {
                     AiluaMediaFrame(Modifier.fillMaxWidth().height(120.dp)) {
-                        PlaceMapFallback(places = places, selectedPlaceId = selectedPlace.id)
+                        PlaceMapFallback(places = places, selectedPlaceId = selectedPlace?.id)
+                    }
+                    if (!initialPlaceName.isNullOrBlank() && selectedPlace == null) {
+                        Text(
+                            "「${initialPlaceName.take(32)}」尚未收录，可从下方选择地点。",
+                            style = theme.text.secondary,
+                            color = theme.palette.onSurfaceMuted,
+                        )
                     }
                     Text(
                         heartbeatState.currentPhase.atmosphere,
@@ -97,7 +107,7 @@ fun WorldPlacesScreen(
                 }
             }
             items(places, key = { it.id }) { place ->
-                val isSelected = selectedPlace.id == place.id
+                val isSelected = selectedPlace?.id == place.id
                 Column {
                     Row(
                         modifier = Modifier.fillMaxWidth()
@@ -190,7 +200,7 @@ private fun PlaceDetails(place: VirtualPlace, onVisitPlaceChat: (String) -> Unit
 
 /** Lightweight existing map geometry, kept separate from place selection and details. */
 @Composable
-private fun PlaceMapFallback(places: List<VirtualPlace>, selectedPlaceId: String) {
+private fun PlaceMapFallback(places: List<VirtualPlace>, selectedPlaceId: String?) {
     val theme = LocalAiluaTheme.current
     val routeColor = theme.palette.onSurfaceMuted.copy(alpha = 0.18f)
     val nodeColor = theme.palette.onSurfaceMuted.copy(alpha = 0.45f)
@@ -216,4 +226,12 @@ private fun PlaceMapFallback(places: List<VirtualPlace>, selectedPlaceId: String
             )
         }
     }
+}
+
+/** Resolve only a real virtual place; an unknown AI location never selects a different place. */
+internal fun matchWorldPlace(places: List<VirtualPlace>, name: String?): VirtualPlace? {
+    val target = name?.trim().orEmpty()
+    if (target.isEmpty()) return places.firstOrNull()
+    return places.firstOrNull { it.id == target || it.name == target }
+        ?: places.filter { target.contains(it.name) || it.name.contains(target) }.singleOrNull()
 }

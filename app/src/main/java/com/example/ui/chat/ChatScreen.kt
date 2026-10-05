@@ -42,6 +42,7 @@ import com.example.data.local.AiluaLocalStore
 import com.example.data.model.ChatMessage
 import com.example.data.model.CharacterProfile
 import com.example.data.model.MessageSender
+import com.example.ui.chat.rich.QuoteComposerBanner
 import com.example.data.projection.projectPresence
 import com.example.ui.chat.components.ChatActionItem
 import com.example.ui.chat.components.ChatComposer
@@ -66,6 +67,7 @@ fun ChatScreen(
     onBackToHome: () -> Unit = {},
     onOpenProfile: () -> Unit = {},
     onGoHome: () -> Unit = onBackToHome,
+    onOpenWorldLocation: (String) -> Unit = {},
 ) {
     val appContext = LocalContext.current.applicationContext
     val viewModel: ChatViewModel = viewModel(
@@ -82,6 +84,7 @@ fun ChatScreen(
     val streamingText = uiState.streamingText
 
     var inputText by remember { mutableStateOf("") }
+    var quotedMessage by remember(character.id) { mutableStateOf<ChatMessage?>(null) }
     var showMenu by remember { mutableStateOf(false) }
     var showActionSheet by remember { mutableStateOf(false) }
     var showAiConnection by remember { mutableStateOf(false) }
@@ -102,6 +105,17 @@ fun ChatScreen(
         messages.lastOrNull { it.sender == MessageSender.CHARACTER }?.id
     }
     val latestSaveableMessage = remember(messages) { latestSaveableChatMessage(messages) }
+
+    fun sendReply(text: String) {
+        if (text.isBlank() || uiState.isGenerating) return
+        val quote = quotedMessage
+        quotedMessage = null
+        viewModel.send(
+            userText = text.trim(),
+            quoteMessageId = quote?.id,
+            quotePreview = quote?.text?.take(160),
+        )
+    }
 
     fun saveMessageToMemory(message: ChatMessage?) {
         when {
@@ -194,7 +208,7 @@ fun ChatScreen(
                         )
                         DropdownMenuItem(
                             text = { Text("清空对话记录", style = theme.text.body) },
-                            onClick = { showMenu = false; viewModel.clearSession() },
+                            onClick = { showMenu = false; quotedMessage = null; viewModel.clearSession() },
                         )
                     }
                 }
@@ -209,7 +223,14 @@ fun ChatScreen(
                             color = theme.palette.onSurfaceMuted,
                         )
                     }
-                    ChatQuickReplies(quickPrompts, enabled = !uiState.isGenerating, onSelect = { viewModel.send(it) })
+                    ChatQuickReplies(quickPrompts, enabled = !uiState.isGenerating, onSelect = ::sendReply)
+                    quotedMessage?.let { quote ->
+                        QuoteComposerBanner(
+                            preview = quote.text,
+                            author = if (quote.sender == MessageSender.USER) "你" else character.name,
+                            onClear = { quotedMessage = null },
+                        )
+                    }
                     ChatComposer(
                         inputText = inputText,
                         isGenerating = uiState.isGenerating,
@@ -218,7 +239,7 @@ fun ChatScreen(
                             if (inputText.isNotBlank() && !uiState.isGenerating) {
                                 val text = inputText.trim()
                                 inputText = ""
-                                viewModel.send(text)
+                                sendReply(text)
                             }
                         },
                         onStop = { viewModel.cancelGeneration() },
@@ -273,6 +294,16 @@ fun ChatScreen(
                             onRegenerate = { viewModel.regenerate() },
                             canRegenerate = !uiState.isGenerating && message.id == lastAssistantId,
                             onSwitchVariant = { direction -> viewModel.switchVariant(message.id, direction) },
+                            onQuote = if (message.text.isNotBlank() && message.statusLabel == null) {
+                                { quotedMessage = message }
+                            } else null,
+                            quoteAuthor = messages.firstOrNull { it.id == message.quoteMessageId }?.let {
+                                if (it.sender == MessageSender.USER) "你" else character.name
+                            },
+                            onRichStatusChange = { index, status ->
+                                viewModel.transitionRichMessage(message, index, status)
+                            },
+                            onOpenLocation = onOpenWorldLocation,
                         )
                     }
                     if (streamingText != null) {

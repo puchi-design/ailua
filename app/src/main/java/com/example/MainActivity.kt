@@ -40,6 +40,7 @@ import com.example.data.memory.repository.MemoryGraph
 import com.example.data.context.CharacterContext
 import com.example.data.engine.CallStateEngine
 import com.example.data.engine.ProactiveGraph
+import com.example.data.engine.UserActivityRecorder
 import com.example.data.engine.WorldHeartbeatEngine
 import com.example.data.engine.WorldPlanRuntime
 import com.example.data.engine.WorldStateRepository
@@ -392,7 +393,10 @@ fun AiluaAppRoot() {
                         onBackToHome = { navController.popBackStack() },
                         onOpenProfile = {
                             navController.navigate(AiluaDestinations.profileRoute(character.id))
-                        }
+                        },
+                        onOpenWorldLocation = { locationName ->
+                            navController.navigate(AiluaDestinations.worldMapLocationRoute(locationName))
+                        },
                     )
                 }
 
@@ -426,13 +430,17 @@ fun AiluaAppRoot() {
 
                 // Screen 6: Check Phone Screen
                 composable(AiluaDestinations.CHECK_PHONE) {
+                    LaunchedEffect(selectedCharacterId) {
+                        UserActivityRecorder.recordCheckPhoneView(selectedCharacterId)
+                    }
                     CheckPhoneScreen(
                         onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBackToHome = { navController.popBackStack() },
                         characterId = selectedCharacterId,
-                        characterName = selectedCharacter.name
+                        characterName = selectedCharacter.name,
+                        onOpenGallery = { navController.navigate(AiluaDestinations.GALLERY) },
                     )
                 }
 
@@ -608,6 +616,21 @@ fun AiluaAppRoot() {
                         onVisitPlaceChat = { charId ->
                             navController.navigate(AiluaDestinations.chatRoute(charId))
                         }
+                    )
+                }
+                composable(
+                    route = AiluaDestinations.WORLD_MAP_LOCATION,
+                    arguments = listOf(navArgument("placeName") { type = NavType.StringType }),
+                ) { backStackEntry ->
+                    WorldPlacesScreen(
+                        initialPlaceName = backStackEntry.arguments?.getString("placeName"),
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
+                        isDarkTheme = isDarkTheme,
+                        onToggleTheme = { isDarkTheme = !isDarkTheme },
+                        onBack = { navController.popBackStack() },
+                        onVisitPlaceChat = { charId ->
+                            navController.navigate(AiluaDestinations.chatRoute(charId))
+                        },
                     )
                 }
 

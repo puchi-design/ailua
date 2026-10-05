@@ -1,5 +1,7 @@
 package com.example.navigation
 
+import android.net.Uri
+
 object AiluaDestinations {
     const val HOME = "home"
     const val MESSAGES = "messages"
@@ -18,6 +20,7 @@ object AiluaDestinations {
     const val CHARACTER_CREATOR = "character_creator"
     const val WORLD_BOOK = "world_book"
     const val WORLD_MAP = "world_map"
+    const val WORLD_MAP_LOCATION = "world_map/place/{placeName}"
     const val THEATER = "theater"
     const val MAILBOX = "mailbox"
     const val CALL = "call/{characterId}"
@@ -32,4 +35,5 @@ object AiluaDestinations {
     fun chatRoute(characterId: String = "mira"): String = "chat/$characterId"
     fun profileRoute(characterId: String = "mira"): String = "profile/$characterId"
     fun callRoute(characterId: String = "mira"): String = "call/$characterId"
+    fun worldMapLocationRoute(placeName: String): String = "world_map/place/${Uri.encode(placeName)}"
 }
