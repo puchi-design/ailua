@@ -25,6 +25,7 @@
 - 持久化回归用例注入未知 `PHOTO` 卡片及未来 JSON 字段，确认消息仍可见、同组红包可打开、状态更新后未知 JSON 原样保留；损坏的富消息 JSON 回退为可见占位。
 - 新增损坏 JSON 回归：有正文的历史消息保留原文显示；无正文的纯卡片消息显示占位。手机当前没有 `ailua_ai_provider_store` 配置文件，真实模型自然生成验收仍未执行。
 - Android 10 小米 M2007J22C 上 `adb install -r` 覆盖安装成功并启动到 AILUA 虚拟锁屏和桌面；没有清除用户数据。真机仪表用例 `richCardsQuoteAndPersistedActionsUseOnlyTemporaryQaSession` 通过：普通文字和纯红包卡片均能长按引用，红包打开、转账退回、位置回调、表情渲染、重开 SQL 驱动后的状态与引用均核对成功。卡片引用截图见 `dist/qa/V6.1-V6.2/rich-quote-card.png`；其它截图见同目录的 `instrumented-rich-cards.png` 和 `instrumented-rich-reopened.png`。
+- 位置卡片的真机用例现继续打开既有 `WorldPlacesScreen`，确认“青石街23号”被选中且对应地点详情实际展开；截图为 `dist/qa/V6.1-V6.2/rich-location-map.png`。生产导航由 `MainActivity` 的 `worldMapLocationRoute` 传递同一地点名；隔离 QA Activity 不覆盖完整 `NavController` 栈。
 - 独立跨进程用例先在唯一 `qa_v61_*` 会话中写入红包 `OPENED`、转账 `ACCEPTED` 和引用关系，再执行 `am force-stop`、启动 AILUA，由新仪表进程打开同一磁盘数据库复核，全部通过。`V61QaCleanupTest` 随后通过，临时会话已删除；原角色和用户记录未改写。
 - 真机截图暴露 Android 10 不支持原「偷看」及「抱抱」所用的新 Unicode 表情；已换为 Android 10 可正常显示的字符，并重新装包截图确认。
 - `git diff --check` 通过。

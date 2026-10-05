@@ -57,6 +57,7 @@ import com.example.ui.theme.AiluaTheme
 import com.example.ui.themeengine.AiluaThemeProvider
 import com.example.ui.themeengine.ThemeResolver
 import com.example.ui.themeengine.ThemeStore
+import com.example.ui.world.WorldPlacesScreen
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
@@ -156,6 +157,14 @@ class V61V62DeviceSmokeTest {
                 .performTouchInput { click(Offset(28f, 24f)) }
             compose.waitUntil(3_000) { openedLocation.get() != null }
             assertEquals("青石街23号", openedLocation.get())
+            showFixture { WorldPlacesScreen(initialPlaceName = openedLocation.get()) }
+            waitForTag("world_places_screen")
+            compose.onNodeWithText("青石街23号附近的公共生活街区，窗边阁楼可以预约活动。")
+                .assertIsDisplayed()
+            capture("rich-location-map.png")
+            showFixture { ChatScreen(character = character,
+                onOpenWorldLocation = { openedLocation.set(it) }) }
+            waitForTag("chat_screen")
             scrollToMessage(sticker.id)
             compose.onNodeWithTag("rich_sticker_0", useUnmergedTree = true).assertIsDisplayed()
             capture("rich-cards.png")
