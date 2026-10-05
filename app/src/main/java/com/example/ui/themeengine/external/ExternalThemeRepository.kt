@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.example.ui.themeengine.ThemeSelection
 import com.example.ui.themeengine.ThemeStore
+import java.io.File
 
 /** In-memory registry backed by each theme's normalized manifest. */
 object ExternalThemeRepository {
@@ -15,7 +16,8 @@ object ExternalThemeRepository {
 
     @Synchronized
     fun initialize(context: Context) {
-        if (store != null) return
+        val expectedRoot = File(context.applicationContext.filesDir, "themes").canonicalFile
+        if (store?.root?.canonicalFile == expectedRoot && expectedRoot.isDirectory) return
         store = ThemeAssetStore(context)
         themes = store!!.loadAll()
     }

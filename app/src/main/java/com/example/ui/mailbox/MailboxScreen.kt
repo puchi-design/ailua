@@ -202,10 +202,12 @@ private fun LetterReaderDialog(
                                 onClick = { onMarkOpened(); onDismiss() }
                             )
                         }
-                        AiluaChip(
-                            label = "去聊天回信", selected = true, modifier = Modifier.weight(1f),
-                            onClick = { onMarkOpened(); onReplyInChat(letter.characterId) }
-                        )
+                        if (letter.deliveryState != LetterDeliveryState.SCHEDULED) {
+                            AiluaChip(
+                                label = "去聊天回信", selected = true, modifier = Modifier.weight(1f),
+                                onClick = { onMarkOpened(); onReplyInChat(letter.characterId) }
+                            )
+                        }
                     }
                 }
             }

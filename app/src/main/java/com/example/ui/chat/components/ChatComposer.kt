@@ -23,7 +23,6 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -109,31 +108,6 @@ fun ChatComposer(
                 tint = if (isGenerating || inputText.isNotBlank()) theme.palette.onSurface else theme.palette.onSurfaceMuted,
                 modifier = Modifier.size(20.dp),
             )
-        }
-    }
-}
-
-/** Existing simulated voice interaction; it still sends through the real chat runtime. */
-@Composable
-fun VoiceRecordingBar(onCancel: () -> Unit, onSendVoice: () -> Unit) {
-    val theme = LocalAiluaTheme.current
-    Row(
-        modifier = Modifier.fillMaxWidth()
-            .padding(horizontal = theme.layout.screenHorizontalPadding.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(theme.shapes.large.dp))
-            .background(theme.surfaces.inset).padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.Default.Mic, null, tint = theme.palette.accent, modifier = Modifier.size(24.dp))
-        Column(Modifier.weight(1f).padding(horizontal = 8.dp)) {
-            Text("语音轻语", style = theme.text.body, color = theme.palette.onSurface)
-            Text("模拟语音 · 0:04", style = theme.text.caption, color = theme.palette.onSurfaceMuted)
-        }
-        IconButton(onClick = onCancel) {
-            Icon(Icons.Default.Close, "取消", tint = theme.palette.onSurfaceMuted)
-        }
-        TextButton(onClick = onSendVoice) {
-            Text("发送轻语", style = theme.text.secondary, color = theme.palette.onSurface)
         }
     }
 }

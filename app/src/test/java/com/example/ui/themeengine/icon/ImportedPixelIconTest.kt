@@ -21,6 +21,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 import java.io.ByteArrayOutputStream
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -53,7 +54,14 @@ class ImportedPixelIconTest {
                 icons = ExternalIconSet("$id/icons", "Test", IconSource.ThemePackage(id),
                     mapOf("chat" to ref), listOf(ExternalIconEntry("chat", null, ref))),
                 metadata = mapOf("iconStyle" to style))
-            ExternalThemeRepository.install(ThemeImportPreview(packageTheme, mapOf(ref.relativePath to png)))
+            try {
+                ExternalThemeRepository.install(ThemeImportPreview(packageTheme, mapOf(ref.relativePath to png)))
+            } catch (error: Exception) {
+                val root = File(context.filesDir, "themes")
+                throw AssertionError("Install failed at case $index: root=${root.absolutePath}, " +
+                    "rootExists=${root.isDirectory}, targetExists=${File(root, id).exists()}, " +
+                    "entries=${root.listFiles()?.map { it.name }}", error)
+            }
             try {
                 for (preset in listOf("default", "y2k_love", "glass")) {
                     for (manual in listOf(emptyMap(), mapOf("chat" to "chat"))) {

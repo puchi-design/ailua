@@ -11,10 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.GraphicEq
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -86,7 +82,6 @@ fun ChatMessageItem(
         return
     }
     var showActions by remember(message.id) { mutableStateOf(false) }
-    var isPlaying by remember(message.id) { mutableStateOf(false) }
     val isUser = message.sender == MessageSender.USER
     val isVoice = !isUser && message.type == MessageType.VOICE
     val senderName = publicCharacterName(message.senderCharacterId.ifBlank { character.id }, message.senderName.ifBlank { character.name })
@@ -117,7 +112,7 @@ fun ChatMessageItem(
                         .clip(RoundedCornerShape(theme.shapes.medium.dp))
                         .background(if (isUser) theme.palette.accent.copy(alpha = 0.16f) else theme.surfaces.inset)
                         .combinedClickable(
-                            onClick = { if (isVoice) isPlaying = !isPlaying },
+                            onClick = {},
                             onLongClickLabel = "消息操作",
                             onLongClick = if (actionsEnabled) ({ showActions = true }) else null,
                         )
@@ -125,21 +120,16 @@ fun ChatMessageItem(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     when {
-                        isVoice -> Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Icon(
-                                if (isPlaying) Icons.Default.GraphicEq else Icons.Default.PlayArrow,
-                                contentDescription = "播放语音",
-                                tint = theme.palette.accent,
-                                modifier = Modifier.size(20.dp),
-                            )
+                        isVoice -> {
                             Text(
-                                if (isPlaying) "正在倾听 $senderName…"
-                                else "语音轻语 ${message.voiceDurationSeconds}″",
+                                message.text.ifBlank { "语音消息" },
                                 style = theme.text.body,
                                 color = theme.palette.onSurface,
+                            )
+                            Text(
+                                "无可播放音频",
+                                style = theme.text.caption,
+                                color = theme.palette.onSurfaceMuted,
                             )
                         }
                         !isUser && message.type == MessageType.MEMORY_CARD -> {

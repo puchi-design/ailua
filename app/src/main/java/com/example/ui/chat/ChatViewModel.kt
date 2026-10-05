@@ -27,6 +27,7 @@ import com.example.data.firstsession.FirstSessionPolicy
 import com.example.data.firstsession.FirstSessionStore
 import com.example.data.relationship.repository.RelationshipStateRepository
 import com.example.data.memory.auto.AutoMemoryExtractor
+import com.example.data.memory.model.MemoryEntry
 import com.example.data.memory.model.MemoryType
 import com.example.data.memory.repository.MemoryGraph
 import com.example.data.memory.repository.MemoryRepository
@@ -65,6 +66,41 @@ data class ChatUiState(
     /** One-shot ask to open the AI connection sheet (preflight failed, §5). */
     val requestProviderConfig: Boolean = false,
 )
+
+/** Keep existing turn keys for first replies; regenerated replies need their own stable key. */
+internal fun memorySourceRefId(message: ChatMessage): String =
+    if (message.sender == MessageSender.CHARACTER && message.variantIndex > 0) {
+        "${message.id}:variant:${message.variantIndex}"
+    } else {
+        message.id
+    }
+
+/** Resolves old turn-ID saves without collapsing a different regenerated reply into that row. */
+internal fun memorySourceRefIdForSave(
+    message: ChatMessage,
+    existingMemories: List<MemoryEntry>,
+): String? {
+    fun atKey(key: String) = existingMemories.firstOrNull { it.sourceRefId == key }
+    fun MemoryEntry.matchesMessage() = sourceAppId == "chat" && content == message.text
+
+    val canonicalKey = memorySourceRefId(message)
+    val existing = atKey(canonicalKey)
+    if (existing != null) {
+        if (existing.matchesMessage()) return null
+        if (message.sender == MessageSender.CHARACTER && message.variantIndex == 0) {
+            // A legacy save of variant 1+ can occupy the original reply's turn ID.
+            val alternateKey = "${message.id}:variant:0"
+            val alternate = atKey(alternateKey)
+            if (alternate == null) return alternateKey
+            if (alternate.matchesMessage()) return null
+        }
+        throw IllegalStateException("Memory source key already belongs to different content: $canonicalKey")
+    }
+    if (message.sender == MessageSender.CHARACTER && message.variantIndex > 0 &&
+        atKey(message.id)?.matchesMessage() == true
+    ) return null
+    return canonicalKey
+}
 
 /**
  * ChatViewModel — thin UI-state layer over [ChatGenerationRuntime] (P3C-4 §1).
@@ -140,17 +176,20 @@ class ChatViewModel(
     }
 
     /** P3C-5 chat save entry: persists [message] as a long-term memory. */
-    fun saveMemory(message: ChatMessage) {
+    fun saveMemory(message: ChatMessage): Boolean {
+        val sourceRefId = memorySourceRefIdForSave(message, memoryRepository.getMemories(characterId))
+            ?: return false
         memoryRepository.saveMemory(
             characterId = characterId,
             content = message.text,
             sourceAppId = "chat",
-            sourceRefId = message.id,
+            sourceRefId = sourceRefId,
             type = MemoryType.LONG_TERM,
             importance = 0.7,
         )
         val worldClock = WorldHeartbeatEngine.worldClock.value
-        RelationshipStateRepository.recordMemory(characterId, message.id, message.text, worldClock.dateLabel, worldClock.timeFormatted)
+        RelationshipStateRepository.recordMemory(characterId, sourceRefId, message.text, worldClock.dateLabel, worldClock.timeFormatted)
+        return true
     }
 
     fun switchVariant(turnId: String, direction: Int) {

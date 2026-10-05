@@ -25,7 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -39,6 +38,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.engine.WorldStateRepository
 import com.example.data.firstsession.FirstSessionStore
+import com.example.data.local.AiluaLocalStore
+import com.example.data.model.ChatMessage
 import com.example.data.model.CharacterProfile
 import com.example.data.model.MessageSender
 import com.example.data.projection.projectPresence
@@ -49,7 +50,6 @@ import com.example.ui.chat.components.ChatMessageItem
 import com.example.ui.chat.components.ChatQuickReplies
 import com.example.ui.chat.components.ChatTopBar
 import com.example.ui.chat.components.StreamingReplyBubble
-import com.example.ui.chat.components.VoiceRecordingBar
 import com.example.ui.components.AiConnectionSheet
 import com.example.ui.components.ProactiveSettingsSheet
 import com.example.ui.designsystem.AiluaScreenScaffold
@@ -75,6 +75,7 @@ fun ChatScreen(
     val theme = LocalAiluaTheme.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val firstSession by FirstSessionStore.state.collectAsStateWithLifecycle()
+    val bookmarkedMsgIds by AiluaLocalStore.bookmarkedMessageIds.collectAsStateWithLifecycle()
     val messages = uiState.messages
     val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
     val currentActivity = projectPresence(character, worldEvents).currentActivity
@@ -83,10 +84,10 @@ fun ChatScreen(
     var inputText by remember { mutableStateOf("") }
     var showMenu by remember { mutableStateOf(false) }
     var showActionSheet by remember { mutableStateOf(false) }
-    var isVoiceRecording by remember { mutableStateOf(false) }
     var showAiConnection by remember { mutableStateOf(false) }
     var showProactive by remember { mutableStateOf(false) }
-    val bookmarkedMsgIds = remember { mutableStateListOf<String>() }
+    var memorySaveInProgress by remember(character.id) { mutableStateOf(false) }
+    val savedMemorySourceRefIds = remember(character.id) { mutableSetOf<String>() }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -99,6 +100,33 @@ fun ChatScreen(
     }
     val lastAssistantId = remember(messages) {
         messages.lastOrNull { it.sender == MessageSender.CHARACTER }?.id
+    }
+    val latestSaveableMessage = remember(messages) { latestSaveableChatMessage(messages) }
+
+    fun saveMessageToMemory(message: ChatMessage?) {
+        when {
+            message == null -> coroutineScope.launch {
+                snackbarHostState.showSnackbar("还没有可保存的对话消息")
+            }
+            memorySaveInProgress -> Unit
+            memorySourceRefId(message) in savedMemorySourceRefIds -> coroutineScope.launch {
+                snackbarHostState.showSnackbar("这条消息已保存到记忆")
+            }
+            else -> {
+                memorySaveInProgress = true
+                try {
+                    val newlySaved = viewModel.saveMemory(message)
+                    savedMemorySourceRefIds.add(memorySourceRefId(message))
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar(if (newlySaved) "已保存到记忆" else "这条消息已保存到记忆")
+                    }
+                } catch (_: Exception) {
+                    coroutineScope.launch { snackbarHostState.showSnackbar("保存记忆失败，请重试") }
+                } finally {
+                    memorySaveInProgress = false
+                }
+            }
+        }
     }
     val quickPrompts = if (!firstSession.sentFirstMessage) listOf(
         "你现在在做什么？", "今天过得怎么样？", "第一次见面，你想让我怎么称呼你？"
@@ -161,9 +189,7 @@ fun ChatScreen(
                             text = { Text("存入羁绊记忆", style = theme.text.body) },
                             onClick = {
                                 showMenu = false
-                                coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("已将最近对话凝华为心契记忆")
-                                }
+                                saveMessageToMemory(latestSaveableMessage)
                             },
                         )
                         DropdownMenuItem(
@@ -184,31 +210,22 @@ fun ChatScreen(
                         )
                     }
                     ChatQuickReplies(quickPrompts, enabled = !uiState.isGenerating, onSelect = { viewModel.send(it) })
-                    if (isVoiceRecording) {
-                        VoiceRecordingBar(
-                            onCancel = { isVoiceRecording = false },
-                            onSendVoice = {
-                                isVoiceRecording = false
-                                viewModel.send("［语音轻语 6秒］今晚能一起听着雨声多聊一会儿吗？")
-                            },
-                        )
-                    } else {
-                        ChatComposer(
-                            inputText = inputText,
-                            isGenerating = uiState.isGenerating,
-                            onInputTextChange = { inputText = it },
-                            onSend = {
-                                if (inputText.isNotBlank() && !uiState.isGenerating) {
-                                    val text = inputText.trim()
-                                    inputText = ""
-                                    viewModel.send(text)
-                                }
-                            },
-                            onStop = { viewModel.cancelGeneration() },
-                            onAttachClick = { showActionSheet = !showActionSheet },
-                            onMicClick = { isVoiceRecording = true },
-                        )
-                    }
+                    ChatComposer(
+                        inputText = inputText,
+                        isGenerating = uiState.isGenerating,
+                        onInputTextChange = { inputText = it },
+                        onSend = {
+                            if (inputText.isNotBlank() && !uiState.isGenerating) {
+                                val text = inputText.trim()
+                                inputText = ""
+                                viewModel.send(text)
+                            }
+                        },
+                        onStop = { viewModel.cancelGeneration() },
+                        onAttachClick = { showActionSheet = !showActionSheet },
+                        onMicClick = {},
+                        showMicrophone = false,
+                    )
                     AnimatedVisibility(visible = showActionSheet) {
                         Row(
                             modifier = Modifier.fillMaxWidth().background(theme.surfaces.screen)
@@ -219,17 +236,9 @@ fun ChatScreen(
                                 showActionSheet = false
                                 viewModel.send("伸出手轻轻碰了碰 ${character.name} 放在桌上的杯沿，对 TA 温和地笑了笑。")
                             }
-                            ChatActionItem("分享照片", "📷") {
-                                showActionSheet = false
-                                viewModel.send("［发送了一张深夜街角的照片］你看，今晚的月光落在湿漉漉的石板路上很美。")
-                            }
-                            ChatActionItem("语音轻语", "🎙️") {
-                                showActionSheet = false
-                                viewModel.send("［语音轻语 8秒］窗外的雨声很好听，想和你一起听一会儿。")
-                            }
                             ChatActionItem("凝华记忆", "💎") {
                                 showActionSheet = false
-                                coroutineScope.launch { snackbarHostState.showSnackbar("已将此刻共处收录至羁绊回响") }
+                                saveMessageToMemory(latestSaveableMessage)
                             }
                         }
                     }
@@ -247,19 +256,19 @@ fun ChatScreen(
                         ChatMessageItem(
                             message = message,
                             character = character,
-                            isBookmarked = bookmarkedMsgIds.contains(message.id),
+                            isBookmarked = bookmarkedMsgIds.contains(memorySourceRefId(message)),
                             onToggleBookmark = {
-                                if (bookmarkedMsgIds.contains(message.id)) {
-                                    bookmarkedMsgIds.remove(message.id)
-                                    coroutineScope.launch { snackbarHostState.showSnackbar("已取消收藏") }
-                                } else {
-                                    bookmarkedMsgIds.add(message.id)
-                                    coroutineScope.launch { snackbarHostState.showSnackbar("已收藏") }
+                                try {
+                                    val isBookmarked = AiluaLocalStore.toggleMessageBookmark(memorySourceRefId(message))
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar(if (isBookmarked) "已收藏" else "已取消收藏")
+                                    }
+                                } catch (_: Exception) {
+                                    coroutineScope.launch { snackbarHostState.showSnackbar("收藏操作失败，请重试") }
                                 }
                             },
                             onSaveMemory = {
-                                viewModel.saveMemory(message)
-                                coroutineScope.launch { snackbarHostState.showSnackbar("已保存到记忆") }
+                                saveMessageToMemory(message.takeIf { it.isSaveableChatMessage() })
                             },
                             onRegenerate = { viewModel.regenerate() },
                             canRegenerate = !uiState.isGenerating && message.id == lastAssistantId,
@@ -287,3 +296,10 @@ fun ChatScreen(
         if (showProactive) ProactiveSettingsSheet(onDismiss = { showProactive = false })
     }
 }
+
+internal fun latestSaveableChatMessage(messages: List<ChatMessage>): ChatMessage? =
+    messages.lastOrNull { it.isSaveableChatMessage() }
+
+private fun ChatMessage.isSaveableChatMessage(): Boolean =
+    id.isNotBlank() && text.isNotBlank() && statusLabel == null &&
+        (sender == MessageSender.USER || sender == MessageSender.CHARACTER)

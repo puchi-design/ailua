@@ -38,6 +38,8 @@ import com.example.data.social.withUserLike
 import com.example.ui.designsystem.*
 import com.example.ui.themeengine.LocalAiluaTheme
 
+private const val MAX_MOMENT_COMMENT_LENGTH = 160
+
 @Composable
 fun MomentsScreen(
     isDarkTheme: Boolean = false,
@@ -106,6 +108,9 @@ private fun MomentCard(
     val theme = LocalAiluaTheme.current
     var showCommentInput by remember { mutableStateOf(false) }
     var commentText by remember { mutableStateOf("") }
+    val commentToSend = commentText.trim()
+    val commentTooLong = commentToSend.length > MAX_MOMENT_COMMENT_LENGTH
+    val canSendComment = commentToSend.isNotEmpty() && !commentTooLong
     val authorName = publicCharacterName(post.authorId, post.authorName)
     Column(
         Modifier.fillMaxWidth().testTag("moment_card_${post.id}").padding(top = 20.dp),
@@ -154,6 +159,14 @@ private fun MomentCard(
                 value = commentText, onValueChange = { commentText = it }, singleLine = true,
                 modifier = Modifier.fillMaxWidth(), textStyle = theme.text.body,
                 placeholder = { Text("写下对 $authorName 的回应…", style = theme.text.secondary) },
+                isError = commentTooLong,
+                supportingText = {
+                    Text(
+                        if (commentTooLong) "最多 160 字，请删减后发送（${commentToSend.length}/160）"
+                        else "${commentToSend.length}/160 字",
+                        style = theme.text.caption,
+                    )
+                },
                 shape = RoundedCornerShape(theme.shapes.medium.dp),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = theme.surfaces.inset, unfocusedContainerColor = theme.surfaces.inset,
@@ -162,13 +175,14 @@ private fun MomentCard(
             )
             TextButton(
                 onClick = {
-                    if (commentText.isNotBlank()) {
-                        onAddComment(commentText.trim())
+                    if (canSendComment) {
+                        onAddComment(commentToSend)
                         commentText = ""
                         showCommentInput = false
                     }
                 },
                 modifier = Modifier.testTag("moment_send_comment"),
+                enabled = canSendComment,
             ) { Text("发送评论", style = theme.text.secondary) }
         }
         HorizontalDivider(color = theme.surfaces.divider)

@@ -23,6 +23,8 @@ import com.example.data.chat.local.ChatDriverFactory
 import com.example.data.chat.local.SqlDelightChatRepository
 import com.example.data.chat.local.platform.SystemEpochClock
 import com.example.data.chat.local.platform.UuidIdGenerator
+import com.example.data.chat.model.ChatTurnRole
+import com.example.data.chat.model.GroupMessage
 import com.example.data.chat.model.VariantStatus
 import com.example.data.engine.WorldStateRepository
 import com.example.data.registry.CharacterRegistry
@@ -61,7 +63,7 @@ fun ConversationListScreen(
             val driver = ChatDriverFactory(context.applicationContext).createDriver()
             try {
                 val repository = SqlDelightChatRepository(ChatDatabase(driver), UuidIdGenerator(), SystemEpochClock())
-                CharacterRegistry.getAllCharacters().map { character ->
+                val privateConversations = CharacterRegistry.getAllCharacters().map { character ->
                     val session = repository.getOrCreatePrivateSession(character.id)
                     val latest = repository.getResolvedTurns(session.id).lastOrNull {
                         val variant = it.activeVariant
@@ -77,8 +79,28 @@ fun ConversationListScreen(
                         isPinned = character.id == selectedCharacterId, avatarId = character.id,
                         characterStatus = presence.currentActivity,
                     )
-                } + Conversation(id = "conv_group", type = ConversationType.GROUP, title = "雨夜茶会",
-                    latestMessage = "群聊入口", latestTime = "")
+                }
+                val groupSession = repository.getOrCreateGroupSession(
+                    GroupChatViewModel.GROUP_ID, GroupChatViewModel.PARTICIPANTS)
+                val latestGroupTurn = repository.getResolvedTurns(groupSession.id).lastOrNull {
+                    it.activeVariant?.let { variant ->
+                        variant.status == VariantStatus.COMPLETE && variant.content.isNotBlank()
+                    } == true
+                }
+                val groupPreview = latestGroupTurn?.let { turn ->
+                    val content = turn.activeVariant!!.content
+                    val readable = if (turn.role == ChatTurnRole.ASSISTANT) {
+                        GroupMessage.decode(content, GroupChatViewModel.PARTICIPANTS)?.content ?: content
+                    } else content
+                    readable.replace('\n', ' ').take(100)
+                } ?: "还没有群聊消息"
+                privateConversations + Conversation(
+                    id = "conv_group", type = ConversationType.GROUP, title = "雨夜茶会",
+                    latestMessage = groupPreview,
+                    latestTime = latestGroupTurn?.let {
+                        SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(it.createdAtEpochMs))
+                    }.orEmpty(),
+                )
             } finally { driver.close() }
         }
     }
