@@ -297,6 +297,10 @@ class SqlDelightChatRepository(
         database.transactionWithResult {
             val variant = database.chatVariantQueries.selectVariantById(variantId).executeAsOneOrNull()
                 ?: return@transactionWithResult false
+            if (variant.status != VariantStatus.COMPLETE.name) return@transactionWithResult false
+            val turn = database.chatTurnQueries.selectTurnById(variant.turn_id).executeAsOneOrNull()
+                ?: return@transactionWithResult false
+            if (turn.active_variant_id != variantId) return@transactionWithResult false
             val payloads = RichMessageCodec.decode(variant.rich_payloads_json)
             val payload = payloads.getOrNull(payloadIndex) ?: return@transactionWithResult false
             if (payload.status != RichMessageStatus.PENDING) return@transactionWithResult false
@@ -315,8 +319,7 @@ class SqlDelightChatRepository(
                 updated_at_epoch_ms = now,
                 id = variantId,
             )
-            val turn = database.chatTurnQueries.selectTurnById(variant.turn_id).executeAsOneOrNull()
-            if (turn != null) database.chatSessionQueries.touchSession(updated_at_epoch_ms = now, id = turn.session_id)
+            database.chatSessionQueries.touchSession(updated_at_epoch_ms = now, id = turn.session_id)
             true
         }
 

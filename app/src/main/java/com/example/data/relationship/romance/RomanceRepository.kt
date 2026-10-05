@@ -53,6 +53,12 @@ object RomanceRepository {
         apply(characterId, RomanceEvent("story:$storyId", RomanceEventType.SHARED_STORY, nowEpochMs), userInteraction = true)
     }
 
+    /** A user accepted a virtual chat gesture; the existing reducer applies its smallest good-event weight and daily decay. */
+    fun recordRichInteraction(characterId: String, interactionId: String, nowEpochMs: Long = System.currentTimeMillis()) {
+        if (interactionId.isBlank()) return
+        apply(characterId, RomanceEvent("rich:$interactionId", RomanceEventType.GOOD_EVENT, nowEpochMs), userInteraction = true)
+    }
+
     @Synchronized private fun apply(characterId: String, event: RomanceEvent, userInteraction: Boolean = false) {
         if (characterId.isBlank()) return
         val previous = record(characterId)
