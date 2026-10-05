@@ -50,8 +50,7 @@ fun ChatMessageActions(
                 }
             }
         Action("复制") { clipboard.setText(AnnotatedString(copyText)) }
-        if (onQuote != null && message.sender == MessageSender.CHARACTER &&
-            message.text.isNotBlank() && message.statusLabel == null) {
+        if (onQuote != null && message.sender == MessageSender.CHARACTER && message.statusLabel == null) {
             Action("引用", onQuote)
         }
         if (allowMemoryAndBookmark && message.text.isNotBlank()) Action("保存记忆", onSaveMemory)
@@ -64,4 +63,25 @@ fun ChatMessageActions(
             Action("下一回复分支 · ${message.variantIndex + 1}/${message.variantCount}") { onSwitchVariant(1) }
         }
     }
+}
+
+/** A readable quote for a card-only assistant turn; raw model directives stay out of the composer. */
+fun ChatMessage.quotablePreview(): String? {
+    text.trim().takeIf(String::isNotEmpty)?.let { return it.take(160) }
+    val card = richPayloads.firstOrNull { it.type != RichMessageType.TEXT } ?: return null
+    val kind = when (card.type) {
+        RichMessageType.RED_PACKET -> "红包"
+        RichMessageType.TRANSFER -> "转账"
+        RichMessageType.GIFT -> "礼物"
+        RichMessageType.LOCATION -> "位置"
+        RichMessageType.STICKER -> "表情"
+        RichMessageType.QUOTE -> "引用"
+        RichMessageType.TEXT -> return null
+    }
+    val detail = when (card.type) {
+        RichMessageType.LOCATION -> card.locationName ?: card.label
+        RichMessageType.STICKER -> card.iconKey ?: card.label
+        else -> card.label
+    }?.trim().orEmpty()
+    return if (detail.isEmpty()) kind else "$kind · $detail".take(160)
 }

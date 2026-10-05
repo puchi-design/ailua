@@ -132,6 +132,15 @@ class V61V62DeviceSmokeTest {
             scrollToMessage(red.id)
             compose.onNodeWithTag("rich_red_packet_open_0", useUnmergedTree = true).performClick()
             compose.waitUntil(10_000) { richStatus(chat, session.id, red.id) == RichMessageStatus.OPENED }
+            compose.onNodeWithTag("rich_red_packet_0", useUnmergedTree = true)
+                .performTouchInput { longClick(Offset(48f, 24f)) }
+            compose.onNodeWithText("引用").performClick()
+            waitForTag("chat_quote_composer")
+            compose.onNode(hasText("红包 · 晚饭钱") and
+                hasAnyAncestor(hasTestTag("chat_quote_composer")), useUnmergedTree = true)
+                .assertIsDisplayed()
+            capture("rich-quote-card.png")
+            compose.onNodeWithTag("chat_quote_clear").performClick()
 
             scrollToMessage(transfer.id)
             compose.onNodeWithTag("rich_transfer_decline_0", useUnmergedTree = true).performClick()

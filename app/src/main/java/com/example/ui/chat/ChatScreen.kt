@@ -51,6 +51,7 @@ import com.example.ui.chat.components.ChatMessageItem
 import com.example.ui.chat.components.ChatQuickReplies
 import com.example.ui.chat.components.ChatTopBar
 import com.example.ui.chat.components.StreamingReplyBubble
+import com.example.ui.chat.components.quotablePreview
 import com.example.ui.components.AiConnectionSheet
 import com.example.ui.components.ProactiveSettingsSheet
 import com.example.ui.designsystem.AiluaScreenScaffold
@@ -113,7 +114,7 @@ fun ChatScreen(
         viewModel.send(
             userText = text.trim(),
             quoteMessageId = quote?.id,
-            quotePreview = quote?.text?.take(160),
+            quotePreview = quote?.quotablePreview(),
         )
     }
 
@@ -226,7 +227,7 @@ fun ChatScreen(
                     ChatQuickReplies(quickPrompts, enabled = !uiState.isGenerating, onSelect = ::sendReply)
                     quotedMessage?.let { quote ->
                         QuoteComposerBanner(
-                            preview = quote.text,
+                            preview = quote.quotablePreview().orEmpty(),
                             author = if (quote.sender == MessageSender.USER) "你" else character.name,
                             onClear = { quotedMessage = null },
                         )
@@ -295,7 +296,7 @@ fun ChatScreen(
                             canRegenerate = !uiState.isGenerating && message.id == lastAssistantId,
                             onSwitchVariant = { direction -> viewModel.switchVariant(message.id, direction) },
                             onQuote = if (message.sender == MessageSender.CHARACTER &&
-                                message.text.isNotBlank() && message.statusLabel == null) {
+                                message.quotablePreview() != null && message.statusLabel == null) {
                                 { quotedMessage = message }
                             } else null,
                             quoteAuthor = messages.firstOrNull { it.id == message.quoteMessageId }?.let {
