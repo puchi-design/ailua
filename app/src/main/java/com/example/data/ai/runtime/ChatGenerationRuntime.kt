@@ -15,6 +15,8 @@ import com.example.data.chat.model.GroupSpeakerPlanner
 import com.example.data.chat.model.ResolvedChatTurn
 import com.example.data.chat.model.VariantStatus
 import com.example.data.chat.repository.ChatRepository
+import com.example.data.chat.rich.RichMessageParser
+import com.example.data.chat.rich.RichMessagePrompt
 import com.example.data.memory.repository.MemoryRepository
 import com.example.data.memory.model.MemoryType
 import com.example.data.firstsession.FirstSessionPolicy
@@ -242,13 +244,18 @@ class ChatGenerationRuntime(
     }
 
     /** Sends one user message and generates the real assistant reply (§5). */
-    suspend fun send(characterId: String, userContent: String): SendResult {
+    suspend fun send(
+        characterId: String,
+        userContent: String,
+        quoteMessageId: String? = null,
+        quotePreview: String? = null,
+    ): SendResult {
         val resolved = providerResolver.resolve() ?: return SendResult.NotConfigured
         val card = promptContext.characterCard(characterId) ?: return SendResult.NoCharacter
 
         val session = repository.getOrCreatePrivateSession(characterId)
         repository.recoverInterruptedVariants(session.id)
-        val userTurn = repository.appendUserTurn(session.id, userContent)
+        val userTurn = repository.appendUserTurn(session.id, userContent, quoteMessageId, quotePreview)
         // A user's boundary needs no AI acknowledgement and survives a failed/cancelled generation.
         RomanceRepository.observeUserBoundary(characterId, userTurn.id, userContent, userTurn.createdAtEpochMs)
 
@@ -329,7 +336,9 @@ class ChatGenerationRuntime(
         val assembly = PromptAssembler.assemble(input)
         val request = AiChatRequest(
             model = resolved.model,
-            messages = assembly.messages,
+            messages = assembly.messages.toMutableList().apply {
+                add(minOf(1, size), AiMessage(AiRole.SYSTEM, RichMessagePrompt.INSTRUCTIONS))
+            },
             stream = true,
         )
 
@@ -388,10 +397,12 @@ class ChatGenerationRuntime(
                             terminal = true
                             result = SendResult.Failed(protocolError)
                         } else {
+                            val parsed = RichMessageParser.parse(event.text)
                             repository.updateVariant(
                                 variantId = variantId,
-                                content = event.text,
+                                content = parsed.content,
                                 status = VariantStatus.COMPLETE,
+                                richPayloads = parsed.payloads,
                             )
                             terminal = true
                             result = SendResult.Completed
@@ -400,7 +411,7 @@ class ChatGenerationRuntime(
                             if (targetTurnId == null) {
                                 history.lastOrNull { it.role == ChatTurnRole.USER }?.let { userTurn ->
                                     runCatching { RomanceRepository.observeExchange(
-                                        characterId, userTurn.id, recentUserText, event.text, System.currentTimeMillis(),
+                                        characterId, userTurn.id, recentUserText, parsed.content, System.currentTimeMillis(),
                                     ) }
                                 }
                             }
@@ -463,14 +474,7 @@ class ChatGenerationRuntime(
      * through the active variant; FAILED/CANCELLED/STREAMING never do.
      */
     private fun List<ResolvedChatTurn>.toPromptHistory(): List<AiMessage> =
-        mapNotNull { turn ->
-            val variant = turn.activeVariant ?: return@mapNotNull null
-            if (variant.status != VariantStatus.COMPLETE) return@mapNotNull null
-            when (turn.role) {
-                ChatTurnRole.USER -> AiMessage(AiRole.USER, variant.content)
-                ChatTurnRole.ASSISTANT -> AiMessage(AiRole.ASSISTANT, variant.content)
-            }
-        }
+        mapNotNull(RichMessagePrompt::history)
 
     private fun AiProviderError.typeName(): String = when (this) {
         AiProviderError.Unauthorized -> "UNAUTHORIZED"

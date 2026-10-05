@@ -58,11 +58,15 @@ object WorldChatPromptContext : ChatPromptContext {
 
     override fun presence(characterId: String): CharacterPresence? {
         val profile = CharacterRegistry.getCharacter(characterId)
-        return projectPresence(profile, WorldStateRepository.eventsForCharacter(characterId))
+        return projectPresence(profile, WorldStateRepository.eventsForCharacter(characterId).filter(::visibleToCharacter))
     }
 
     override fun lifeEvents(characterId: String): List<LifeEvent> =
-        WorldStateRepository.eventsForCharacter(characterId)
+        WorldStateRepository.eventsForCharacter(characterId).filter(::visibleToCharacter)
+
+    /** Looking through the character's phone is a private user action, not something the character can recall. */
+    private fun visibleToCharacter(event: LifeEvent): Boolean =
+        event.sourceAppId != "check_phone" && event.metadata["prompt_visibility"] != "hidden"
 
     override fun activeLore(
         characterId: String,
