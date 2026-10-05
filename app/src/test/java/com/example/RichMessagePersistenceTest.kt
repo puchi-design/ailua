@@ -3,12 +3,14 @@ package com.example
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.example.data.chat.local.ChatDatabase
 import com.example.data.chat.rich.RichMessagePayload
+import com.example.data.chat.rich.RichMessageCodec
 import com.example.data.chat.rich.RichMessageStatus
 import com.example.data.chat.rich.RichMessageType
 import com.example.data.chat.model.VariantStatus
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RichMessagePersistenceTest {
@@ -63,6 +65,32 @@ class RichMessagePersistenceTest {
             val stored = f.repository.getResolvedTurns(two.id).single().activeVariant!!
             assertEquals(null, stored.quoteMessageId)
             assertEquals(null, stored.quotePreview)
+        } finally { f.driver.close() }
+    }
+
+    @Test fun futureCardCannotEraseKnownCardsOrBeLostWhenKnownStatusChanges() {
+        val f = ChatTestHarness.inMemory()
+        try {
+            val session = f.repository.getOrCreatePrivateSession("hewenchuan")
+            val turn = f.repository.appendAssistantTurn(session.id, "", VariantStatus.COMPLETE)
+            val variantId = checkNotNull(turn.activeVariantId)
+            val original = """[{"type":"PHOTO","label":"随手拍","mediaUrl":"local://photo"},""" +
+                """{"type":"RED_PACKET","label":"晚饭钱","amount":30.0,"status":"PENDING","futureFlag":"kept"}]"""
+            f.database.chatVariantQueries.updateRichPayloads(original, f.clock.nowEpochMs(), variantId)
+
+            val visible = f.repository.getResolvedTurns(session.id).single().activeVariant!!.richPayloads
+            assertEquals(listOf(RichMessageType.TEXT, RichMessageType.RED_PACKET), visible.map { it.type })
+            assertTrue(visible.first().label.orEmpty().contains("随手拍"))
+            assertTrue(f.repository.updateRichStatus(variantId, 1, RichMessageStatus.OPENED))
+
+            val saved = checkNotNull(f.database.chatVariantQueries.selectVariantById(variantId)
+                .executeAsOneOrNull()?.rich_payloads_json)
+            assertTrue(saved.contains("\"type\":\"PHOTO\""))
+            assertTrue(saved.contains("\"mediaUrl\":\"local://photo\""))
+            assertTrue(saved.contains("\"futureFlag\":\"kept\""))
+            assertEquals(RichMessageStatus.OPENED,
+                f.repository.getResolvedTurns(session.id).single().activeVariant!!.richPayloads[1].status)
+            assertEquals("消息卡片暂不可用", RichMessageCodec.decode("{broken").single().label)
         } finally { f.driver.close() }
     }
 }

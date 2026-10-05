@@ -311,11 +311,11 @@ class SqlDelightChatRepository(
                 else -> false
             }
             if (!allowed) return@transactionWithResult false
+            val updatedPayloads = RichMessageCodec.withStatus(variant.rich_payloads_json,
+                payloadIndex, status) ?: return@transactionWithResult false
             val now = clock.nowEpochMs()
             database.chatVariantQueries.updateRichPayloads(
-                rich_payloads_json = RichMessageCodec.encode(payloads.toMutableList().also {
-                    it[payloadIndex] = payload.copy(status = status)
-                }),
+                rich_payloads_json = updatedPayloads,
                 updated_at_epoch_ms = now,
                 id = variantId,
             )
