@@ -3,6 +3,7 @@ package com.example.ui.themecenter
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -20,11 +21,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.data.model.DayPhase
 import com.example.data.model.WeatherState
+import com.example.ui.components.AppIconItem
 import com.example.ui.components.HideDialogStatusBar
 import com.example.ui.themeengine.*
 
@@ -84,23 +87,29 @@ fun ThemeCenterSheet(
         }
         HideDialogStatusBar()
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-            Text("主题中心", style = theme.text.title, fontWeight = FontWeight.Bold,
-                color = theme.palette.onSurface, modifier = Modifier.testTag("theme_center_title"))
-            Text("让这台手机变成你的世界", style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
-            Spacer(Modifier.height(16.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(ThemeCenterSection.THEMES, ThemeCenterSection.WALLPAPERS, ThemeCenterSection.ICONS, ThemeCenterSection.MINE).forEach { item ->
-                    val selected = tab == item
-                    Text(item.title, style = theme.text.secondary,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (selected) theme.palette.onSurface else theme.palette.onSurfaceMuted,
-                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(theme.shapes.small.dp))
-                            .background(if (selected) theme.surfaces.inset else Color.Transparent)
-                            .clickable { tab = item; detailId = null; wallpaperCandidate = null; iconCandidate = null }
-                            .padding(vertical = 12.dp).testTag("theme_center_tab_" + item.name.lowercase()))
+            if (iconCandidate == null) {
+                Text("主题中心", style = theme.text.title, fontWeight = FontWeight.Bold,
+                    color = theme.palette.onSurface, modifier = Modifier.testTag("theme_center_title"))
+                Text("让这台手机变成你的世界", style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
+                Spacer(Modifier.height(16.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(ThemeCenterSection.THEMES, ThemeCenterSection.WALLPAPERS, ThemeCenterSection.ICONS, ThemeCenterSection.MINE).forEach { item ->
+                        val selected = tab == item
+                        Text(item.title, style = theme.text.secondary,
+                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (selected) theme.palette.onSurface else theme.palette.onSurfaceMuted,
+                            modifier = Modifier.weight(1f).clip(RoundedCornerShape(theme.shapes.small.dp))
+                                .background(if (selected) theme.surfaces.inset else Color.Transparent)
+                                .clickable { tab = item; detailId = null; wallpaperCandidate = null; iconCandidate = null }
+                                .padding(vertical = 12.dp).testTag("theme_center_tab_" + item.name.lowercase()))
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+            } else {
+                TextButton(onClick = { iconCandidate = null }, modifier = Modifier.testTag("icon_preview_back")) {
+                    Text("‹  图标")
                 }
             }
-            Spacer(Modifier.height(12.dp))
             key(tab, detailId, wallpaperCandidate, iconCandidate) {
                 Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                     val detail = detailId?.let { id -> officialThemeProducts.firstOrNull { it.id == id } }
@@ -138,16 +147,38 @@ fun ThemeCenterSheet(
                         }
                         iconCandidate != null -> {
                             val candidate = iconCandidate!!
-                            TextButton(onClick = { iconCandidate = null }, modifier = Modifier.testTag("icon_preview_back")) { Text("‹ 图标") }
-                            Text(iconTitle, style = theme.text.section, color = theme.palette.onSurface)
-                            Spacer(Modifier.height(12.dp))
-                            ThemePreview(ThemeResolver.resolve(candidate, isDarkTheme, dayPhase, weather),
-                                Modifier.fillMaxWidth().aspectRatio(9f / 16f).testTag("icon_preview"), candidate)
-                            Spacer(Modifier.height(14.dp))
-                            Button(onClick = {
-                                ThemeStore.update(ThemeStore.selection.copy(iconStyleOverrideId = candidate.iconStyleOverrideId,
-                                    iconSourceOverrideId = candidate.iconSourceOverrideId, manualIconOverrides = candidate.manualIconOverrides))
-                            }, modifier = Modifier.fillMaxWidth().testTag("icon_apply")) { Text("应用图标") }
+                            val preview = ThemeResolver.resolve(candidate, isDarkTheme, dayPhase, weather)
+                            Text(iconTitle, style = theme.text.title, color = theme.palette.onSurface,
+                                fontWeight = FontWeight.SemiBold)
+                            Text("常用应用图标", style = theme.text.secondary,
+                                color = theme.palette.onSurfaceMuted, modifier = Modifier.padding(top = 4.dp))
+                            Spacer(Modifier.height(20.dp))
+                            IconCollectionPreview(preview, candidate)
+                            Spacer(Modifier.height(22.dp))
+                            val alreadyApplied = candidate.iconStyleOverrideId == selection.iconStyleOverrideId &&
+                                candidate.iconSourceOverrideId == selection.iconSourceOverrideId &&
+                                candidate.manualIconOverrides == selection.manualIconOverrides
+                            if (alreadyApplied) {
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Check, null, Modifier.size(18.dp), tint = theme.palette.accent)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("正在使用", style = theme.text.secondary, color = theme.palette.onSurface)
+                                }
+                            } else {
+                                OutlinedButton(onClick = {
+                                    ThemeStore.update(ThemeStore.selection.copy(iconStyleOverrideId = candidate.iconStyleOverrideId,
+                                        iconSourceOverrideId = candidate.iconSourceOverrideId, manualIconOverrides = candidate.manualIconOverrides))
+                                }, modifier = Modifier.fillMaxWidth().testTag("icon_apply"),
+                                    border = BorderStroke(1.dp, theme.palette.accent.copy(alpha = 0.65f)),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = theme.palette.onSurface)) {
+                                    Text("应用这套图标")
+                                }
+                            }
+                            Text("壁纸与桌面布局保持原样", style = theme.text.caption,
+                                color = theme.palette.onSurfaceMuted,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().padding(top = 10.dp))
                         }
                         tab == ThemeCenterSection.THEMES -> {
                             officialThemeProducts.forEach { product ->
@@ -284,6 +315,55 @@ private fun ProductDescription(product: ThemeProduct) {
     Text(product.title, style = theme.text.title, color = theme.palette.onSurface, fontWeight = FontWeight.SemiBold)
     Text(product.description, style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
     Text(product.materials, style = theme.text.caption, color = theme.palette.onSurfaceMuted)
+}
+
+private val iconCollectionApps = listOf(
+    ThemePreviewApp("chat", "消息"),
+    ThemePreviewApp("living", "生活"),
+    ThemePreviewApp("moments", "动态"),
+    ThemePreviewApp("gallery", "相册"),
+    ThemePreviewApp("contacts", "联系人"),
+    ThemePreviewApp("diary", "日记"),
+    ThemePreviewApp("mailbox", "信箱"),
+    ThemePreviewApp("call", "通话"),
+    ThemePreviewApp("memories", "记忆"),
+    ThemePreviewApp("world", "地点"),
+    ThemePreviewApp("theater", "剧场"),
+    ThemePreviewApp("apps", "应用库"),
+)
+
+/** The same icon renderer and candidate selection used by Home, without a duplicate phone mockup. */
+@Composable
+private fun IconCollectionPreview(preview: AiluaThemeRuntime, candidate: ThemeSelection) {
+    val sheetTheme = LocalAiluaTheme.current
+    AiluaThemeProvider(preview) {
+        Column(Modifier.fillMaxWidth().testTag("icon_preview"), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+            iconCollectionApps.chunked(4).forEach { row ->
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    row.forEach { app ->
+                        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                            AppIconItem(
+                                name = app.name,
+                                iconKey = app.iconKey,
+                                size = 56.dp,
+                                selection = candidate,
+                                showLabel = false,
+                                interactive = false,
+                                onClick = {},
+                            )
+                            Spacer(Modifier.height(5.dp))
+                            Text(
+                                text = app.name,
+                                style = sheetTheme.text.caption,
+                                color = sheetTheme.palette.onSurface,
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable

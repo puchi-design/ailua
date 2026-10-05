@@ -154,15 +154,13 @@ fun VirtualSystemUiHost(
         { LiveActivityChip(activities, onClick = { liveExpanded = !liveExpanded }) }
     }
     VirtualSystemUiProvider(controller, unseenCount = notifications.count { !it.seen }, activityContent = activityContent) {
-        // Android 15+ enforces edge-to-edge. Keep all virtual OS surfaces inside
-        // the same cutout/system-bar safe area, including transient bar reveals.
-        Box(Modifier.fillMaxSize().background(LocalAiluaTheme.current.palette.backgroundPrimary).safeDrawingPadding()) {
-            Box(Modifier.fillMaxSize().coveredSystemUi(showLock || panelOpen || liveExpanded)) {
+        // Home paints its wallpaper behind the camera cutout. Its controls add
+        // safe drawing padding locally; other routes and the OS overlays still
+        // keep their interactive content inside that safe area.
+        Box(Modifier.fillMaxSize().background(LocalAiluaTheme.current.palette.backgroundPrimary)) {
+            val routePadding = if (currentRoute == AiluaDestinations.HOME) Modifier else Modifier.safeDrawingPadding()
+            Box(Modifier.fillMaxSize().then(routePadding).coveredSystemUi(showLock || panelOpen || liveExpanded)) {
                 content()
-            }
-            headsUp?.let { notification ->
-                HeadsUpNotification(notification, ::openNotification, onDismiss = { headsUp = null },
-                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 46.dp, start = 16.dp, end = 16.dp))
             }
             AnimatedVisibility(
                 visible = showLock,
@@ -191,6 +189,12 @@ fun VirtualSystemUiHost(
                         }
                     },
                 )
+            }
+            Box(Modifier.fillMaxSize().safeDrawingPadding()) {
+                headsUp?.let { notification ->
+                    HeadsUpNotification(notification, ::openNotification, onDismiss = { headsUp = null },
+                        modifier = Modifier.align(Alignment.TopCenter).padding(top = 46.dp, start = 16.dp, end = 16.dp))
+                }
             }
             if (!incoming && state.surface == SystemUiSurface.NOTIFICATION_SHADE) {
                 NotificationShade(

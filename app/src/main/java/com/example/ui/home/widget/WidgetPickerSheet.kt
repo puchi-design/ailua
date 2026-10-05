@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.example.ui.components.HideDialogStatusBar
 import com.example.ui.home.WidgetRegistry
 import com.example.ui.home.WidgetSize
 
@@ -28,6 +29,7 @@ import com.example.ui.home.WidgetSize
 @Composable
 fun WidgetPickerSheet(onDismiss: () -> Unit, onAdd: (String, WidgetSize) -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
+        HideDialogStatusBar()
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp).padding(bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)) {

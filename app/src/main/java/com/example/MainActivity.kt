@@ -1,6 +1,8 @@
 package com.example
 
 import android.os.Bundle
+import android.os.Build
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -135,9 +137,15 @@ class MainActivity : ComponentActivity() {
         }
 
         enableEdgeToEdge()
-        // Virtual OS status bar replaces the system status bar; hide the native
-        // one so the two no longer overlap (swipe down reveals it transiently).
-        hideNativeStatusBar()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes = window.attributes.apply {
+                layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            }
+        }
+        // The virtual phone draws its own status and home bars over the full
+        // display. Physical edge swipes can still reveal Android's bars.
+        hideNativeSystemBars()
         setContent {
             CompositionLocalProvider(LocalOsChromeState provides rememberOsChromeState()) {
                 AiluaAppRoot()
@@ -146,24 +154,28 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 VirtualSystemUiSession.controller.state.collect {
-                    // A pull from the physical top edge can reveal Android's transient
-                    // status bar without changing window focus. Reapply immersive mode
-                    // after the virtual surface has opened, and after returning to the app.
-                    window.decorView.post { hideNativeStatusBar() }
+                    // Edge swipes can reveal transient Android bars without a
+                    // focus change. Restore the virtual phone's full viewport.
+                    window.decorView.post { hideNativeSystemBars() }
                 }
             }
         }
     }
 
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        // System pickers can restore the native bar when this window regains focus.
-        if (hasFocus) hideNativeStatusBar()
+    override fun onResume() {
+        super.onResume()
+        window.decorView.post { hideNativeSystemBars() }
     }
 
-    private fun hideNativeStatusBar() {
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // System pickers can restore native bars when this window regains focus.
+        if (hasFocus) hideNativeSystemBars()
+    }
+
+    private fun hideNativeSystemBars() {
         WindowCompat.getInsetsController(window, window.decorView).apply {
-            hide(WindowInsetsCompat.Type.statusBars())
+            hide(WindowInsetsCompat.Type.systemBars())
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
     }

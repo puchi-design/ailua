@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -33,6 +34,7 @@ fun NotificationShade(
     Column(
         modifier.fillMaxSize().testTag("notification_shade")
             .background(theme.palette.backgroundPrimary.copy(alpha = theme.shade.backgroundAlpha))
+            .safeDrawingPadding()
             .padding(horizontal = theme.layout.screenHorizontalPadding.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {

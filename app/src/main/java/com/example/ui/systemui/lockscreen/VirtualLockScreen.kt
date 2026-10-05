@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import com.example.ui.designsystem.CharacterPortrait
 import com.example.ui.designsystem.PortraitVariant
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lock
@@ -95,7 +96,7 @@ fun VirtualLockScreen(
         }) {
             ThemeWallpaper(Modifier.fillMaxSize())
             Box(Modifier.fillMaxSize().background(runtime.palette.backgroundPrimary.copy(alpha = runtime.lockscreen.scrimAlpha)))
-            Column(Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize().safeDrawingPadding()) {
                 // Keep status gestures outside the upward-unlock detector.
                 statusBar()
                 Column(

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -50,7 +51,8 @@ fun ControlCenter(
     val chrome = LocalOsChromeState.current
     Column(
         modifier.fillMaxSize().background(theme.palette.backgroundPrimary.copy(alpha = theme.controlCenter.panelAlpha))
-            .verticalScroll(rememberScrollState()).padding(horizontal = theme.layout.screenHorizontalPadding.dp, vertical = 18.dp)
+            .safeDrawingPadding().verticalScroll(rememberScrollState())
+            .padding(horizontal = theme.layout.screenHorizontalPadding.dp, vertical = 18.dp)
             .testTag("control_center"),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {

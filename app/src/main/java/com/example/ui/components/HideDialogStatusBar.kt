@@ -11,7 +11,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 
-/** Dialogs have their own window, so they must hide the native bar as the activity does. */
+/** Dialogs have their own window, so they must hide Android's bars as the activity does. */
 @Composable
 fun HideDialogStatusBar() {
     val view = LocalView.current
@@ -24,7 +24,7 @@ fun HideDialogStatusBar() {
                 WindowCompat.getInsetsController(window, window.decorView).apply {
                     systemBarsBehavior =
                         WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                    hide(WindowInsetsCompat.Type.statusBars())
+                    hide(WindowInsetsCompat.Type.systemBars())
                 }
             }
             // Apply after Dialog.show(), and again after a system picker returns focus.

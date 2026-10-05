@@ -161,7 +161,8 @@ fun AppIconItem(
     isDragging: Boolean = false,
     selection: ThemeSelection = ThemeStore.selection,
     onClick: () -> Unit,
-    onLongClick: (() -> Unit)? = null
+    onLongClick: (() -> Unit)? = null,
+    interactive: Boolean = true,
 ) {
     val theme = LocalAiluaTheme.current
     val iconSpec = theme.icons
@@ -209,7 +210,9 @@ fun AppIconItem(
         animated
     } else 0f
 
-    val clickModifier = if (onLongClick != null) {
+    val clickModifier = if (!interactive) {
+        Modifier
+    } else if (onLongClick != null) {
         Modifier.combinedClickable(
             interactionSource = interactionSource,
             indication = null,

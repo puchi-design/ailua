@@ -6,6 +6,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -31,12 +32,14 @@ fun LiveActivityHost(
         Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.24f)).clickable(
             interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onDismiss,
         ))
-        LiveActivityExpanded(
-            activity = activity,
-            onReturnToCall = { activity.route?.let(onLaunchRoute) },
-            onEnd = onEnd,
-            onDismiss = onDismiss,
-            modifier = Modifier.align(Alignment.TopCenter).padding(horizontal = 20.dp, vertical = 58.dp),
-        )
+        Box(Modifier.fillMaxSize().safeDrawingPadding()) {
+            LiveActivityExpanded(
+                activity = activity,
+                onReturnToCall = { activity.route?.let(onLaunchRoute) },
+                onEnd = onEnd,
+                onDismiss = onDismiss,
+                modifier = Modifier.align(Alignment.TopCenter).padding(horizontal = 20.dp, vertical = 58.dp),
+            )
+        }
     }
 }
