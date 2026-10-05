@@ -38,9 +38,9 @@ class ThemeAssetStore(context: Context) {
             val target = directChild(theme.id)
             val previous = directChild(".${theme.id}.previous")
             if (previous.exists()) previous.deleteRecursively()
-            if (target.exists() && !target.renameTo(previous)) error("无法替换旧主题")
-            if (!temporary.renameTo(target)) {
-                if (previous.exists()) previous.renameTo(target)
+            if (target.exists() && !renameDirectory(target, previous)) error("无法替换旧主题")
+            if (!renameDirectory(temporary, target)) {
+                if (previous.exists()) renameDirectory(previous, target)
                 error("无法完成主题安装")
             }
             if (previous.exists()) previous.deleteRecursively()
@@ -48,6 +48,15 @@ class ThemeAssetStore(context: Context) {
         } finally {
             if (temporary.exists()) temporary.deleteRecursively()
         }
+    }
+
+    /** Windows/Robolectric can briefly hold a just-written directory; keep the atomic move. */
+    private fun renameDirectory(source: File, target: File): Boolean {
+        repeat(5) { attempt ->
+            if (source.renameTo(target)) return true
+            if (attempt < 4) Thread.sleep(20L * (attempt + 1))
+        }
+        return false
     }
 
     fun loadAll(): List<ExternalThemePackage> = root.listFiles().orEmpty()
