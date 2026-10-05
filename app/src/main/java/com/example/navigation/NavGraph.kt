@@ -27,6 +27,7 @@ object AiluaDestinations {
     const val INCOMING_CALL = "incoming_call"
     const val CALL_HISTORY = "call_history"
     const val GALLERY = "gallery"
+    const val GALLERY_CHARACTER_PHOTO = "gallery/character/{characterId}/photo/{photoId}"
     const val NOTES = "notes"
     const val REALITY = "reality"
     const val SETTINGS = "settings"
@@ -36,4 +37,6 @@ object AiluaDestinations {
     fun profileRoute(characterId: String = "mira"): String = "profile/$characterId"
     fun callRoute(characterId: String = "mira"): String = "call/$characterId"
     fun worldMapLocationRoute(placeName: String): String = "world_map/place/${Uri.encode(placeName)}"
+    fun galleryCharacterPhotoRoute(characterId: String, photoId: String): String =
+        "gallery/character/${Uri.encode(characterId)}/photo/${Uri.encode(photoId)}"
 }

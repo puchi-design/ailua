@@ -440,7 +440,9 @@ fun AiluaAppRoot() {
                         onBackToHome = { navController.popBackStack() },
                         characterId = selectedCharacterId,
                         characterName = selectedCharacter.name,
-                        onOpenGallery = { navController.navigate(AiluaDestinations.GALLERY) },
+                        onOpenGallery = { photoId ->
+                            navController.navigate(AiluaDestinations.galleryCharacterPhotoRoute(selectedCharacterId, photoId))
+                        },
                     )
                 }
 
@@ -719,6 +721,22 @@ fun AiluaAppRoot() {
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = { isDarkTheme = !isDarkTheme },
                         onBack = { navController.popBackStack() }
+                    )
+                }
+                composable(
+                    route = AiluaDestinations.GALLERY_CHARACTER_PHOTO,
+                    arguments = listOf(
+                        navArgument("characterId") { type = NavType.StringType },
+                        navArgument("photoId") { type = NavType.StringType },
+                    ),
+                ) { backStackEntry ->
+                    GalleryScreen(
+                        initialCharacterId = backStackEntry.arguments?.getString("characterId"),
+                        initialAssetId = backStackEntry.arguments?.getString("photoId"),
+                        onGoHome = { navController.popBackStack(AiluaDestinations.HOME, false) },
+                        isDarkTheme = isDarkTheme,
+                        onToggleTheme = { isDarkTheme = !isDarkTheme },
+                        onBack = { navController.popBackStack() },
                     )
                 }
             }

@@ -4,7 +4,7 @@ import com.example.data.model.CallSession
 import com.example.data.model.GalleryAsset
 import com.example.data.model.MusicTrack
 
-enum class PhoneTraceSource { RUNTIME_EVENT, WORLD_PLAN, AUTHORED }
+enum class PhoneTraceSource { RUNTIME_EVENT, WORLD_PLAN, RULE_PROJECTION, AUTHORED }
 enum class CharacterDraftStatus { UNSENT }
 enum class PhoneSection { SEARCH, DRAFTS, PHOTOS, CALLS, NOTES, MUSIC, USAGE, BROWSING, SAVED }
 enum class PhonePrivacyLevel { RECENT, FAMILIAR, CLOSE, PRIVATE }

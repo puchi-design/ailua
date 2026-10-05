@@ -97,6 +97,30 @@ object UserActivityRecorder {
         )
     }
 
+    /** Opening a character's virtual phone is private usage evidence, never a prompt fact. */
+    fun recordCheckPhoneView(characterId: String): LifeEvent {
+        val clock = WorldHeartbeatEngine.worldClock.value
+        return WorldStateRepository.appendLifeEvent(
+            LifeEvent(
+                id = uniqueId("user_check_phone"),
+                characterId = characterId,
+                time = clock.timeFormatted,
+                type = LifeEventType.SOCIAL,
+                title = "用户查看了角色手机",
+                description = "打开了角色的虚拟手机",
+                visibility = "PRIVATE",
+                worldDateLabel = clock.dateLabel,
+                worldMinutesOfDay = clock.minutesOfDay,
+                sourceAppId = "check_phone",
+                metadata = mapOf(
+                    "actor" to LIFE_EVENT_ACTOR_USER,
+                    "activity" to "USER_ACTIVITY",
+                    "prompt_visibility" to "hidden",
+                ),
+            )
+        )
+    }
+
     private fun activeCharacterId(): String =
         WorldHeartbeatEngine.heartbeatState.value.activeCharacterId
 

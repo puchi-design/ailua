@@ -53,21 +53,37 @@ fun GalleryScreen(
     onToggleTheme: () -> Unit = {},
     onBack: () -> Unit = {},
     onGoHome: () -> Unit = onBack,
+    initialCharacterId: String? = null,
+    initialAssetId: String? = null,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     val seedAssets by GalleryRepository.assets.collectAsStateWithLifecycle()
     val worldEvents by WorldStateRepository.events.collectAsStateWithLifecycle()
-    val assets = remember(seedAssets, worldEvents) {
+    val projectedAssets = remember(seedAssets, worldEvents) {
         projectGalleryAssets(seedAssets, worldEvents, CharacterRegistry.getAllCharacters().associate { it.id to it.name })
+    }
+    val assets = remember(projectedAssets, initialCharacterId) {
+        if (initialCharacterId == null) projectedAssets
+        else projectedAssets.filter { it.characterId == initialCharacterId && it.type != GalleryAssetType.USER_IMPORTED }
     }
     val albums = remember(assets) { (GalleryRepository.albums + assets.map { it.album }).distinct() }
     var selectedAlbum by remember { mutableStateOf("全部") }
     var viewingAsset by remember { mutableStateOf<GalleryAsset?>(null) }
+    var initialPhotoOpened by remember(initialAssetId) { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<GalleryAsset?>(null) }
     var busy by remember { mutableStateOf(false) }
     val gridState = rememberLazyGridState()
+
+    LaunchedEffect(initialAssetId, assets) {
+        if (!initialPhotoOpened && initialAssetId != null) {
+            assets.firstOrNull { it.id == initialAssetId }?.let { photo ->
+                viewingAsset = photo
+                initialPhotoOpened = true
+            }
+        }
+    }
 
     LaunchedEffect(context) {
         GalleryRepository.loadUserImports(context).onFailure { error ->
@@ -100,13 +116,17 @@ fun GalleryScreen(
     Box(Modifier.fillMaxSize().testTag("gallery_screen")) {
         if (viewingAsset == null) {
             AiluaScreenScaffold(
-                title = "相册", onBack = onBack, onGoHome = onGoHome, backTestTag = "gallery_back_btn",
+                title = initialCharacterId?.let {
+                    "${publicCharacterName(it, CharacterRegistry.getCharacter(it).name)}的相册"
+                } ?: "相册", onBack = onBack, onGoHome = onGoHome, backTestTag = "gallery_back_btn",
                 trailing = {
-                    IconButton(
-                        onClick = { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                        modifier = Modifier.testTag("gallery_import_photo_btn"),
-                        enabled = !busy,
-                    ) { Icon(Icons.Default.Add, "导入相片", tint = theme.palette.onSurface) }
+                    if (initialCharacterId == null) {
+                        IconButton(
+                            onClick = { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                            modifier = Modifier.testTag("gallery_import_photo_btn"),
+                            enabled = !busy,
+                        ) { Icon(Icons.Default.Add, "导入相片", tint = theme.palette.onSurface) }
+                    }
                 },
             ) {
                 LazyRow(
