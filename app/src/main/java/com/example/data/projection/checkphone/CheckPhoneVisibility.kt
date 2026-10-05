@@ -17,6 +17,13 @@ fun projectPhonePrivacy(
     val relation = relationships.firstOrNull {
         setOf(it.fromCharacterId, it.toCharacterId) == setOf("user", characterId)
     }
+    val unresolvedConflict = romanceRecord?.takeIf {
+        profile.relationship.romanceEnabled && it.characterId == characterId
+    }
+        ?.recentConflict?.let { it.resolvedAtEpochMs == null } == true
+    if (relation?.stage == RelationshipStage.STRAINED || unresolvedConflict) {
+        return PhonePrivacyLevel.RECENT
+    }
     if (profile.relationship.romanceEnabled && romanceRecord?.characterId == characterId) {
         return when (RomanceReducer.stage(romanceRecord, profile)) {
             RomanceStage.STRANGER -> PhonePrivacyLevel.RECENT

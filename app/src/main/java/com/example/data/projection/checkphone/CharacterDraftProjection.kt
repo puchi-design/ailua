@@ -13,6 +13,7 @@ fun projectCharacterDrafts(
     worldPlan: WorldPlan?,
     combined: CheckPhoneData,
     seedEventIds: Set<String> = MockData.unifiedLifeEvents.mapTo(HashSet()) { it.id },
+    firedActionIds: Set<String> = emptySet(),
 ): List<CharacterDraft> {
     val runtime = eligiblePhoneEvents(characterId, events, seedEventIds).mapNotNull { event ->
         event.metadata["draft"]?.trim()?.takeIf(String::isNotEmpty)?.let { text ->
@@ -22,7 +23,9 @@ fun projectCharacterDrafts(
     }
     // The future action is already stored in WorldPlan. Its explicit draft metadata is a
     // character's unsent text, even though the public LifeEvent has not fired yet.
-    val planned = worldPlan?.actions.orEmpty().filter { it.characterId == characterId }
+    val planned = worldPlan?.actions.orEmpty().filter {
+        it.characterId == characterId && it.id !in firedActionIds
+    }
         .mapNotNull { action ->
             action.metadata["draft"]?.trim()?.takeIf(String::isNotEmpty)?.let { text ->
                 CharacterDraft("plan-draft:${action.id}", characterId, text,

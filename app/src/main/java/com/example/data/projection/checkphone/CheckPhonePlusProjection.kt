@@ -45,7 +45,8 @@ fun projectCheckPhonePlus(
     val base = projectCheckPhone(characterId, events, seedEventIds, effectiveSeed)
     val runtime = eligiblePhoneEvents(characterId, events, seedEventIds)
     val searches = projectCharacterSearchHistory(characterId, events, base, seedEventIds, profile, clock)
-    val drafts = projectCharacterDrafts(characterId, events, worldPlan, base, seedEventIds)
+    val drafts = projectCharacterDrafts(characterId, events, worldPlan, base, seedEventIds,
+        firedActionIds)
 
     val runtimeNotes = runtime.mapNotNull { event ->
         event.metadata["note"]?.trim()?.takeIf(String::isNotEmpty)?.let { text ->

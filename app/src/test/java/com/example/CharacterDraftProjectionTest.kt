@@ -40,6 +40,8 @@ class CharacterDraftProjectionTest {
         val drafts = projectCharacterDrafts("hewenchuan", emptyList(), plan, EMPTY_CHECK_PHONE_DATA)
         assertEquals("早点休息。", drafts.single().text)
         assertEquals(PhoneTraceSource.WORLD_PLAN, drafts.single().source)
+        assertTrue(projectCharacterDrafts("hewenchuan", emptyList(), plan, EMPTY_CHECK_PHONE_DATA,
+            firedActionIds = setOf(action.id)).isEmpty())
     }
 
     @Test fun userActivityAndOtherCharacterDraftsNeverLeak() {

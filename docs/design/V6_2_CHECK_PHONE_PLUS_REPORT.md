@@ -9,6 +9,7 @@
 - 查手机首页改为七个可打开分区：搜索、未发草稿、照片、通话、音乐、角色备忘和虚拟 App 使用记录。特殊关系阶段还可看已有的浏览和收藏记录。点击照片会定位到原相册中的该张照片，并将相册限定在该角色；角色通话留在当前角色的只读列表。
 - 所有分区使用现有 `AiluaScreenScaffold`、`AiluaSectionHeader` 和 `LocalAiluaTheme`。没有播放器、发送草稿、真实 Android 使用统计或用户 Memo 内容。
 - 六位官方角色各自保留原稳定 ID，并把原先相同的占位未发草稿改为六条符合各自人设的初始内容；已有角色数据、聊天和旧存档未迁移。
+- 已保存的世界计划动作一旦进入现有 `firedActionIds`，其计划草稿不再冒充“未发送”；由真实事件留下的草稿仍照常读取。
 
 ## 数据来源与持久化
 
@@ -24,19 +25,20 @@
 
 ## 隐私
 
-`projectPhonePrivacy` 只读取已有的 `RomanceReducer.stage` 或 `RelationshipState.stage`，不新增好感阈值。初识可看搜索和使用记录；熟悉可看照片、通话、音乐；亲近可看草稿和备忘；更深关系可看已有的浏览和收藏。紧张关系回落到基础可见范围。角色手机的阅读行为不会进入聊天、世界计划或主动联系的角色 AI Prompt。
+`projectPhonePrivacy` 只读取已有的 `RomanceReducer.stage`、`RelationshipState.stage` 与未解决冲突记录，不新增好感阈值。初识可看搜索和使用记录；熟悉可看照片、通话、音乐；亲近可看草稿和备忘；更深关系可看已有的浏览和收藏。关系进入 `STRAINED` 或恋爱冲突未解决时回落到基础可见范围，避免高恋爱阶段覆盖隐私锁；冲突解决后按当前关系阶段重新投影。角色手机的阅读行为不会进入聊天、世界计划或主动联系的角色 AI Prompt。
 
 ## 验证
 
-- `CheckPhoneProjectionTest`、`CheckPhonePlusProjectionTest`、`CharacterDraftProjectionTest`、`SearchHistoryProjectionTest`、`CheckPhoneVisibilityTest` 定向运行：**28/28 通过**。覆盖角色隔离、官方/导入卡种子、世界事件变更、持久化重投影、计划草稿与备忘、真实相册和通话复用、关系阶段与隐私锁。
+- `CheckPhoneProjectionTest`、`CheckPhonePlusProjectionTest`、`CharacterDraftProjectionTest`、`SearchHistoryProjectionTest`、`CheckPhoneVisibilityTest` 定向运行通过。覆盖角色隔离、官方/导入卡种子、世界事件变更、持久化重投影、计划草稿与备忘、真实相册和通话复用、关系阶段与隐私锁；新增已执行动作草稿消失、紧张关系与未解决恋爱冲突重新上锁的断言。
 - 首轮编译曾被并行施工中的 SQLDelight 富消息字段不一致阻断；富消息代码补齐后，最终定向测试编译与执行通过。
-- 最终全量 `:app:testDebugUnitTest`：**697/697 通过**；Debug APK 和 AndroidTest APK 构建成功，`git diff --check` 通过。AndroidTest APK 含 Android 10 两角色界面与临时 QA 数据清理用例。
+- 最新全量 `:app:testDebugUnitTest`：**699/699 通过**；Debug APK 和 AndroidTest APK 构建成功，`git diff --check` 通过。AndroidTest APK 含 Android 10 两角色界面与临时 QA 数据清理用例。
 
 ## Android 10 真机验收
 
 - 设备：小米 M2007J22C，Android 10 / API 29。`adb install -r` 覆盖安装通过；未清理用户数据。手工打开贺闻川、许朝颜和苏晚宁的手机，三人的搜索内容各不相同。许朝颜搜索详情显示摄影、展览与公寓附近晚餐等条目；使用记录显示实际角色事件投影。截图在 `dist/qa/V6.1-V6.2/checkphone-he.png`、`checkphone-he-search.png`、`checkphone-xu.png`、`checkphone-xu-search.png`、`checkphone-xu-usage.png`。
 - 当前关系阶段下，草稿、照片、通话、音乐和备忘显示锁与“暂时无法查看”，没有泄漏内容；`checkphone-drafts-locked.png` 和 `instrumented-checkphone-xu-drafts.png` 留证。贺闻川与许朝颜的受控 Compose 真机界面用例通过，截图为 `instrumented-checkphone-he.png`、`instrumented-checkphone-xu.png`。
 - 强制停止 AILUA 后重新启动，许朝颜仍是当前角色，搜索摘要和隐私状态均恢复，见 `checkphone-restart-xu.png`。测试后已通过 UI 将主屏角色恢复成原来的苏晚宁，手机 USB 常亮设置恢复原值 `0`。最终 `adb logcat` 未见 AILUA 的 `FATAL EXCEPTION`。
+- 本次修复覆盖安装后，贺闻川与许朝颜的受控 Compose 界面用例再次通过；已执行草稿与冲突隐私的状态切换由离线投影测试验证。设备上 APK SHA-256 与 `dist/AILUA-V6.1-V6.2-debug.apk` 一致：`1bab14b85c114d6ac1f25590e8bb0a146cfca16685bdc512c431d33e114e0054`。
 - 已锁分区的照片跳转、通话、备忘内容无法在当前用户关系阶段做真机可见性验收；投影与分区逻辑由离线测试覆盖。当前没有新的角色照片或通话事实时，相应页面不制造样本充数。
 
 ## 已知界限

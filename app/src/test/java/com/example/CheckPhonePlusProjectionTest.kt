@@ -85,17 +85,20 @@ class CheckPhonePlusProjectionTest {
         val profile = CharacterRuntimeResolver.fromExtension(AiluaCharacterExtension(), id, "贺闻川")
         val action = PlannedWorldAction("work-1", id, "10月5日", 900,
             lifeEventType = LifeEventType.THOUGHT, title = "寄送木样", description = "寄给客户",
-            location = "工作室", metadata = mapOf("note" to "寄送木样"))
+            location = "工作室", metadata = mapOf(
+                "note" to "寄送木样", "draft" to "想问你今晚有没有空。"))
         val snapshot = projectCheckPhonePlus(id, emptyList(), profile,
             worldPlan = WorldPlan("10月5日", 800, listOf(action)),
             seedData = EMPTY_CHECK_PHONE_DATA)
         assertEquals("寄送木样", snapshot.notes.single().text)
+        assertEquals("想问你今晚有没有空。", snapshot.drafts.single().text)
         assertTrue(snapshot.notes.single().planned)
         assertEquals(PhoneTraceSource.WORLD_PLAN, snapshot.notes.single().source)
         val afterFiring = projectCheckPhonePlus(id, emptyList(), profile,
             worldPlan = WorldPlan("10月5日", 800, listOf(action)),
             seedData = EMPTY_CHECK_PHONE_DATA, firedActionIds = setOf(action.id))
         assertTrue(afterFiring.notes.isEmpty())
+        assertTrue(afterFiring.drafts.isEmpty())
         val ordinaryActivity = action.copy(metadata = emptyMap())
         assertTrue(projectCheckPhonePlus(id, emptyList(), profile,
             worldPlan = WorldPlan("10月5日", 800, listOf(ordinaryActivity)),

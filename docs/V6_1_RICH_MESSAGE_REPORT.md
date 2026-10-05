@@ -16,7 +16,7 @@
 
 ## 已验证
 
-- `:app:testDebugUnitTest` 离线全量通过：**697/697 单测**，Debug APK 与 AndroidTest APK 构建成功。
+- `:app:testDebugUnitTest` 离线全量通过：**699/699 单测**，Debug APK 与 AndroidTest APK 构建成功。
 - `RichMessageParserTest`、`RichMessagePersistenceTest`、`RichMessageStateTransitionTest`、`RichMessagePromptHistoryTest`、`RichMessageEvidenceTest`、`ChatMigrationTest` 专项通过。测试覆盖 v8→v9 迁移、文件数据库关闭重开、非法指令、生成结果入库、打开/接受/退回、重复点击、跨会话引用隔离、隐藏手机查看记录，以及完成状态进入下一轮 Provider 请求。
 - Android 10 小米 M2007J22C 上 `adb install -r` 覆盖安装成功并启动到 AILUA 虚拟锁屏和桌面；没有清除用户数据。真机仪表用例 `richCardsQuoteAndPersistedActionsUseOnlyTemporaryQaSession` 通过：普通文字和纯红包卡片均能长按引用，红包打开、转账退回、位置回调、表情渲染、重开 SQL 驱动后的状态与引用均核对成功。卡片引用截图见 `dist/qa/V6.1-V6.2/rich-quote-card.png`；其它截图见同目录的 `instrumented-rich-cards.png` 和 `instrumented-rich-reopened.png`。
 - 独立跨进程用例先在唯一 `qa_v61_*` 会话中写入红包 `OPENED`、转账 `ACCEPTED` 和引用关系，再执行 `am force-stop`、启动 AILUA，由新仪表进程打开同一磁盘数据库复核，全部通过。`V61QaCleanupTest` 随后通过，临时会话已删除；原角色和用户记录未改写。
@@ -28,4 +28,4 @@
 - UI 用例使用 Debug 专用隔离 Activity 和合成角色会话，避免 MIUI 阻止仪表框架启动 Activity；生产 Release 不包含该 Activity。该 Activity 的截图包含 Android 原生状态栏和导航栏，不能作为正式 App 的边缘视觉验收图。位置卡片被「回到最新消息」浮层遮住中心时，测试改点卡片未遮挡区域，回调通过。这是测试点击坐标问题，不是位置卡片解析失败。
 - 跨进程用例直接通过现有 `ChatRepository` 写入受控富消息，验证真实磁盘与进程重启；真实用户聊天 Provider 未配置，因此不能宣称模型会自然发出红包、转账等指令，也未将模拟会话写入用户的正式角色聊天。
 - Android 10 最终真机用例：Rich UI 1/1、Check Phone UI 1/1、跨进程准备和验证各 1/1、清理 1/1。最终 `adb logcat` 未见 AILUA 的 `FATAL EXCEPTION`。测试前手机的 USB 常亮设置为 `0`，结束时已恢复为 `0`。
-- 交付 Debug APK：`dist/AILUA-V6.1-V6.2-debug.apk`，SHA-256 `dd40131281928b166bff981da747d1a5f50bbe5e067d65c35771f19630460a8a`；设备上已装 APK 的 SHA-256 完全一致。Debug QA Activity 仅接受持有 `android.permission.DUMP` 的启动方，Release 不包含它。
+- 交付 Debug APK：`dist/AILUA-V6.1-V6.2-debug.apk`，SHA-256 `1bab14b85c114d6ac1f25590e8bb0a146cfca16685bdc512c431d33e114e0054`；设备上已装 APK 的 SHA-256 完全一致。Debug QA Activity 仅接受持有 `android.permission.DUMP` 的启动方，Release 不包含它。

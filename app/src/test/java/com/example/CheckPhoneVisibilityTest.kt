@@ -9,6 +9,7 @@ import com.example.data.projection.checkphone.projectPhonePrivacy
 import com.example.data.relationship.model.RelationshipStage
 import com.example.data.relationship.model.RelationshipState
 import com.example.data.relationship.romance.RomanceRecord
+import com.example.data.relationship.romance.RomanceConflict
 import com.example.data.relationship.romance.RomanceState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -69,5 +70,32 @@ class CheckPhoneVisibilityTest {
         val snapshot = phone(projectPhonePrivacy("hewenchuan", romanceProfile, emptyList(), record))
         assertEquals(PhonePrivacyLevel.CLOSE, snapshot.privacy)
         assertTrue(snapshot.canSee(PhoneSection.DRAFTS))
+    }
+
+    @Test fun strainedRelationshipOverridesAdvancedRomancePrivacy() {
+        val romanceProfile = friendship.copy(characterId = "hewenchuan",
+            relationship = friendship.relationship.copy(routeType = "romance"))
+        val record = RomanceRecord("hewenchuan", state = RomanceState(
+            familiarity = .9f, trust = .9f, attraction = .8f, intimacy = .85f),
+            romanticConfirmedAtEpochMs = 100, commitmentConfirmedAtEpochMs = 200)
+        val strained = RelationshipState("hewenchuan", "user", stage = RelationshipStage.STRAINED)
+        val snapshot = phone(projectPhonePrivacy("hewenchuan", romanceProfile,
+            listOf(strained), record))
+        assertEquals(PhonePrivacyLevel.RECENT, snapshot.privacy)
+        assertFalse(snapshot.canSee(PhoneSection.DRAFTS))
+    }
+
+    @Test fun unresolvedRomanceConflictTemporarilyClosesPrivateSections() {
+        val romanceProfile = friendship.copy(characterId = "hewenchuan",
+            relationship = friendship.relationship.copy(routeType = "romance"))
+        val record = RomanceRecord("hewenchuan", state = RomanceState(
+            familiarity = .9f, trust = .9f, attraction = .8f, intimacy = .85f),
+            romanticConfirmedAtEpochMs = 100, commitmentConfirmedAtEpochMs = 200,
+            recentConflict = RomanceConflict("conflict-1", occurredAtEpochMs = 300))
+        assertEquals(PhonePrivacyLevel.RECENT,
+            projectPhonePrivacy("hewenchuan", romanceProfile, emptyList(), record))
+        assertEquals(PhonePrivacyLevel.PRIVATE,
+            projectPhonePrivacy("hewenchuan", romanceProfile, emptyList(),
+                record.copy(recentConflict = record.recentConflict?.copy(resolvedAtEpochMs = 400))))
     }
 }
