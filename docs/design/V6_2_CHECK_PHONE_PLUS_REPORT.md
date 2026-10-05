@@ -38,7 +38,7 @@
 - 设备：小米 M2007J22C，Android 10 / API 29。`adb install -r` 覆盖安装通过；未清理用户数据。手工打开贺闻川、许朝颜和苏晚宁的手机，三人的搜索内容各不相同。许朝颜搜索详情显示摄影、展览与公寓附近晚餐等条目；使用记录显示实际角色事件投影。截图在 `dist/qa/V6.1-V6.2/checkphone-he.png`、`checkphone-he-search.png`、`checkphone-xu.png`、`checkphone-xu-search.png`、`checkphone-xu-usage.png`。
 - 当前关系阶段下，草稿、照片、通话、音乐和备忘显示锁与“暂时无法查看”，没有泄漏内容；`checkphone-drafts-locked.png` 和 `instrumented-checkphone-xu-drafts.png` 留证。贺闻川与许朝颜的受控 Compose 真机界面用例通过，截图为 `instrumented-checkphone-he.png`、`instrumented-checkphone-xu.png`。
 - 强制停止 AILUA 后重新启动，许朝颜仍是当前角色，搜索摘要和隐私状态均恢复，见 `checkphone-restart-xu.png`。测试后已通过 UI 将主屏角色恢复成原来的苏晚宁，手机 USB 常亮设置恢复原值 `0`。最终 `adb logcat` 未见 AILUA 的 `FATAL EXCEPTION`。
-- 贺闻川与许朝颜的受控 Compose 界面用例在上一包通过；本次只改富消息损坏 JSON 的正文回退，Check Phone UI 未重复执行。设备上 APK SHA-256 与 `dist/AILUA-V6.1-V6.2-debug.apk` 一致：`a9ada2c15a350536b166a04db86432ce4dd406a477f3d76f3df714508ff0db28`。
+- 最新包在 Android 10 上重新执行贺闻川与许朝颜的受控 Compose 界面用例，通过 **1/1**；富消息与草稿回退用例也通过 **2/2**。设备上 APK SHA-256 与 `dist/AILUA-V6.1-V6.2-debug.apk` 一致：`03bb57fd8b7361fccf343e102f290e05b35197a697196eb9813ee759c5b0e995`。
 - 已锁分区的照片跳转、通话、备忘内容无法在当前用户关系阶段做真机可见性验收；投影与分区逻辑由离线测试覆盖。当前没有新的角色照片或通话事实时，相应页面不制造样本充数。
 
 ## 已知界限

@@ -26,6 +26,7 @@
 - 新增损坏 JSON 回归：有正文的历史消息保留原文显示；无正文的纯卡片消息显示占位。手机当前没有 `ailua_ai_provider_store` 配置文件，真实模型自然生成验收仍未执行。
 - Android 10 小米 M2007J22C 上 `adb install -r` 覆盖安装成功并启动到 AILUA 虚拟锁屏和桌面；没有清除用户数据。真机仪表用例 `richCardsQuoteAndPersistedActionsUseOnlyTemporaryQaSession` 通过：普通文字和纯红包卡片均能长按引用，红包打开、转账退回、位置回调、表情渲染、重开 SQL 驱动后的状态与引用均核对成功。卡片引用截图见 `dist/qa/V6.1-V6.2/rich-quote-card.png`；其它截图见同目录的 `instrumented-rich-cards.png` 和 `instrumented-rich-reopened.png`。
 - 位置卡片的真机用例现继续打开既有 `WorldPlacesScreen`，确认“青石街23号”被选中且对应地点详情实际展开；截图为 `dist/qa/V6.1-V6.2/rich-location-map.png`。生产导航由 `MainActivity` 的 `worldMapLocationRoute` 传递同一地点名；隔离 QA Activity 不覆盖完整 `NavController` 栈。
+- 修复发送前置检查失败时草稿与引用被提前清空：`NotConfigured` 或 `NoCharacter` 没有写入用户消息，界面现在恢复原输入及所选引用；已写入消息后的生成失败仍由现有持久化链路处理。Android 10 独立 QA 用例确认输入、引用都保留，且 SQL 会话没有新增用户消息；关闭 AI 连接面板后再次确认引用横幅实际可见，截图为 `dist/qa/V6.1-V6.2/rich-send-draft-restored.png`。
 - 独立跨进程用例先在唯一 `qa_v61_*` 会话中写入红包 `OPENED`、转账 `ACCEPTED` 和引用关系，再执行 `am force-stop`、启动 AILUA，由新仪表进程打开同一磁盘数据库复核，全部通过。`V61QaCleanupTest` 随后通过，临时会话已删除；原角色和用户记录未改写。
 - 真机截图暴露 Android 10 不支持原「偷看」及「抱抱」所用的新 Unicode 表情；已换为 Android 10 可正常显示的字符，并重新装包截图确认。
 - `git diff --check` 通过。
@@ -34,5 +35,5 @@
 
 - UI 用例使用 Debug 专用隔离 Activity 和合成角色会话，避免 MIUI 阻止仪表框架启动 Activity；生产 Release 不包含该 Activity。该 Activity 的截图包含 Android 原生状态栏和导航栏，不能作为正式 App 的边缘视觉验收图。位置卡片被「回到最新消息」浮层遮住中心时，测试改点卡片未遮挡区域，回调通过。这是测试点击坐标问题，不是位置卡片解析失败。
 - 跨进程用例直接通过现有 `ChatRepository` 写入受控富消息，验证真实磁盘与进程重启；真实用户聊天 Provider 未配置，因此不能宣称模型会自然发出红包、转账等指令，也未将模拟会话写入用户的正式角色聊天。
-- Android 10 最终真机用例：Rich UI 1/1、Check Phone UI 1/1、跨进程准备和验证各 1/1、清理 1/1。最终 `adb logcat` 未见 AILUA 的 `FATAL EXCEPTION`。测试前手机的 USB 常亮设置为 `0`，结束时已恢复为 `0`。
-- 最新 APK 覆盖安装后 AILUA 正常启动，Rich UI 真机用例 **1/1**、QA 清理 **1/1** 通过；此前同一功能阶段的 Check Phone UI 用例 **1/1** 已通过，本次未重复执行。交付 Debug APK：`dist/AILUA-V6.1-V6.2-debug.apk`，SHA-256 `a9ada2c15a350536b166a04db86432ce4dd406a477f3d76f3df714508ff0db28`；设备上已装 APK 的 SHA-256 完全一致。Debug QA Activity 仅接受持有 `android.permission.DUMP` 的启动方，Release 不包含它。
+- Android 10 真机用例：本次最新包的草稿回退、Rich UI、Check Phone UI **3/3**，QA 清理 **1/1**；此前跨进程准备和验证各 **1/1**。`AndroidRuntime` 日志里只有 10 月 3 日的旧异常记录，本次 10 月 6 日测试未见新的 `FATAL EXCEPTION`。测试前手机的 USB 常亮设置为 `0`，结束时已恢复为 `0`。
+- 最新 APK 覆盖安装后 AILUA 正常启动，交付 Debug APK：`dist/AILUA-V6.1-V6.2-debug.apk`，SHA-256 `03bb57fd8b7361fccf343e102f290e05b35197a697196eb9813ee759c5b0e995`；设备上已装 APK 的 SHA-256 完全一致。Debug QA Activity 仅接受持有 `android.permission.DUMP` 的启动方，Release 不包含它。

@@ -156,12 +156,22 @@ class ChatViewModel(
         }
     }
 
-    fun send(userText: String, quoteMessageId: String? = null, quotePreview: String? = null) {
+    fun send(
+        userText: String,
+        quoteMessageId: String? = null,
+        quotePreview: String? = null,
+        onPreflightRejected: () -> Unit = {},
+    ) {
         if (userText.isBlank()) return
         if (generationJob?.isActive == true) return
         lastUserText = userText
         generationJob = viewModelScope.launch {
-            handleResult(runtime.send(characterId, userText, quoteMessageId, quotePreview))
+            val result = runtime.send(characterId, userText, quoteMessageId, quotePreview)
+            if (result == SendResult.NotConfigured || result == SendResult.NoCharacter) {
+                lastUserText = null
+                onPreflightRejected()
+            }
+            handleResult(result)
         }
     }
 

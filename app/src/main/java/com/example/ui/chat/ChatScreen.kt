@@ -109,12 +109,17 @@ fun ChatScreen(
 
     fun sendReply(text: String) {
         if (text.isBlank() || uiState.isGenerating) return
+        val sentText = text.trim()
         val quote = quotedMessage
         quotedMessage = null
         viewModel.send(
-            userText = text.trim(),
+            userText = sentText,
             quoteMessageId = quote?.id,
             quotePreview = quote?.quotablePreview(),
+            onPreflightRejected = {
+                if (inputText.isBlank()) inputText = sentText
+                if (quotedMessage == null) quotedMessage = quote
+            },
         )
     }
 

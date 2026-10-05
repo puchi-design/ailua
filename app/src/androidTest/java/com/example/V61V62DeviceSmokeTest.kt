@@ -7,9 +7,11 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -17,13 +19,16 @@ import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
+import androidx.test.espresso.Espresso
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
 import androidx.test.platform.app.InstrumentationRegistry
@@ -83,6 +88,63 @@ class V61V62DeviceSmokeTest {
     private val context get() = instrumentation.targetContext
     private val output get() = File(checkNotNull(context.getExternalFilesDir(null)), "qa/V6.1-V6.2")
         .apply { mkdirs() }
+
+    @Test
+    fun rejectedSendRestoresDraftAndQuoteWithoutWritingUserTurn() {
+        ready()
+        val qaId = "qa_v61_${UUID.randomUUID().toString().replace('-', '_')}"
+        val character = CharacterProfile(
+            id = qaId, name = "QA 角色", englishName = "QA", title = "真机验证",
+            bio = "仅用于本次测试", currentActivity = "测试中", mood = "平静",
+            location = "青石街23号", contextualQuote = "早点睡。", avatarId = "hewenchuan",
+        )
+        val chat: ChatRepository = SqlDelightChatRepository(MemoryGraph.database, UuidIdGenerator(), SystemEpochClock())
+        val session = chat.getOrCreatePrivateSession(qaId)
+        try {
+            val original = chat.appendAssistantTurn(session.id, "［QA］早点睡。", status = VariantStatus.COMPLETE)
+            showFixture { ChatScreen(character = character) }
+            waitForTag("chat_screen")
+            scrollToMessage(original.id)
+            compose.onNode(hasText("［QA］早点睡。") and
+                hasAnyAncestor(hasTestTag("chat_message_${original.id}")), useUnmergedTree = true)
+                .performTouchInput { longClick() }
+            compose.onNodeWithText("引用").performClick()
+            waitForTag("chat_quote_composer")
+
+            val draft = "［QA］你自己也没睡。"
+            compose.onNodeWithTag("chat_text_input").performTextInput(draft)
+            compose.onNodeWithTag("chat_send_btn").performClick()
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithTag("chat_text_input", useUnmergedTree = true)
+                    .fetchSemanticsNodes().any {
+                        it.config.getOrNull(SemanticsProperties.EditableText)?.text == draft
+                    }
+            }
+            compose.onNodeWithTag("chat_text_input", useUnmergedTree = true).assertTextEquals(draft)
+            assertTrue(compose.onAllNodesWithTag("chat_quote_composer", useUnmergedTree = true)
+                .fetchSemanticsNodes().isNotEmpty())
+            assertEquals(listOf(original.id), chat.getResolvedTurns(session.id).map { it.id })
+            repeat(3) {
+                if (compose.onAllNodesWithText("AI 连接").fetchSemanticsNodes().isNotEmpty()) {
+                    Espresso.pressBack()
+                    compose.waitForIdle()
+                }
+            }
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithText("AI 连接", useUnmergedTree = true).fetchSemanticsNodes().isEmpty() &&
+                    compose.onAllNodesWithText("请先配置 AI 连接", useUnmergedTree = true)
+                        .fetchSemanticsNodes().isEmpty()
+            }
+            waitForTag("chat_quote_composer")
+            compose.onNodeWithTag("chat_text_input", useUnmergedTree = true).assertTextEquals(draft)
+            capture("rich-send-draft-restored.png")
+        } finally {
+            compose.runOnUiThread { host.setContent {} }
+            compose.waitForIdle()
+            chat.clearSession(session.id)
+            assertNull("Only the dedicated QA session may be removed", chat.getSession(session.id))
+        }
+    }
 
     @Test
     fun richCardsQuoteAndPersistedActionsUseOnlyTemporaryQaSession() {
