@@ -170,6 +170,9 @@ class V61V62DeviceSmokeTest {
             val transfer = richTurn(chat, session.id, RichMessagePayload(
                 RichMessageType.TRANSFER, label = "今天辛苦了", amount = 18.0,
                 currency = "¥", status = RichMessageStatus.PENDING))
+            val acceptedTransfer = richTurn(chat, session.id, RichMessagePayload(
+                RichMessageType.TRANSFER, label = "回家的车费", amount = 12.0,
+                currency = "¥", status = RichMessageStatus.PENDING))
             val location = richTurn(chat, session.id, RichMessagePayload(
                 RichMessageType.LOCATION, label = "青石街23号", locationName = "青石街23号"))
             val sticker = richTurn(chat, session.id, RichMessagePayload(
@@ -206,10 +209,19 @@ class V61V62DeviceSmokeTest {
             compose.onNodeWithTag("chat_quote_clear").performClick()
 
             scrollToMessage(transfer.id)
-            compose.onNodeWithTag("rich_transfer_decline_0", useUnmergedTree = true).performClick()
+            compose.onNode(hasTestTag("rich_transfer_decline_0") and
+                hasAnyAncestor(hasTestTag("chat_message_${transfer.id}")), useUnmergedTree = true)
+                .performClick()
             compose.waitUntil(10_000) { richStatus(chat, session.id, transfer.id) == RichMessageStatus.DECLINED }
+            scrollToMessage(acceptedTransfer.id)
+            compose.onNode(hasTestTag("rich_transfer_accept_0") and
+                hasAnyAncestor(hasTestTag("chat_message_${acceptedTransfer.id}")), useUnmergedTree = true)
+                .performClick()
             compose.waitUntil(10_000) {
-                AiluaLocalStore.savedWorldEvents.value.count { it.characterId == qaId && it.id.startsWith("rich_") } >= 2
+                richStatus(chat, session.id, acceptedTransfer.id) == RichMessageStatus.ACCEPTED
+            }
+            compose.waitUntil(10_000) {
+                AiluaLocalStore.savedWorldEvents.value.count { it.characterId == qaId && it.id.startsWith("rich_") } >= 3
             }
 
             scrollToMessage(location.id)
@@ -243,6 +255,7 @@ class V61V62DeviceSmokeTest {
                     ChatDatabase(freshDriver), UuidIdGenerator(), SystemEpochClock())
                 assertEquals(RichMessageStatus.OPENED, richStatus(reopened, session.id, red.id))
                 assertEquals(RichMessageStatus.DECLINED, richStatus(reopened, session.id, transfer.id))
+                assertEquals(RichMessageStatus.ACCEPTED, richStatus(reopened, session.id, acceptedTransfer.id))
                 val savedQuote = reopened.getResolvedTurns(session.id).single { it.id == quote.id }
                     .activeVariant
                 assertEquals(original.id, savedQuote?.quoteMessageId)

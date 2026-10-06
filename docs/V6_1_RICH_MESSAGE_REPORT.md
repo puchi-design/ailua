@@ -24,7 +24,7 @@
 - 使用现有 Fake Provider 的生成流程回归用例确认：带中文括号和冒号的模型回复会落库为红包卡片，正文不残留原始指令。这验证协议兼容性，不替代真实 Provider 的自然生成验收。
 - 持久化回归用例注入未知 `PHOTO` 卡片及未来 JSON 字段，确认消息仍可见、同组红包可打开、状态更新后未知 JSON 原样保留；损坏的富消息 JSON 回退为可见占位。
 - 新增损坏 JSON 回归：有正文的历史消息保留原文显示；无正文的纯卡片消息显示占位。手机当前没有 `ailua_ai_provider_store` 配置文件，真实模型自然生成验收仍未执行。
-- Android 10 小米 M2007J22C 上 `adb install -r` 覆盖安装成功并启动到 AILUA 虚拟锁屏和桌面；没有清除用户数据。真机仪表用例 `richCardsQuoteAndPersistedActionsUseOnlyTemporaryQaSession` 通过：普通文字和纯红包卡片均能长按引用，红包打开、转账退回、位置回调、表情渲染、重开 SQL 驱动后的状态与引用均核对成功。卡片引用截图见 `dist/qa/V6.1-V6.2/rich-quote-card.png`；其它截图见同目录的 `instrumented-rich-cards.png` 和 `instrumented-rich-reopened.png`。
+- Android 10 小米 M2007J22C 上 `adb install -r` 覆盖安装成功并启动到 AILUA 虚拟锁屏和桌面；没有清除用户数据。真机仪表用例 `richCardsQuoteAndPersistedActionsUseOnlyTemporaryQaSession` 通过：普通文字和纯红包卡片均能长按引用，红包打开、转账退回及收下、位置回调、表情渲染、重开 SQL 驱动后的状态与引用均核对成功。收下与退回的同屏截图见 `dist/qa/V6.1-V6.2/rich-cards-accepted-transfer.png`，运行结果见 `instrumentation-accepted-transfer.txt`；卡片引用截图见 `rich-quote-card.png`。
 - 位置卡片的真机用例现继续打开既有 `WorldPlacesScreen`，确认“青石街23号”被选中且对应地点详情实际展开；截图为 `dist/qa/V6.1-V6.2/rich-location-map.png`。生产导航由 `MainActivity` 的 `worldMapLocationRoute` 传递同一地点名；隔离 QA Activity 不覆盖完整 `NavController` 栈。
 - 修复发送前置检查失败时草稿与引用被提前清空：`NotConfigured` 或 `NoCharacter` 没有写入用户消息，界面现在恢复原输入及所选引用；已写入消息后的生成失败仍由现有持久化链路处理。Android 10 独立 QA 用例确认输入、引用都保留，且 SQL 会话没有新增用户消息；关闭 AI 连接面板后再次确认引用横幅实际可见，截图为 `dist/qa/V6.1-V6.2/rich-send-draft-restored.png`。
 - 正式聊天界面复核发现气泡旁出现字母头像：`ChatViewModel` 曾把素材 `avatarId` 当成 `senderCharacterId`。现改为稳定角色 ID，只影响界面投影，旧聊天存储行未改写。苏晚宁聊天标题与气泡均已在 Android 10 加载同一正式头像，见 `dist/qa/V6.1-V6.2/chat-portrait-fixed.png`；六人会话列表异步图片加载完成后的截图见 `conversations-loaded.png`。
