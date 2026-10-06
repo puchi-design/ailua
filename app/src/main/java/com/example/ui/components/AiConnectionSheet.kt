@@ -199,19 +199,27 @@ fun AiConnectionSheet(
             }
 
             Text("选择服务商", style = visual.text.caption)
-            ProviderSetup.presets.forEach { preset ->
-                AiluaChip(
-                    selected = name == preset.label,
-                    onClick = {
-                        name = preset.label
-                        baseUrl = preset.url
-                        model = preset.model
-                        statusMessage = null
-                    },
-                    label = preset.label,
-                )
+            Spacer(modifier = Modifier.height(8.dp))
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                ProviderSetup.presets.forEach { preset ->
+                    AiluaChip(
+                        selected = name == preset.label,
+                        onClick = {
+                            name = preset.label
+                            baseUrl = preset.url
+                            model = preset.model
+                            statusMessage = null
+                        },
+                        label = preset.label,
+                    )
+                }
             }
 
+            Spacer(modifier = Modifier.height(10.dp))
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },

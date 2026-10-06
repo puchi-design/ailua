@@ -362,7 +362,7 @@ class ChatViewModel(
             ChatTurnRole.USER -> ChatMessage(
                 id = id,
                 sender = MessageSender.USER,
-                senderCharacterId = character.avatarId,
+                senderCharacterId = character.id,
                 senderName = character.name,
                 type = MessageType.TEXT,
                 text = variant.content,
@@ -375,7 +375,7 @@ class ChatViewModel(
             ChatTurnRole.ASSISTANT -> ChatMessage(
                 id = id,
                 sender = MessageSender.CHARACTER,
-                senderCharacterId = character.avatarId,
+                senderCharacterId = character.id,
                 senderName = character.name,
                 type = MessageType.TEXT,
                 text = variant.content,

@@ -330,7 +330,10 @@ fun ChatScreen(
             }
         }
         SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 100.dp))
-        if (showAiConnection) AiConnectionSheet(onDismiss = { showAiConnection = false })
+        if (showAiConnection) AiConnectionSheet(
+            onDismiss = { showAiConnection = false },
+            onConnected = { showAiConnection = false },
+        )
         if (showProactive) ProactiveSettingsSheet(onDismiss = { showProactive = false })
     }
 }

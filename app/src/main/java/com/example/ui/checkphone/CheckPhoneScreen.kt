@@ -38,6 +38,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -260,7 +262,11 @@ private fun PhoneSectionRow(section: PhoneSection, snapshot: CheckPhonePlusSnaps
     val theme = LocalAiluaTheme.current
     Row(
         Modifier.fillMaxWidth().heightIn(min = 66.dp)
-            .clickable(onClick = onClick).testTag("check_phone_section_${section.name.lowercase()}"),
+            .clickable(onClick = onClick)
+            .then(if (snapshot.canSee(section)) Modifier else Modifier.semantics {
+                stateDescription = "暂时无法查看"
+            })
+            .testTag("check_phone_section_${section.name.lowercase()}"),
         horizontalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
