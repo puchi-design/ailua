@@ -35,5 +35,5 @@
 
 - UI 用例使用 Debug 专用隔离 Activity 和合成角色会话，避免 MIUI 阻止仪表框架启动 Activity；生产 Release 不包含该 Activity。该 Activity 的截图包含 Android 原生状态栏和导航栏，不能作为正式 App 的边缘视觉验收图。位置卡片被「回到最新消息」浮层遮住中心时，测试改点卡片未遮挡区域，回调通过。这是测试点击坐标问题，不是位置卡片解析失败。
 - 跨进程用例直接通过现有 `ChatRepository` 写入受控富消息，验证真实磁盘与进程重启；真实用户聊天 Provider 未配置，因此不能宣称模型会自然发出红包、转账等指令，也未将模拟会话写入用户的正式角色聊天。
-- Android 10 真机用例：本次最新包的草稿回退、Rich UI、Check Phone UI **3/3**，QA 清理 **1/1**；此前跨进程准备和验证各 **1/1**。`AndroidRuntime` 日志里只有 10 月 3 日的旧异常记录，本次 10 月 6 日测试未见新的 `FATAL EXCEPTION`。测试前手机的 USB 常亮设置为 `0`，结束时已恢复为 `0`。
-- 最新 APK 覆盖安装后 AILUA 正常启动，交付 Debug APK：`dist/AILUA-V6.1-V6.2-debug.apk`，SHA-256 `03bb57fd8b7361fccf343e102f290e05b35197a697196eb9813ee759c5b0e995`；设备上已装 APK 的 SHA-256 完全一致。Debug QA Activity 仅接受持有 `android.permission.DUMP` 的启动方，Release 不包含它。
+- Android 10 真机用例：本阶段草稿回退、Rich UI **2/2**，当前最新包的 Check Phone UI **1/1**，QA 清理 **1/1**；此前跨进程准备和验证各 **1/1**。`AndroidRuntime` 日志里只有 10 月 3 日的旧异常记录，10 月 6 日测试未见新的 `FATAL EXCEPTION`。测试前手机的 USB 常亮设置为 `0`，结束时已恢复为 `0`。
+- 最新 APK 覆盖安装后 AILUA 正常启动；本次只调整 V6.2 首页分区呈现，富消息逻辑未变。交付 Debug APK：`dist/AILUA-V6.1-V6.2-debug.apk`，SHA-256 `665f56c48a798dfdc7b0b05a4745d642ced22dc19e77586322a94165dad09cff`；设备上已装 APK 的 SHA-256 完全一致。Debug QA Activity 仅接受持有 `android.permission.DUMP` 的启动方，Release 不包含它。

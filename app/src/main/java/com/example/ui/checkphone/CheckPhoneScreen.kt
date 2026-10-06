@@ -95,6 +95,13 @@ fun CheckPhoneScreen(
         if (section == null) onBackToHome() else section = null
     }
     BackHandler(enabled = section != null) { section = null }
+    val phoneSections = listOf(PhoneSection.SEARCH, PhoneSection.DRAFTS, PhoneSection.PHOTOS,
+        PhoneSection.CALLS, PhoneSection.MUSIC, PhoneSection.NOTES, PhoneSection.USAGE) +
+        if (snapshot.privacy >= PhonePrivacyLevel.PRIVATE) {
+            listOf(PhoneSection.BROWSING, PhoneSection.SAVED)
+        } else emptyList()
+    val visibleSections = phoneSections.filter(snapshot::canSee)
+    val lockedSections = phoneSections.filterNot(snapshot::canSee)
 
     AiluaScreenScaffold(
         title = section?.title ?: "${displayName}的手机",
@@ -112,35 +119,22 @@ fun CheckPhoneScreen(
             verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp),
         ) {
             if (section == null) {
-                item {
-                    Text("最近的生活痕迹", style = theme.text.secondary,
-                        color = theme.palette.onSurfaceMuted,
-                        modifier = Modifier.padding(bottom = theme.layout.itemGap.dp))
-                }
-                item { AiluaSectionHeader("最近") }
-                items(listOf(PhoneSection.SEARCH, PhoneSection.DRAFTS,
-                    PhoneSection.PHOTOS, PhoneSection.CALLS), key = { it.name }) { entry ->
+                item { AiluaSectionHeader("生活痕迹") }
+                items(visibleSections, key = { it.name }) { entry ->
                     PhoneSectionRow(entry, snapshot, onClick = { section = entry })
                 }
-                item {
-                    AiluaSectionHeader("生活", modifier = Modifier.padding(top = theme.layout.sectionGap.dp))
-                }
-                items(listOf(PhoneSection.MUSIC, PhoneSection.NOTES, PhoneSection.USAGE),
-                    key = { it.name }) { entry ->
-                    PhoneSectionRow(entry, snapshot, onClick = { section = entry })
-                }
-                if (snapshot.privacy >= PhonePrivacyLevel.PRIVATE) {
+                if (lockedSections.isNotEmpty()) {
                     item {
-                        AiluaSectionHeader("更多", modifier = Modifier.padding(top = theme.layout.sectionGap.dp))
+                        AiluaSectionHeader("更多记录",
+                            modifier = Modifier.padding(top = theme.layout.sectionGap.dp))
                     }
-                    items(listOf(PhoneSection.BROWSING, PhoneSection.SAVED), key = { it.name }) { entry ->
+                    item {
+                        Text("有些内容只有更熟悉以后才能看到。", style = theme.text.caption,
+                            color = theme.palette.onSurfaceMuted)
+                    }
+                    items(lockedSections, key = { it.name }) { entry ->
                         PhoneSectionRow(entry, snapshot, onClick = { section = entry })
                     }
-                }
-                item {
-                    Text("有些内容只有更熟悉以后才能看到。", style = theme.text.caption,
-                        color = theme.palette.onSurfaceMuted,
-                        modifier = Modifier.padding(top = theme.layout.sectionGap.dp))
                 }
             } else {
                 val current = checkNotNull(section)
@@ -274,9 +268,11 @@ private fun PhoneSectionRow(section: PhoneSection, snapshot: CheckPhonePlusSnaps
             modifier = Modifier.size(22.dp))
         Column(Modifier.weight(1f)) {
             Text(section.title, style = theme.text.body, color = theme.palette.onSurface)
-            Text(snapshot.preview(section), style = theme.text.secondary,
-                color = theme.palette.onSurfaceMuted, maxLines = 1,
-                overflow = TextOverflow.Ellipsis)
+            if (snapshot.canSee(section)) {
+                Text(snapshot.preview(section), style = theme.text.secondary,
+                    color = theme.palette.onSurfaceMuted, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis)
+            }
         }
         Icon(if (snapshot.canSee(section)) Icons.Default.ChevronRight else Icons.Default.Lock,
             contentDescription = null, tint = theme.palette.onSurfaceMuted,
