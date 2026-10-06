@@ -1,6 +1,6 @@
 # AILUA V6.1 Rich Message 实施记录
 
-状态：V6.1 已接入并完成 Android 10 真机受控交互及跨进程持久化验收。真实模型自然生成富消息仍需用户配置聊天 Provider 后验证。
+状态：V6.1 已接入并完成 Android 10 真机受控交互及跨进程持久化验收。同一已获授权的服务凭证经 App 连接测试后，正式聊天中的真实模型已自然生成一张位置卡；其它富消息类型的自然生成尚未逐一验收。
 
 ## 范围
 
@@ -23,12 +23,13 @@
 - `RichMessageParserTest`、`RichMessagePersistenceTest`、`RichMessageStateTransitionTest`、`RichMessagePromptHistoryTest`、`RichMessageEvidenceTest`、`ChatMigrationTest` 专项通过。测试覆盖 v8→v9 迁移、文件数据库关闭重开、非法指令、生成结果入库、打开/接受/退回、重复点击、跨会话引用隔离、隐藏手机查看记录，以及完成状态进入下一轮 Provider 请求。
 - 使用现有 Fake Provider 的生成流程回归用例确认：带中文括号和冒号的模型回复会落库为红包卡片，正文不残留原始指令。这验证协议兼容性，不替代真实 Provider 的自然生成验收。
 - 持久化回归用例注入未知 `PHOTO` 卡片及未来 JSON 字段，确认消息仍可见、同组红包可打开、状态更新后未知 JSON 原样保留；损坏的富消息 JSON 回退为可见占位。
-- 新增损坏 JSON 回归：有正文的历史消息保留原文显示；无正文的纯卡片消息显示占位。手机当前没有 `ailua_ai_provider_store` 配置文件，真实模型自然生成验收仍未执行。
+- 新增损坏 JSON 回归：有正文的历史消息保留原文显示；无正文的纯卡片消息显示占位。
 - Android 10 小米 M2007J22C 上 `adb install -r` 覆盖安装成功并启动到 AILUA 虚拟锁屏和桌面；没有清除用户数据。真机仪表用例 `richCardsQuoteAndPersistedActionsUseOnlyTemporaryQaSession` 通过：普通文字和纯红包卡片均能长按引用，红包打开、转账退回及收下、位置回调、表情渲染、重开 SQL 驱动后的状态与引用均核对成功。收下与退回的同屏截图见 `dist/qa/V6.1-V6.2/rich-cards-accepted-transfer.png`，运行结果见 `instrumentation-accepted-transfer.txt`；卡片引用截图见 `rich-quote-card.png`。
 - 位置卡片的真机用例现继续打开既有 `WorldPlacesScreen`，确认“青石街23号”被选中且对应地点详情实际展开；截图为 `dist/qa/V6.1-V6.2/rich-location-map.png`。生产导航由 `MainActivity` 的 `worldMapLocationRoute` 传递同一地点名；隔离 QA Activity 不覆盖完整 `NavController` 栈。
 - 修复发送前置检查失败时草稿与引用被提前清空：`NotConfigured` 或 `NoCharacter` 没有写入用户消息，界面现在恢复原输入及所选引用；已写入消息后的生成失败仍由现有持久化链路处理。Android 10 独立 QA 用例确认输入、引用都保留，且 SQL 会话没有新增用户消息；关闭 AI 连接面板后再次确认引用横幅实际可见，截图为 `dist/qa/V6.1-V6.2/rich-send-draft-restored.png`。
 - 正式聊天界面复核发现气泡旁出现字母头像：`ChatViewModel` 曾把素材 `avatarId` 当成 `senderCharacterId`。现改为稳定角色 ID，只影响界面投影，旧聊天存储行未改写。苏晚宁聊天标题与气泡均已在 Android 10 加载同一正式头像，见 `dist/qa/V6.1-V6.2/chat-portrait-fixed.png`；六人会话列表异步图片加载完成后的截图见 `conversations-loaded.png`。
-- 首次配置的“AI 连接”面板将四个服务商选项按屏宽换行，避免逐个竖排；真机画面见 `dist/qa/V6.1-V6.2/ai-connection-current.png`。聊天页在连接测试成功回调时收起面板，草稿继续留在输入框；手机尚未配置 Provider，因此成功回调路径只完成代码检查，未宣称真机连接成功。
+- 首次配置的“AI 连接”面板将四个服务商选项按屏宽换行，避免逐个竖排；真机画面见 `dist/qa/V6.1-V6.2/ai-connection-current.png`。聊天页在连接测试成功回调时收起面板，草稿继续留在输入框；连接测试由 Debug 仪表用例通过 App 现有 `ProviderSetup` 与加密存储路径完成，面板自动收起的 UI 回调仍未单独真机验收。
+- 经用户明确授权复用生图凭证，Debug 专用 `V61RealProviderSetupTest` 从一次性 App 私有文件读取密钥、调用 App 的连接测试并写入现有加密存储，随即删除文件；不在仓库、测试参数或报告中记录密钥。`gpt-6-luna` 的连接测试成功，但正式聊天生成显示失败；切换同服务的 `gpt-5.6-luna` 后，贺闻川正式聊天约十几秒得到自然回复及“木间空间工作室”位置卡。正式聊天及位置详情截图分别在 `dist/qa/V6.1-V6.2/real-model-location-chat.png`、`real-model-location-target.png`。位置页随后增加按目标地点滚动的显示修复；该修复随本报告后的提交验证。
 - 独立跨进程用例先在唯一 `qa_v61_*` 会话中写入红包 `OPENED`、转账 `ACCEPTED` 和引用关系，再执行 `am force-stop`、启动 AILUA，由新仪表进程打开同一磁盘数据库复核，全部通过。`V61QaCleanupTest` 随后通过，临时会话已删除；原角色和用户记录未改写。
 - 真机截图暴露 Android 10 不支持原「偷看」及「抱抱」所用的新 Unicode 表情；已换为 Android 10 可正常显示的字符，并重新装包截图确认。
 - `git diff --check` 通过。
@@ -36,6 +37,6 @@
 ## 真机验证范围与限制
 
 - UI 用例使用 Debug 专用隔离 Activity 和合成角色会话，避免 MIUI 阻止仪表框架启动 Activity；生产 Release 不包含该 Activity。该 Activity 的截图包含 Android 原生状态栏和导航栏，不能作为正式 App 的边缘视觉验收图。位置卡片被「回到最新消息」浮层遮住中心时，测试改点卡片未遮挡区域，回调通过。这是测试点击坐标问题，不是位置卡片解析失败。
-- 跨进程用例直接通过现有 `ChatRepository` 写入受控富消息，验证真实磁盘与进程重启；真实用户聊天 Provider 未配置，因此不能宣称模型会自然发出红包、转账等指令，也未将模拟会话写入用户的正式角色聊天。
+- 跨进程用例直接通过现有 `ChatRepository` 写入受控富消息，验证真实磁盘与进程重启。真实 Provider 已自然发出位置卡；不能据此宣称模型会自然发出红包、转账等其它指令。受控模拟会话没有写入用户的正式角色聊天。
 - Android 10 真机用例：本阶段草稿回退、Rich UI **2/2**，当前最新包的 Check Phone UI **1/1**，QA 清理 **1/1**；此前跨进程准备和验证各 **1/1**。`AndroidRuntime` 日志里只有 10 月 3 日的旧异常记录，10 月 6 日测试未见新的 `FATAL EXCEPTION`。测试前手机的 USB 常亮设置为 `0`，结束时已恢复为 `0`。
 - 最新 APK 覆盖安装后 AILUA 正常启动，离线测试 **703/703**、Rich UI／草稿回退／Check Phone UI 真机回归 **3/3**、QA 清理 **1/1** 通过。交付 Debug APK：`dist/AILUA-V6.1-V6.2-debug.apk`，SHA-256 `539a4ead4989185c3f13081dd991570dbbafda8b7dfa62298b8e2465228f31be`；设备上已装 APK 的 SHA-256 完全一致。Debug QA Activity 仅接受持有 `android.permission.DUMP` 的启动方，Release 不包含它。

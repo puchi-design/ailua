@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.ExpandLess
@@ -25,6 +26,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,6 +64,13 @@ fun WorldPlacesScreen(
     var selectedPlace by remember(initialPlaceName) {
         mutableStateOf(matchWorldPlace(places, initialPlaceName))
     }
+    val listState = rememberLazyListState()
+    LaunchedEffect(initialPlaceName) {
+        if (!initialPlaceName.isNullOrBlank()) {
+            val targetIndex = places.indexOfFirst { it.id == selectedPlace?.id }
+            if (targetIndex >= 0) listState.scrollToItem(targetIndex + 1)
+        }
+    }
     val heartbeatState by WorldHeartbeatEngine.heartbeatState.collectAsStateWithLifecycle()
 
     AiluaScreenScaffold(
@@ -79,6 +88,7 @@ fun WorldPlacesScreen(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
+            state = listState,
             contentPadding = PaddingValues(
                 horizontal = theme.layout.screenHorizontalPadding.dp,
                 vertical = theme.layout.itemGap.dp,

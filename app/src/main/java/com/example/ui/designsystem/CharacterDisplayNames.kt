@@ -7,15 +7,22 @@ import com.example.data.registry.CharacterRegistry
 import com.example.data.systemui.notification.NotificationCategory
 import com.example.data.systemui.notification.VirtualNotification
 
-/** Presentation projection for stored author snapshots. Message/body content is never changed. */
+/** Presentation projection for stored snapshots. Original persisted content is never rewritten. */
 object CharacterDisplayNames {
     val officialIds = setOf("hewenchuan", "zhoujianye", "peixubai", "mira", "yuna", "noa")
     private val legacyAuthorIds = mapOf("小弥" to "mira", "Mira" to "mira", "悠奈" to "yuna", "Yuna" to "yuna", "诺亚" to "noa", "Noa" to "noa")
+    private val legacyMentions = mapOf("小弥" to "苏晚宁", "悠奈" to "许朝颜", "诺亚" to "宋知微")
 
     fun project(characterId: String, savedName: String, currentName: String?): String =
         if (characterId in officialIds && !currentName.isNullOrBlank()) currentName else savedName
 
     fun knownLegacyAuthorId(savedName: String): String? = legacyAuthorIds[savedName]
+
+    /** Read-only projection for authored legacy world snapshots; never persist the result. */
+    fun projectLegacyMentions(snapshotText: String): String =
+        legacyMentions.entries.fold(snapshotText) { text, (oldName, publicName) ->
+            text.replace(oldName, publicName)
+        }
 }
 
 @Composable

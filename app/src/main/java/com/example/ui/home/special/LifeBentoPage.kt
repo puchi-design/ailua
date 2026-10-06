@@ -140,11 +140,12 @@ fun LifeBentoPage(
                         Text(event.time, style = theme.text.caption, color = wallpaperSecondary,
                             modifier = Modifier.width(42.dp).padding(top = 3.dp))
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                            Text("${CharacterRegistry.getCharacter(event.characterId).name} · ${event.title}",
+                            Text("${CharacterRegistry.getCharacter(event.characterId).name} · ${com.example.ui.designsystem.CharacterDisplayNames.projectLegacyMentions(event.title)}",
                                 style = theme.text.body, color = wallpaperForeground,
                                 maxLines = 2, overflow = TextOverflow.Ellipsis)
                             if (event.description.isNotBlank() && event.description != event.title) {
-                                Text(event.description, style = theme.text.secondary, color = wallpaperSecondary,
+                                Text(com.example.ui.designsystem.CharacterDisplayNames.projectLegacyMentions(event.description),
+                                    style = theme.text.secondary, color = wallpaperSecondary,
                                     maxLines = 2, overflow = TextOverflow.Ellipsis)
                             }
                         }

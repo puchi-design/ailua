@@ -136,7 +136,8 @@ fun GalleryScreen(
                 ) {
                     items(albums) { album ->
                         val count = if (album == "全部") assets.size else assets.count { it.album == album }
-                        AiluaChip(if (count > 0) "$album $count" else album,
+                        val displayAlbum = com.example.ui.designsystem.CharacterDisplayNames.projectLegacyMentions(album)
+                        AiluaChip(if (count > 0) "$displayAlbum $count" else displayAlbum,
                             selected = selectedAlbum == album, onClick = { selectedAlbum = album })
                     }
                 }
@@ -248,11 +249,16 @@ private fun GalleryDetailDialog(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text("$name · ${asset.createdAtVirtualTime}", style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
-            Text(asset.title, style = theme.text.section, color = theme.palette.onSurface)
-            Text(asset.caption, style = theme.text.body, color = theme.palette.onSurface)
+            val displayTitle = if (asset.type == GalleryAssetType.USER_IMPORTED) asset.title else
+                com.example.ui.designsystem.CharacterDisplayNames.projectLegacyMentions(asset.title)
+            val displayCaption = if (asset.type == GalleryAssetType.USER_IMPORTED) asset.caption else
+                com.example.ui.designsystem.CharacterDisplayNames.projectLegacyMentions(asset.caption)
+            Text(displayTitle, style = theme.text.section, color = theme.palette.onSurface)
+            Text(displayCaption, style = theme.text.body, color = theme.palette.onSurface)
             if (asset.lifeEventId != null) {
                 Text("相关生活事件", style = theme.text.caption, color = theme.palette.onSurfaceMuted)
-                Text(lifeEvent?.let { "${it.time} · ${it.title}" } ?: "已关联生活动态",
+                Text(lifeEvent?.let { "${it.time} · ${com.example.ui.designsystem.CharacterDisplayNames.projectLegacyMentions(it.title)}" }
+                    ?: "已关联生活动态",
                     style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
             }
         }

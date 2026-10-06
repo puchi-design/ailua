@@ -27,6 +27,7 @@ import com.example.data.model.RelationLink
 import com.example.data.registry.CharacterRegistry
 import com.example.data.relationship.repository.RelationshipStateRepository
 import com.example.ui.designsystem.AiluaScreenScaffold
+import com.example.ui.designsystem.CharacterDisplayNames
 import com.example.ui.designsystem.CharacterPortrait
 import com.example.ui.designsystem.publicCharacterName
 import com.example.ui.designsystem.PortraitVariant
@@ -57,8 +58,11 @@ fun RelationsScreen(
                 com.example.data.relationship.model.RelationshipStage.STRAINED -> "紧张"
             },
             closeness = state.affinity,
-            recentInteraction = state.recentInteraction?.let { "$it · ${state.lastMeaningfulInteractionAt ?: state.updatedAt}" } ?: "尚无共同互动",
-            sharedMemory = state.sharedMemory ?: "尚无共同记忆（共 ${state.sharedMemoryCount} 条）",
+            recentInteraction = state.recentInteraction?.let {
+                "${CharacterDisplayNames.projectLegacyMentions(it)} · ${state.lastMeaningfulInteractionAt ?: state.updatedAt}"
+            } ?: "尚无共同互动",
+            sharedMemory = state.sharedMemory?.let(CharacterDisplayNames::projectLegacyMentions)
+                ?: "尚无共同记忆（共 ${state.sharedMemoryCount} 条）",
         )
     }
 

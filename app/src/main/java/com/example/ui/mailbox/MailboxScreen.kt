@@ -152,9 +152,11 @@ private fun LetterCard(letter: Letter, onClick: () -> Unit) {
                 color = if (isUnread) theme.palette.accent else theme.palette.onSurfaceMuted
             )
         }
-        Text(letter.subject, style = theme.text.body, color = theme.palette.onSurface)
+        Text(com.example.ui.designsystem.CharacterDisplayNames.projectLegacyMentions(letter.subject),
+            style = theme.text.body, color = theme.palette.onSurface)
         Text(
-            if (isScheduled) "等待送达" else letter.body.replace("\n", " "),
+            if (isScheduled) "等待送达" else
+                com.example.ui.designsystem.CharacterDisplayNames.projectLegacyMentions(letter.body.replace("\n", " ")),
             style = theme.text.secondary, color = theme.palette.onSurfaceMuted,
             maxLines = 2, overflow = TextOverflow.Ellipsis
         )
@@ -182,12 +184,13 @@ private fun LetterReaderDialog(
                         modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(vertical = theme.layout.sectionGap.dp),
                         verticalArrangement = Arrangement.spacedBy(theme.layout.sectionGap.dp)
                     ) {
-                        Text(letter.subject, style = theme.text.title, color = theme.palette.onSurface)
+                        Text(com.example.ui.designsystem.CharacterDisplayNames.projectLegacyMentions(letter.subject),
+                            style = theme.text.title, color = theme.palette.onSurface)
                         Text("${letter.deliverAtVirtualTimeString} · ${letter.letterType.label}", style = theme.text.caption, color = theme.palette.onSurfaceMuted)
                         Text(
                             if (letter.deliveryState == LetterDeliveryState.SCHEDULED) {
                                 "这封信将在 ${letter.deliverAtVirtualTimeString} 送达。"
-                            } else letter.body,
+                            } else com.example.ui.designsystem.CharacterDisplayNames.projectLegacyMentions(letter.body),
                             style = theme.text.body,
                             color = theme.palette.onSurface
                         )

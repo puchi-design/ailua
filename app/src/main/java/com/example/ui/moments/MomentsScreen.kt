@@ -127,7 +127,9 @@ private fun MomentCard(
             }
             Text(post.timestamp, style = theme.text.caption, color = theme.palette.onSurfaceMuted)
         }
-        Text(post.content, style = theme.text.body, color = theme.palette.onSurface)
+        Text(if (post.authorId in com.example.ui.designsystem.CharacterDisplayNames.officialIds)
+            com.example.ui.designsystem.CharacterDisplayNames.projectLegacyMentions(post.content) else post.content,
+            style = theme.text.body, color = theme.palette.onSurface)
         if (post.imageType.isNotBlank()) MomentVisualCard(post.imageType)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             TextButton(onClick = onToggleLike) {
@@ -147,7 +149,9 @@ private fun MomentCard(
                 post.comments.forEach { comment ->
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         val commentAuthor = if (comment.isUser) comment.author else publicSnapshotAuthorName(comment.author)
-                        Text("$commentAuthor：${comment.content}", style = theme.text.secondary,
+                        val commentContent = if (comment.isUser) comment.content else
+                            com.example.ui.designsystem.CharacterDisplayNames.projectLegacyMentions(comment.content)
+                        Text("$commentAuthor：$commentContent", style = theme.text.secondary,
                             color = theme.palette.onSurfaceMuted, modifier = Modifier.weight(1f))
                         Text(comment.timestamp, style = theme.text.caption, color = theme.palette.onSurfaceMuted)
                     }

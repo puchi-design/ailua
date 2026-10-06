@@ -77,4 +77,11 @@ class CharacterAssetResolverTest {
         assertNull(CharacterDisplayNames.knownLegacyAuthorId("和小弥去喝茶"))
         assertNull(CharacterDisplayNames.knownLegacyAuthorId("我的朋友Mira"))
     }
+
+    @Test fun archivedWorldSnapshotShowsPublicNamesWithoutChangingStoredText() {
+        val stored = "小弥、悠奈、诺亚在「雨夜茶会」聊起天气。"
+        assertEquals("苏晚宁、许朝颜、宋知微在「雨夜茶会」聊起天气。",
+            CharacterDisplayNames.projectLegacyMentions(stored))
+        assertEquals("小弥、悠奈、诺亚在「雨夜茶会」聊起天气。", stored)
+    }
 }

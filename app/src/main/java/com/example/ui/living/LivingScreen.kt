@@ -266,9 +266,11 @@ private fun TimelineEventRow(event: TimelineEvent) {
             modifier = Modifier.width(48.dp)
         )
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(text = event.title, style = theme.text.body, color = theme.palette.onSurface)
+            Text(text = com.example.ui.designsystem.CharacterDisplayNames.projectLegacyMentions(event.title),
+                style = theme.text.body, color = theme.palette.onSurface)
             if (event.description.isNotBlank() && event.description != event.title) {
-                Text(text = event.description, style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
+                Text(text = com.example.ui.designsystem.CharacterDisplayNames.projectLegacyMentions(event.description),
+                    style = theme.text.secondary, color = theme.palette.onSurfaceMuted)
             }
         }
     }

@@ -109,9 +109,11 @@ fun DiaryScreen(
                         verticalArrangement = Arrangement.spacedBy(theme.layout.itemGap.dp)
                     ) {
                         Text(entry.date, style = theme.text.caption, color = theme.palette.onSurfaceMuted)
-                        Text(entry.title, style = theme.text.section, color = theme.palette.onSurface)
+                        Text(com.example.ui.designsystem.CharacterDisplayNames.projectLegacyMentions(entry.title),
+                            style = theme.text.section, color = theme.palette.onSurface)
                         Text(
-                            entry.excerpt.ifBlank { entry.content }, style = theme.text.body,
+                            com.example.ui.designsystem.CharacterDisplayNames.projectLegacyMentions(
+                                entry.excerpt.ifBlank { entry.content }), style = theme.text.body,
                             color = theme.palette.onSurfaceMuted, maxLines = 2, overflow = TextOverflow.Ellipsis
                         )
                         Spacer(Modifier.height(theme.layout.itemGap.dp))
@@ -136,8 +138,10 @@ private fun DiaryReader(entry: DiaryEntry, isLiked: Boolean, onLike: () -> Unit)
             val context = listOf(entry.weather, entry.mood).filter { it.isNotBlank() }.joinToString(" · ")
             if (context.isNotBlank()) Text(context, style = theme.text.caption, color = theme.palette.onSurfaceMuted)
         }
-        Text("《${entry.title}》", style = theme.text.title, color = theme.palette.onSurface)
-        Text(entry.content, style = theme.text.body, color = theme.palette.onSurface)
+        Text("《${com.example.ui.designsystem.CharacterDisplayNames.projectLegacyMentions(entry.title)}》",
+            style = theme.text.title, color = theme.palette.onSurface)
+        Text(com.example.ui.designsystem.CharacterDisplayNames.projectLegacyMentions(entry.content),
+            style = theme.text.body, color = theme.palette.onSurface)
         entry.imageReference?.let {
             AiluaMediaFrame(modifier = Modifier.fillMaxWidth().height(160.dp)) {
                 Column(
