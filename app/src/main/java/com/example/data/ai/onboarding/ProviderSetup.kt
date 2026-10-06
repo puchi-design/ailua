@@ -15,6 +15,7 @@ import java.net.URI
 data class ProviderPreset(val label: String, val url: String, val model: String)
 
 object ProviderSetup {
+    private const val CONNECTION_TEST_TIMEOUT_MS = 45_000L
     val presets = listOf(
         ProviderPreset("OpenAI", "https://api.openai.com/v1", "gpt-4o-mini"),
         ProviderPreset("DeepSeek", "https://api.deepseek.com", "deepseek-flash"),
@@ -49,7 +50,7 @@ object ProviderSetup {
 
     suspend fun test(url: String, model: String, key: String, provider: AiProvider = OpenAiCompatibleProvider(url, key)): String {
         validate(url, model, key.isNotBlank())?.let { return it }
-        val terminal = withTimeoutOrNull(20_000) {
+        val terminal = withTimeoutOrNull(CONNECTION_TEST_TIMEOUT_MS) {
             provider.streamChat(AiChatRequest(model, listOf(AiMessage(AiRole.USER, "请只回复：好")), stream = false, maxTokens = 8))
                 .first { it is AiStreamEvent.Completed || it is AiStreamEvent.Failed || it is AiStreamEvent.Cancelled }
         }

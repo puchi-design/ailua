@@ -383,6 +383,7 @@ private fun sampleWidgetContext(accentThemeId: String = "follow"): WidgetHostCon
         onOpenLiving = {},
         onOpenChat = {},
         onOpenProfile = {},
+        onSwitchCharacter = {},
         onNavigateToMemories = {}
     )
 }

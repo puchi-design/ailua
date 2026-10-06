@@ -14,7 +14,9 @@ import com.example.data.model.LifeEventType
 import org.junit.Assert.*
 import org.junit.Test
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 
 class P5OnboardingTest {
     @Test fun providerValidationRejectsUnsafeOrIncompleteConfiguration() {
@@ -60,6 +62,16 @@ class P5OnboardingTest {
         assertEquals(1, calls)
         assertEquals("请输入 API Key", ProviderSetup.test("https://api.example.com/v1", "model", "", provider))
         assertEquals(1, calls)
+    }
+
+    @Test fun slowButValidConnectionCompletesAfterTwentySeconds() = runTest {
+        val provider = object : AiProvider {
+            override fun streamChat(request: AiChatRequest) = flow {
+                delay(25_000)
+                emit(AiStreamEvent.Completed("好"))
+            }
+        }
+        assertEquals("连接成功", ProviderSetup.test("https://api.example.com/v1", "model", "key", provider))
     }
 
     @Test fun firstContinuationIsARealCharacterOwnedFact() {

@@ -247,7 +247,7 @@ fun AiluaAppRoot() {
         }
     }
 
-    // Active companion: fresh installs use Yan, existing selections keep their identity.
+    // Active companion: fresh installs use He Wenchuan, existing selections keep their identity.
     // resolve through CharacterRegistry, never a hardcoded sample profile
     val selectedCharacterId by CharacterContext.selectedId.collectAsStateWithLifecycle()
     val registeredCharacters by CharacterRegistry.allCards.collectAsStateWithLifecycle()

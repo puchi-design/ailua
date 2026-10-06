@@ -16,10 +16,10 @@ import kotlinx.coroutines.flow.asStateFlow
  * reads the selection here instead of hardcoding Mira.
  *
  * Contract:
- * - new installs start with Yan; existing choices and legacy Mira saves are preserved
+ * - new installs start with He Wenchuan; existing choices and legacy Mira saves are preserved
  * - profiles are always resolved through CharacterRegistry; an unknown ID yields
  *   a profile derived from that ID and NEVER falls back to Mira
- * - selection is programmatic (tests and future companion-switching UI);
+ * - selection changes through explicit Home or profile actions;
  *   opening a chat or profile does not silently change the active companion
  */
 object CharacterContext {

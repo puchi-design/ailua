@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -58,6 +59,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.example.data.engine.WorldHeartbeatEngine
+import com.example.data.context.CharacterContext
 import com.example.data.firstsession.FirstSessionStore
 import com.example.data.projection.projectPresence
 import com.example.data.model.isUserActivity
@@ -180,6 +182,7 @@ fun VirtualHomeScreen(
     val unreadLettersCount = letters.count { it.deliveryState == LetterDeliveryState.DELIVERED && !it.isRead }
     var showDevTimeSheet by remember { mutableStateOf(false) }
     var showThemeSheet by remember { mutableStateOf(false) }
+    var showCharacterSwitcher by remember { mutableStateOf(false) }
     var themeInitialSection by remember { mutableStateOf(ThemeCenterSection.THEMES) }
     var showWidgetPicker by remember { mutableStateOf(false) }
     var showPageManager by remember { mutableStateOf(false) }
@@ -261,6 +264,7 @@ fun VirtualHomeScreen(
         onOpenLiving = if (isEditing) ({}) else onNavigateToLiving,
         onOpenChat = if (isEditing) ({}) else onNavigateToChat,
         onOpenProfile = if (isEditing) ({}) else onOpenProfile,
+        onSwitchCharacter = if (isEditing) ({}) else ({ showCharacterSwitcher = true }),
         onNavigateToMemories = if (isEditing) ({}) else onNavigateToMemories,
     )
 
@@ -550,6 +554,28 @@ fun VirtualHomeScreen(
                 onToggleTheme = onToggleTheme
             )
 
+            Row(
+                modifier = Modifier.fillMaxWidth()
+                    .padding(horizontal = themeRuntime.layout.screenHorizontalPadding.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                Row(
+                    modifier = Modifier.clip(RoundedCornerShape(24.dp))
+                        .background(themeRuntime.widgets.backgroundColor.copy(alpha = 0.44f))
+                        .clickable(enabled = !isEditing) { showCharacterSwitcher = true }
+                        .testTag("home_character_switcher")
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    CharacterPortrait(character.id, PortraitVariant.AVATAR, Modifier.size(24.dp))
+                    Text(character.name, style = themeRuntime.text.caption,
+                        color = themeRuntime.widgets.foregroundColor)
+                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "切换当前角色",
+                        modifier = Modifier.size(16.dp), tint = themeRuntime.widgets.foregroundColor)
+                }
+            }
+
             // Paged Workspace (ARK Launcher Reference: multi-page workspace)
             HorizontalPager(
                 state = pagerState,
@@ -606,6 +632,7 @@ fun VirtualHomeScreen(
                         onNavigateToDiary = onNavigateToDiary,
                         onNavigateToRelations = onNavigateToRelations,
                         onNavigateToLiving = onNavigateToLiving,
+                        onSwitchCharacter = { if (!isEditing) showCharacterSwitcher = true },
                         onAppClick = onAppClick
                     )
                 }
@@ -753,6 +780,15 @@ fun VirtualHomeScreen(
             WorldTimeDevSheet(onDismiss = { showDevTimeSheet = false })
         }
 
+        if (showCharacterSwitcher) CharacterSwitcherSheet(
+            selectedId = character.id,
+            onSelect = { id ->
+                CharacterContext.select(id)
+                showCharacterSwitcher = false
+            },
+            onDismiss = { showCharacterSwitcher = false },
+        )
+
         if (showThemeSheet) {
             ThemeCenterSheet(
                 onDismiss = { showThemeSheet = false },
@@ -872,7 +908,7 @@ internal fun LivingPresenceStrip(
     character: CharacterProfile,
     onOpenChat: () -> Unit,
     onOpenLiving: () -> Unit,
-    onOpenProfile: () -> Unit,
+    onSwitchCharacter: () -> Unit,
     compact: Boolean = false,
 ) {
     val theme = LocalAiluaTheme.current
@@ -896,10 +932,12 @@ internal fun LivingPresenceStrip(
                 characterId = character.id,
                 variant = if (compact) PortraitVariant.AVATAR else PortraitVariant.HERO,
                 modifier = Modifier.size(if (compact) 44.dp else 82.dp),
-                onClick = onOpenProfile,
+                onClick = onSwitchCharacter,
             )
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Text(character.name, style = theme.text.section, color = theme.widgets.foregroundColor,
+                    modifier = Modifier.clickable(onClick = onSwitchCharacter)
+                        .testTag("home_hero_switch_character"),
                     maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 Text(presence.currentActivity,
                     style = theme.text.secondary, color = theme.widgets.foregroundColor,

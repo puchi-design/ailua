@@ -57,6 +57,7 @@ data class WidgetHostContext(
     val onOpenLiving: () -> Unit,
     val onOpenChat: () -> Unit,
     val onOpenProfile: () -> Unit,
+    val onSwitchCharacter: () -> Unit,
     val onNavigateToMemories: () -> Unit
 )
 
@@ -116,7 +117,7 @@ object WidgetRegistry {
             } else {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.CenterStart) {
                     LivingPresenceStrip(context.character, context.onOpenChat,
-                        context.onOpenLiving, context.onOpenProfile, compact = size.spanY == 1)
+                        context.onOpenLiving, context.onSwitchCharacter, compact = size.spanY == 1)
                 }
             }
         },

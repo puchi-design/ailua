@@ -54,6 +54,7 @@ fun LifeBentoPage(
     onNavigateToDiary: () -> Unit,
     onNavigateToRelations: () -> Unit,
     onNavigateToLiving: () -> Unit,
+    onSwitchCharacter: () -> Unit = {},
     onAppClick: (String) -> Unit
 ) {
     val theme = LocalAiluaTheme.current
@@ -97,7 +98,9 @@ fun LifeBentoPage(
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(character.name, style = theme.text.title, color = theme.widgets.foregroundColor)
+                            Text(character.name, style = theme.text.title, color = theme.widgets.foregroundColor,
+                                modifier = Modifier.clickable(onClick = onSwitchCharacter)
+                                    .testTag("life_bento_switch_character"))
                             Text(presence.currentLocation, style = theme.text.caption,
                                 color = theme.widgets.foregroundColor.copy(alpha = 0.78f),
                                 maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -106,7 +109,7 @@ fun LifeBentoPage(
                             characterId = character.id,
                             variant = PortraitVariant.HERO,
                             modifier = Modifier.size(108.dp),
-                            onClick = onNavigateToLiving,
+                            onClick = onSwitchCharacter,
                         )
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
